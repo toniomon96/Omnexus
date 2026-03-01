@@ -97,10 +97,19 @@ export function OnboardingForm() {
       });
 
       if (signUpError) {
-        setSubmitError(signUpError.message);
+        const msg = signUpError.message ?? '';
+        const isExisting = /already registered|already exists|email.*taken/i.test(msg);
+        setSubmitError(
+          isExisting
+            ? 'An account with this email already exists. Please sign in instead.'
+            : msg || 'Account creation failed. Please try again.'
+        );
         setStep(0);
         return;
       }
+      // When email confirmation is ON and the email already exists, Supabase returns
+      // a fake/obfuscated user (no error, but ID won't exist in auth.users).
+      // data.session will also be null in this case — we detect it below.
       if (!data.user) {
         setSubmitError('Account creation failed. Please try again.');
         return;
@@ -146,7 +155,15 @@ export function OnboardingForm() {
       if (!profileRes.ok) {
         const body = await profileRes.json().catch(() => ({})) as { error?: string };
         await supabase.auth.signOut();
-        setSubmitError(body.error ?? 'Profile setup failed. Please try again.');
+        // A 401 "User not found" means the email was already registered and Supabase
+        // returned a fake user ID (email confirmation is ON). Direct the user to sign in.
+        const serverErr = body.error ?? '';
+        setSubmitError(
+          profileRes.status === 401
+            ? 'An account with this email already exists. Please sign in instead.'
+            : serverErr || 'Profile setup failed. Please try again.'
+        );
+        setStep(0);
         return;
       }
 

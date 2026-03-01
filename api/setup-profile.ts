@@ -63,16 +63,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (tokenUser.id !== userId) {
       return res.status(403).json({ error: 'Token user does not match userId' });
     }
-  } else {
-    // Verify the userId actually exists in auth.users to prevent spoofing
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAdmin.auth.admin.getUserById(userId);
-
-    if (userError || !user) {
-      return res.status(401).json({ error: 'User not found' });
-    }
   }
 
   const { error } = await supabaseAdmin.from('profiles').insert({
@@ -84,9 +74,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   if (error) {
-    // If the profile already exists (duplicate key), treat as success
+    // Profile already exists — treat as success (idempotent)
     if (error.code === '23505') {
       return res.status(200).json({ ok: true });
+    }
+    // FK violation — userId does not exist in auth.users (invalid or obfuscated ID)
+    if (error.code === '23503') {
+      return res.status(401).json({ error: 'User not found' });
     }
     console.error('[/api/setup-profile]', error);
     return res.status(500).json({ error: 'Internal server error' });
