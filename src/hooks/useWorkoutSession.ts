@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { v4 as uuid } from 'uuid';
 import { useApp } from '../store/AppContext';
+import { useToast } from '../contexts/ToastContext';
 import { apiBase } from '../lib/api';
 import type { WorkoutSession, LoggedExercise, LoggedSet, Program, BlockMission } from '../types';
 import {
@@ -83,6 +84,7 @@ async function updateBlockMissions(
 
 export function useWorkoutSession() {
   const { state, dispatch } = useApp();
+  const { toast } = useToast();
 
   const startWorkout = useCallback(
     (program: Program, dayIndex: number) => {
@@ -251,9 +253,10 @@ export function useWorkoutSession() {
         Promise.all([
           upsertSession(completed, userId),
           upsertPersonalRecords(prs, userId),
-        ]).catch((err) =>
-          console.error('[useWorkoutSession] Supabase sync failed:', err),
-        );
+        ]).catch((err) => {
+          console.error('[useWorkoutSession] Supabase sync failed:', err);
+          toast('Workout saved locally, but cloud sync failed. It will retry on next login.', 'error');
+        });
 
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session) {
@@ -272,7 +275,7 @@ export function useWorkoutSession() {
 
       return { session: completed, prs };
     },
-    [state.activeSession, state.history, state.user, dispatch],
+    [state.activeSession, state.history, state.user, dispatch, toast],
   );
 
   const discardWorkout = useCallback(() => {

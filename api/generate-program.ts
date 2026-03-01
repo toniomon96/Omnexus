@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 // ─── Module-level client (reused across warm invocations) ──────────────────────
 
@@ -407,6 +408,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!await checkRateLimit(req, res)) return;
 
   if (!anthropic) {
     console.error('[/api/generate-program] ANTHROPIC_API_KEY is not configured');

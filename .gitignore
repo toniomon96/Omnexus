@@ -10,6 +10,11 @@ dist-ssr/
 .env.local
 .env.*.local
 .env.production
+.env.test
+
+# Playwright output
+playwright-report/
+test-results/
 
 # Vercel
 .vercel/

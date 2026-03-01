@@ -134,6 +134,14 @@ describe('fetchHistory', () => {
     expect(result.personalRecords[0].exerciseId).toBe('bench-press');
     expect(result.personalRecords[0].weight).toBe(120);
   });
+
+  it('throws when Supabase returns an error', async () => {
+    mockFrom.mockImplementation(() =>
+      createBuilder({ data: null, error: { message: 'permission denied' } }),
+    );
+
+    await expect(fetchHistory('user-1')).rejects.toThrow('permission denied');
+  });
 });
 
 // ── deleteCustomProgramDb ─────────────────────────────────────────────────────

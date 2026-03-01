@@ -3,12 +3,18 @@ import type { VercelResponse } from '@vercel/node';
 /**
  * Shared CORS helper.
  *
- * Set ALLOWED_ORIGIN in Vercel env to your frontend URL (e.g. https://your-app.vercel.app).
- * Leave unset in development/preview and the wildcard fallback is used.
+ * REQUIRED in production: set ALLOWED_ORIGIN in Vercel environment settings
+ * to your frontend URL, e.g. https://your-app.vercel.app
  *
- * Mutation endpoints should pass ALLOWED_ORIGIN; read-only endpoints can omit it.
+ * Falls back to '*' only in local development (NODE_ENV !== 'production').
+ * In production without ALLOWED_ORIGIN set, a warning is logged so it's
+ * visible in Vercel function logs.
  */
-export const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? '*';
+const envOrigin = process.env.ALLOWED_ORIGIN;
+if (!envOrigin && process.env.NODE_ENV === 'production') {
+  console.warn('[CORS] ALLOWED_ORIGIN is not set in production — defaulting to wildcard. Set ALLOWED_ORIGIN in Vercel environment settings.');
+}
+export const ALLOWED_ORIGIN = envOrigin ?? '*';
 
 export function setCorsHeaders(res: VercelResponse, origin = '*'): void {
   res.setHeader('Access-Control-Allow-Origin', origin);

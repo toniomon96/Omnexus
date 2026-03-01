@@ -64,6 +64,9 @@ export async function fetchHistory(userId: string): Promise<WorkoutHistory> {
       .eq('user_id', userId),
   ]);
 
+  if (sessionsResult.error) throw new Error(`[fetchHistory] sessions: ${sessionsResult.error.message}`);
+  if (prsResult.error) throw new Error(`[fetchHistory] personal records: ${prsResult.error.message}`);
+
   return {
     sessions: (sessionsResult.data ?? []).map(mapSession),
     personalRecords: (prsResult.data ?? []).map(mapPR),
@@ -605,6 +608,33 @@ export async function getFriendFeed(userId: string): Promise<FeedSession[]> {
 
   if (friendIds.length === 0) return [];
 
+  // Single query: join workout_sessions with profiles via the user_id FK.
+  // PostgREST resolves the FK automatically when profiles.id references auth.users.id
+  // and workout_sessions.user_id also references auth.users.id.
+  // If the FK relationship isn't declared in Supabase, fall back to a parallel query.
+  const { data: sessionsWithProfiles, error: joinError } = await supabase
+    .from('workout_sessions')
+    .select('id, user_id, program_id, started_at, completed_at, total_volume_kg, duration_seconds, profiles!inner(name)')
+    .in('user_id', friendIds)
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false })
+    .limit(30);
+
+  if (!joinError && sessionsWithProfiles) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (sessionsWithProfiles as any[]).map((s) => ({
+      sessionId: s.id,
+      userId: s.user_id,
+      userName: s.profiles?.name ?? 'Unknown',
+      programId: s.program_id,
+      startedAt: s.started_at,
+      completedAt: s.completed_at ?? undefined,
+      totalVolumeKg: s.total_volume_kg ?? 0,
+      durationSeconds: s.duration_seconds ?? undefined,
+    }));
+  }
+
+  // Fallback: parallel queries if the FK join isn't available
   const [sessionsResult, profilesResult] = await Promise.all([
     supabase
       .from('workout_sessions')

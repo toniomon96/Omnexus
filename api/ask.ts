@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -61,6 +62,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!await checkRateLimit(req, res)) return;
+
   // Verify Bearer token when present — reject invalid tokens, allow missing (guest access)
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
@@ -89,12 +92,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Append user context as a lightweight annotation, not part of the question
+    // Append user context as a lightweight annotation, not part of the question.
+    // Whitelist the values before embedding them in the prompt.
+    const VALID_GOALS = new Set(['hypertrophy', 'fat-loss', 'general-fitness']);
+    const VALID_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
+    const safeGoal = VALID_GOALS.has(userContext?.goal) ? userContext.goal : null;
+    const safeLevel = VALID_LEVELS.has(userContext?.experienceLevel) ? userContext.experienceLevel : null;
+
     let userMessage = question.trim();
-    if (userContext?.goal || userContext?.experienceLevel) {
+    if (safeGoal || safeLevel) {
       userMessage +=
-        `\n\n[User context — Goal: ${userContext.goal ?? 'unspecified'}, ` +
-        `Experience: ${userContext.experienceLevel ?? 'unspecified'}]`;
+        `\n\n[User context — Goal: ${safeGoal ?? 'unspecified'}, ` +
+        `Experience: ${safeLevel ?? 'unspecified'}]`;
     }
 
     // Build messages array with optional conversation history.
