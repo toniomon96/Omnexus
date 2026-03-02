@@ -49,7 +49,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'experienceLevel must be one of: beginner, intermediate, advanced' });
   }
 
-  // If an Authorization header is present, validate the token matches userId
+  // Verify the caller is who they claim to be.
+  // If a Bearer token is present (email confirmation OFF), validate it and confirm it matches userId.
+  // If no token (email confirmation ON — session not yet available post-signUp), use the admin API
+  // to verify the userId actually exists in auth.users before creating a profile for it.
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
@@ -62,6 +65,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (tokenUser.id !== userId) {
       return res.status(403).json({ error: 'Token user does not match userId' });
+    }
+  } else {
+    const { data: { user: adminUser }, error: adminError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (adminError || !adminUser) {
+      return res.status(401).json({ error: 'User not found' });
     }
   }
 

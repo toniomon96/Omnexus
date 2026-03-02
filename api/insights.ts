@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -68,6 +69,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!await checkRateLimit(req, res)) return;
 
   // Insights require a valid Supabase session — workout data is user-specific
   // and this endpoint is not available to guests (cost + data sensitivity).

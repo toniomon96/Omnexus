@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach providing encouraging peer comparison insights.
 
@@ -21,11 +22,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!await checkRateLimit(req, res)) return;
 
-  const { userId, goal, experienceLevel } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
+  // Auth: require Bearer token and derive userId from it
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -39,6 +41,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  const token = authHeader.slice(7);
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+  const userId = user.id;
+
+  const { goal, experienceLevel } = req.body ?? {};
 
   // Find peer user IDs with same goal + experience level from profiles/training_profiles
   // We aggregate workout data without ever passing individual records to Claude

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 interface LoggedSet {
   setNumber: number;
@@ -44,11 +45,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!await checkRateLimit(req, res)) return;
 
-  const { sessionId, userId, exerciseSets } = req.body ?? {};
+  // Auth: require Bearer token and derive userId from it
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
-  if (!userId || !Array.isArray(exerciseSets) || exerciseSets.length === 0) {
-    return res.status(400).json({ error: 'userId and exerciseSets are required' });
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return res.status(500).json({ error: 'Database not configured' });
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  const token = authHeader.slice(7);
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+  const userId = user.id;
+
+  const { sessionId, exerciseSets } = req.body ?? {};
+
+  if (!Array.isArray(exerciseSets) || exerciseSets.length === 0) {
+    return res.status(400).json({ error: 'exerciseSets are required' });
   }
 
   if (exerciseSets.length > 20) {
@@ -65,55 +87,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'AI service not configured' });
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
   // Fetch last 3 sessions per exercise for historical context
   let historySummary = '';
-  if (supabaseUrl && supabaseServiceKey) {
-    try {
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-      const { data: sessions } = await supabaseAdmin
-        .from('workout_sessions')
-        .select('id, started_at, exercises')
-        .eq('user_id', userId)
-        .neq('id', sessionId ?? '')
-        .not('completed_at', 'is', null)
-        .order('started_at', { ascending: false })
-        .limit(10);
+  try {
+    const { data: sessions } = await supabaseAdmin
+      .from('workout_sessions')
+      .select('id, started_at, exercises')
+      .eq('user_id', userId)
+      .neq('id', sessionId ?? '')
+      .not('completed_at', 'is', null)
+      .order('started_at', { ascending: false })
+      .limit(10);
 
-      if (sessions && sessions.length > 0) {
-        const exerciseIds = (exerciseSets as ExerciseSets[]).map((e) => e.exerciseId);
-        const historyLines: string[] = [];
-        for (const exId of exerciseIds) {
-          const exName = (exerciseSets as ExerciseSets[]).find((e) => e.exerciseId === exId)?.exerciseName ?? exId;
-          const rows: string[] = [];
-          for (const session of sessions) {
+    if (sessions && sessions.length > 0) {
+      const exerciseIds = (exerciseSets as ExerciseSets[]).map((e) => e.exerciseId);
+      const historyLines: string[] = [];
+      for (const exId of exerciseIds) {
+        const exName = (exerciseSets as ExerciseSets[]).find((e) => e.exerciseId === exId)?.exerciseName ?? exId;
+        const rows: string[] = [];
+        for (const session of sessions) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const logged = (session.exercises as any[])?.find((e: any) => e.exerciseId === exId);
+          if (!logged) continue;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const completedSets = (logged.sets as any[])?.filter((s: any) => s.completed) ?? [];
+          if (completedSets.length === 0) continue;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const avgRpe = completedSets.some((s: any) => s.rpe)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const logged = (session.exercises as any[])?.find((e: any) => e.exerciseId === exId);
-            if (!logged) continue;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const completedSets = (logged.sets as any[])?.filter((s: any) => s.completed) ?? [];
-            if (completedSets.length === 0) continue;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const avgRpe = completedSets.some((s: any) => s.rpe)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ? (completedSets.reduce((sum: number, s: any) => sum + (s.rpe ?? 0), 0) / completedSets.length).toFixed(1)
-              : 'N/A';
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const setsStr = completedSets.map((s: any) => `${s.weight}kg×${s.reps}`).join(', ');
-            rows.push(`  ${session.started_at.split('T')[0]}: ${setsStr} (RPE: ${avgRpe})`);
-            if (rows.length >= 3) break;
-          }
-          if (rows.length > 0) {
-            historyLines.push(`${exName} history:\n${rows.join('\n')}`);
-          }
+            ? (completedSets.reduce((sum: number, s: any) => sum + (s.rpe ?? 0), 0) / completedSets.length).toFixed(1)
+            : 'N/A';
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const setsStr = completedSets.map((s: any) => `${s.weight}kg×${s.reps}`).join(', ');
+          rows.push(`  ${session.started_at.split('T')[0]}: ${setsStr} (RPE: ${avgRpe})`);
+          if (rows.length >= 3) break;
         }
-        historySummary = historyLines.join('\n\n');
+        if (rows.length > 0) {
+          historyLines.push(`${exName} history:\n${rows.join('\n')}`);
+        }
       }
-    } catch {
-      // Non-fatal: proceed without history
+      historySummary = historyLines.join('\n\n');
     }
+  } catch {
+    // Non-fatal: proceed without history
   }
 
   // Build today's session summary

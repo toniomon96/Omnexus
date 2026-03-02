@@ -140,9 +140,15 @@ export function OnboardingForm() {
       upsertCustomProgram(programWithMeta, userId).catch(() => { /* synced later */ });
 
       // 4. Server-side profile setup
+      // Pass the Bearer token when available (email confirmation OFF); setup-profile falls back
+      // to admin user verification when no session exists (email confirmation ON).
+      const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (data.session?.access_token) {
+        profileHeaders['Authorization'] = `Bearer ${data.session.access_token}`;
+      }
       const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: profileHeaders,
         body: JSON.stringify({
           userId,
           name: name.trim(),

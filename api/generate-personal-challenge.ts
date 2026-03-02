@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach creating a personal 7-day challenge for a user.
 
@@ -24,15 +25,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!await checkRateLimit(req, res)) return;
 
-  const { userId, goal, experienceLevel, recentStats } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: 'AI service not configured' });
+  // Auth: require Bearer token and derive userId from it
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -41,6 +39,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Database not configured' });
   }
 
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  const token = authHeader.slice(7);
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+  const userId = user.id;
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'AI service not configured' });
+  }
+
+  const { goal, experienceLevel, recentStats } = req.body ?? {};
   const stats = recentStats ?? { weeklyVolume: 0, sessionsLast30Days: 0, avgRpe: 0 };
   const userMessage = [
     `Goal: ${goal ?? 'general fitness'}`,
@@ -88,7 +99,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
   const today = new Date().toISOString().split('T')[0];
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + 7);
