@@ -398,6 +398,25 @@ export interface Challenge {
   participantCount: number;
   userProgress: number | null;
   isJoined: boolean;
+  isCooperative: boolean;
+}
+
+export interface ChallengeParticipant {
+  userId: string;
+  name: string;
+  progress: number;
+  isCurrentUser: boolean;
+}
+
+export interface ChallengeInvitation {
+  id: string;
+  challengeId: string;
+  challengeName: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: string;
 }
 
 export interface FeedSession {

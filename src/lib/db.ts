@@ -19,6 +19,8 @@ import type {
   UserTrainingProfile,
   BlockMission,
   AiChallenge,
+  ChallengeParticipant,
+  ChallengeInvitation,
 } from '../types';
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
@@ -346,6 +348,7 @@ export async function getChallenges(userId: string): Promise<Challenge[]> {
       participantCount: parts.length,
       userProgress: userPart?.progress ?? null,
       isJoined: !!userPart,
+      isCooperative: c.is_cooperative ?? false,
     };
   });
 }
@@ -367,6 +370,7 @@ export async function createChallenge(
     targetValue?: number;
     startDate: string;
     endDate: string;
+    isCooperative?: boolean;
   },
   userId: string,
 ): Promise<string> {
@@ -381,6 +385,7 @@ export async function createChallenge(
       start_date: input.startDate,
       end_date: input.endDate,
       is_public: true,
+      is_cooperative: input.isCooperative ?? false,
     })
     .select('id')
     .single();
@@ -388,6 +393,122 @@ export async function createChallenge(
     throw new Error(error?.message ?? 'Failed to create challenge');
   }
   return data.id as string;
+}
+
+export async function getChallengeLeaderboard(
+  challengeId: string,
+  currentUserId: string,
+): Promise<ChallengeParticipant[]> {
+  const { data: parts, error } = await supabase
+    .from('challenge_participants')
+    .select('user_id, progress')
+    .eq('challenge_id', challengeId)
+    .order('progress', { ascending: false });
+
+  if (error) throw new Error(`[getChallengeLeaderboard] ${error.message}`);
+  if (!parts || parts.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userIds = parts.map((r: any) => r.user_id as string);
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, name')
+    .in('id', userIds);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nameMap: Record<string, string> = Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (profiles ?? []).map((p: any) => [p.id as string, p.name as string]),
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return parts.map((r: any) => ({
+    userId: r.user_id as string,
+    name: nameMap[r.user_id] ?? 'Unknown',
+    progress: (r.progress as number) ?? 0,
+    isCurrentUser: r.user_id === currentUserId,
+  }));
+}
+
+export async function getCooperativeTotal(challengeId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('challenge_participants')
+    .select('progress')
+    .eq('challenge_id', challengeId);
+
+  if (error) throw new Error(`[getCooperativeTotal] ${error.message}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).reduce((sum: number, r: any) => sum + ((r.progress as number) ?? 0), 0);
+}
+
+export async function sendChallengeInvitation(
+  challengeId: string,
+  fromUserId: string,
+  toUserId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('challenge_invitations')
+    .insert({ challenge_id: challengeId, from_user_id: fromUserId, to_user_id: toUserId });
+  // Silently ignore duplicate (UNIQUE constraint → 23505)
+  if (error && error.code !== '23505') {
+    throw new Error(`[sendChallengeInvitation] ${error.message}`);
+  }
+}
+
+export async function getPendingInvitations(userId: string): Promise<ChallengeInvitation[]> {
+  const { data: rows, error } = await supabase
+    .from('challenge_invitations')
+    .select('id, challenge_id, from_user_id, to_user_id, status, created_at')
+    .eq('to_user_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(`[getPendingInvitations] ${error.message}`);
+  if (!rows || rows.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const challengeIds = [...new Set(rows.map((r: any) => r.challenge_id as string))];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fromIds = [...new Set(rows.map((r: any) => r.from_user_id as string))];
+
+  const [{ data: challenges }, { data: profiles }] = await Promise.all([
+    supabase.from('challenges').select('id, name').in('id', challengeIds),
+    supabase.from('profiles').select('id, name').in('id', fromIds),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const challengeNameMap: Record<string, string> = Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (challenges ?? []).map((c: any) => [c.id as string, c.name as string]),
+  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profileNameMap: Record<string, string> = Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (profiles ?? []).map((p: any) => [p.id as string, p.name as string]),
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return rows.map((r: any) => ({
+    id: r.id as string,
+    challengeId: r.challenge_id as string,
+    challengeName: challengeNameMap[r.challenge_id] ?? 'Unknown Challenge',
+    fromUserId: r.from_user_id as string,
+    fromUserName: profileNameMap[r.from_user_id] ?? 'Unknown',
+    toUserId: r.to_user_id as string,
+    status: r.status as ChallengeInvitation['status'],
+    createdAt: r.created_at as string,
+  }));
+}
+
+export async function respondChallengeInvitation(
+  invitationId: string,
+  status: 'accepted' | 'declined',
+): Promise<void> {
+  const { error } = await supabase
+    .from('challenge_invitations')
+    .update({ status })
+    .eq('id', invitationId);
+  if (error) throw new Error(`[respondChallengeInvitation] ${error.message}`);
 }
 
 // ─── Nutrition ────────────────────────────────────────────────────────────────

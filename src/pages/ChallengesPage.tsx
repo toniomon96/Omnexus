@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
+import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../lib/supabase';
-import { getChallenges, joinChallenge, createChallenge, getAiChallenges } from '../lib/db';
-import type { Challenge, AiChallenge } from '../types';
+import {
+  getChallenges,
+  joinChallenge,
+  createChallenge,
+  getAiChallenges,
+  getFriendships,
+  getPendingInvitations,
+  respondChallengeInvitation,
+} from '../lib/db';
+import type { Challenge, AiChallenge, FriendshipWithProfile, ChallengeInvitation } from '../types';
 import { PersonalChallengeCard } from '../components/challenges/PersonalChallengeCard';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -11,7 +20,7 @@ import { ChallengeCard } from '../components/community/ChallengeCard';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Trophy, Plus, X, ChevronDown, Sparkles } from 'lucide-react';
+import { Trophy, Plus, X, ChevronDown, Sparkles, Mail } from 'lucide-react';
 
 interface CreateForm {
   name: string;
@@ -20,6 +29,7 @@ interface CreateForm {
   targetValue: string;
   startDate: string;
   endDate: string;
+  isCooperative: boolean;
 }
 
 const today = () => new Date().toISOString().split('T')[0];
@@ -31,11 +41,14 @@ const nextMonth = () => {
 
 export function ChallengesPage() {
   const { state } = useApp();
+  const { toast } = useToast();
   const userId = state.user?.id ?? '';
   const user = state.user;
 
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [sharedChallenge, setSharedChallenge] = useState<AiChallenge | null>(null);
+  const [acceptedFriends, setAcceptedFriends] = useState<FriendshipWithProfile[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<ChallengeInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -46,18 +59,23 @@ export function ChallengesPage() {
     targetValue: '',
     startDate: today(),
     endDate: nextMonth(),
+    isCooperative: false,
   });
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const load = useCallback(async () => {
-    const [data, aiData] = await Promise.all([
+    const [data, aiData, friendships, invitations] = await Promise.all([
       getChallenges(userId),
       userId ? getAiChallenges(userId) : Promise.resolve([]),
+      userId ? getFriendships(userId) : Promise.resolve([]),
+      userId ? getPendingInvitations(userId) : Promise.resolve([]),
     ]);
     setChallenges(data);
-    const today = new Date().toISOString().split('T')[0];
+    setAcceptedFriends(friendships.filter((f) => f.status === 'accepted'));
+    setPendingInvitations(invitations);
+    const todayStr = new Date().toISOString().split('T')[0];
     const shared = aiData.find(
-      (c) => c.type === 'shared' && c.startDate <= today && c.endDate >= today,
+      (c) => c.type === 'shared' && c.startDate <= todayStr && c.endDate >= todayStr,
     );
     setSharedChallenge(shared ?? null);
     setLoading(false);
@@ -73,12 +91,17 @@ export function ChallengesPage() {
         { event: 'UPDATE', schema: 'public', table: 'challenge_participants' },
         () => { load(); },
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'challenge_invitations', filter: `to_user_id=eq.${userId}` },
+        () => { load(); },
+      )
       .subscribe();
 
     return () => {
       channelRef.current?.unsubscribe();
     };
-  }, [load]);
+  }, [load, userId]);
 
   async function handleJoin(id: string) {
     await joinChallenge(id, userId);
@@ -101,14 +124,36 @@ export function ChallengesPage() {
           targetValue: form.targetValue ? Number(form.targetValue) : undefined,
           startDate: form.startDate,
           endDate: form.endDate,
+          isCooperative: form.isCooperative,
         },
         userId,
       );
       setShowCreate(false);
-      setForm({ name: '', description: '', type: 'volume', targetValue: '', startDate: today(), endDate: nextMonth() });
+      setForm({ name: '', description: '', type: 'volume', targetValue: '', startDate: today(), endDate: nextMonth(), isCooperative: false });
       await load();
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleAcceptInvitation(invitationId: string, challengeId: string) {
+    try {
+      await respondChallengeInvitation(invitationId, 'accepted');
+      await joinChallenge(challengeId, userId);
+      setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+      await load();
+      toast('Joined challenge!', 'success');
+    } catch {
+      toast('Failed to accept invitation', 'error');
+    }
+  }
+
+  async function handleDeclineInvitation(invitationId: string) {
+    try {
+      await respondChallengeInvitation(invitationId, 'declined');
+      setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+    } catch {
+      toast('Failed to decline invitation', 'error');
     }
   }
 
@@ -148,6 +193,35 @@ export function ChallengesPage() {
             <p className="text-xs text-slate-400">
               Target: {sharedChallenge.target} {sharedChallenge.unit} · Ends {sharedChallenge.endDate}
             </p>
+          </div>
+        )}
+
+        {/* Pending invitations banner */}
+        {pendingInvitations.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Mail size={12} />
+              Invitations ({pendingInvitations.length})
+            </p>
+            {pendingInvitations.map((inv) => (
+              <div
+                key={inv.id}
+                className="rounded-xl border border-brand-700/40 bg-brand-900/20 p-3 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{inv.challengeName}</p>
+                  <p className="text-xs text-slate-400">From {inv.fromUserName}</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" onClick={() => handleAcceptInvitation(inv.id, inv.challengeId)}>
+                    Join
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDeclineInvitation(inv.id)}>
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -214,6 +288,31 @@ export function ChallengesPage() {
               />
             </div>
 
+            {/* Team mode toggle */}
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm font-medium text-slate-300">Team mode</p>
+                <p className="text-xs text-slate-500">Pool everyone's progress toward a shared goal</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.isCooperative}
+                onClick={() => setForm((f) => ({ ...f, isCooperative: !f.isCooperative }))}
+                className={[
+                  'relative w-10 h-5 rounded-full transition-colors shrink-0',
+                  form.isCooperative ? 'bg-purple-500' : 'bg-slate-600',
+                ].join(' ')}
+              >
+                <span
+                  className={[
+                    'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
+                    form.isCooperative ? 'translate-x-5' : 'translate-x-0.5',
+                  ].join(' ')}
+                />
+              </button>
+            </div>
+
             <Button
               onClick={handleCreate}
               fullWidth
@@ -238,7 +337,14 @@ export function ChallengesPage() {
             </p>
             <div className="space-y-3">
               {mine.map((c) => (
-                <ChallengeCard key={c.id} challenge={c} onJoin={handleJoin} />
+                <ChallengeCard
+                  key={c.id}
+                  challenge={c}
+                  currentUserId={userId}
+                  onJoin={handleJoin}
+                  acceptedFriends={c.createdBy === userId ? acceptedFriends : undefined}
+                  isCreatedByMe={c.createdBy === userId}
+                />
               ))}
             </div>
           </div>
@@ -252,7 +358,14 @@ export function ChallengesPage() {
             </p>
             <div className="space-y-3">
               {browse.map((c) => (
-                <ChallengeCard key={c.id} challenge={c} onJoin={handleJoin} />
+                <ChallengeCard
+                  key={c.id}
+                  challenge={c}
+                  currentUserId={userId}
+                  onJoin={handleJoin}
+                  acceptedFriends={c.createdBy === userId ? acceptedFriends : undefined}
+                  isCreatedByMe={c.createdBy === userId}
+                />
               ))}
             </div>
           </div>
