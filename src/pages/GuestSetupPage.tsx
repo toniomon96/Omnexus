@@ -56,7 +56,7 @@ export function GuestSetupPage() {
         <div className="w-14 h-14 rounded-2xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center mb-4">
           <Dumbbell size={26} className="text-brand-400" />
         </div>
-        <h1 className="text-2xl font-bold text-white">Quick setup</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quick setup</h1>
         <p className="mt-1.5 text-slate-400 text-sm text-center max-w-xs">
           No account needed — get started in seconds.
         </p>
@@ -78,7 +78,7 @@ export function GuestSetupPage() {
         {/* Step 0 — Goal */}
         {step === 0 && (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-white mb-4">What's your main goal?</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">What's your main goal?</h2>
             {GOALS.map((g) => (
               <button
                 key={g.value}
@@ -87,12 +87,12 @@ export function GuestSetupPage() {
                   'w-full flex items-center gap-4 rounded-2xl border-2 px-4 py-4 text-left transition-all',
                   goal === g.value
                     ? 'border-brand-500 bg-brand-500/10'
-                    : 'border-slate-700 bg-slate-800/40 hover:border-slate-600',
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-slate-400 dark:hover:border-slate-600',
                 ].join(' ')}
               >
                 <span className="text-3xl">{g.emoji}</span>
                 <div>
-                  <p className="font-semibold text-white text-sm">{g.label}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{g.label}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{g.desc}</p>
                 </div>
                 {goal === g.value && (
@@ -109,7 +109,7 @@ export function GuestSetupPage() {
         {/* Step 1 — Experience */}
         {step === 1 && (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-white mb-4">Your experience level?</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Your experience level?</h2>
             {LEVELS.map((l) => (
               <button
                 key={l.value}
@@ -118,11 +118,11 @@ export function GuestSetupPage() {
                   'w-full flex items-center gap-4 rounded-2xl border-2 px-4 py-4 text-left transition-all',
                   level === l.value
                     ? 'border-brand-500 bg-brand-500/10'
-                    : 'border-slate-700 bg-slate-800/40 hover:border-slate-600',
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-slate-400 dark:hover:border-slate-600',
                 ].join(' ')}
               >
                 <div>
-                  <p className="font-semibold text-white text-sm">{l.label}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{l.label}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{l.desc}</p>
                 </div>
                 {level === l.value && (

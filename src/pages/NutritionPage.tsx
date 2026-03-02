@@ -464,7 +464,7 @@ export function NutritionPage() {
                 <button
                   key={m.id}
                   onClick={() => quickLog(m)}
-                  className="shrink-0 rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-200 hover:border-brand-500 hover:bg-brand-500/10 transition-colors whitespace-nowrap"
+                  className="shrink-0 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-200 hover:border-brand-500 hover:bg-brand-500/10 transition-colors whitespace-nowrap"
                 >
                   {m.mealName} · {m.calories ?? '?'} kcal
                 </button>
@@ -619,7 +619,7 @@ export function NutritionPage() {
               onChange={(e) => setMealPlanPrefs(e.target.value)}
               placeholder="Any dietary preferences or restrictions? (e.g. vegetarian, no gluten, high fiber…)"
               rows={3}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             {mealPlanError && <p className="text-red-400 text-xs">{mealPlanError}</p>}
             <div className="flex gap-2 pt-1">
@@ -636,9 +636,9 @@ export function NutritionPage() {
             </p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {generatedPlan.meals.map((meal, i) => (
-                <div key={i} className="border border-slate-700 rounded-xl overflow-hidden">
+                <div key={i} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                   <button
-                    className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-800 text-left"
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 dark:bg-slate-800 text-left"
                     onClick={() => setExpandedMealIdx(expandedMealIdx === i ? null : i)}
                   >
                     <div>
@@ -649,7 +649,7 @@ export function NutritionPage() {
                     {expandedMealIdx === i ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                   </button>
                   {expandedMealIdx === i && (
-                    <div className="px-3 py-2 bg-slate-900 space-y-1.5">
+                    <div className="px-3 py-2 bg-white dark:bg-slate-900 space-y-1.5">
                       <p className="text-xs text-slate-400">{meal.description}</p>
                       <div className="flex gap-3 text-xs">
                         <span className="text-amber-400">{meal.carbsG}g carbs</span>
@@ -663,7 +663,7 @@ export function NutritionPage() {
                 </div>
               ))}
             </div>
-            <div className="border-t border-slate-700 pt-2 text-xs text-slate-400 flex justify-between">
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-2 text-xs text-slate-400 flex justify-between">
               <span>Total</span>
               <span>{generatedPlan.totalCalories} kcal · {generatedPlan.totalProtein}g protein</span>
             </div>

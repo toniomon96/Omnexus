@@ -4,7 +4,7 @@ import { useToast, type ToastItem } from '../../contexts/ToastContext';
 const VARIANT_STYLES: Record<ToastItem['variant'], string> = {
   success: 'bg-green-900/95 border-green-700/60 text-green-100',
   error:   'bg-red-900/95 border-red-700/60 text-red-100',
-  info:    'bg-slate-800/95 border-slate-600/60 text-slate-100',
+  info:    'bg-white/95 dark:bg-slate-800/95 border-slate-200 dark:border-slate-600/60 text-slate-900 dark:text-slate-100',
 };
 
 const VARIANT_ICONS: Record<ToastItem['variant'], React.FC<{ size: number; className?: string }>> = {

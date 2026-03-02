@@ -223,7 +223,7 @@ export function OnboardingForm() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-4 text-left space-y-2">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/50 px-4 py-4 text-left space-y-2">
             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Didn't get it?</p>
             <p className="text-slate-400 text-sm">Check your spam folder, or resend the email.</p>
             {resendSuccess && (
@@ -263,7 +263,7 @@ export function OnboardingForm() {
             key={s}
             className={[
               'h-2 rounded-full transition-all duration-300',
-              i === step ? 'w-6 bg-brand-500' : i < step ? 'w-2 bg-brand-400' : 'w-2 bg-slate-700',
+              i === step ? 'w-6 bg-brand-500' : i < step ? 'w-2 bg-brand-400' : 'w-2 bg-slate-300 dark:bg-slate-700',
             ].join(' ')}
           />
         ))}

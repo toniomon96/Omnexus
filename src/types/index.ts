@@ -62,6 +62,7 @@ export interface User {
   theme: 'dark' | 'light';
   /** True when user is in local-only guest mode (no Supabase account) */
   isGuest?: boolean;
+  avatarUrl?: string | null;
 }
 
 // ─── AI Training Profile ──────────────────────────────────────────────────────

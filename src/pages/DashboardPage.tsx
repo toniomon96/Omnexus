@@ -75,7 +75,7 @@ export function DashboardPage() {
               <button
                 key={to}
                 onClick={() => navigate(to)}
-                className="flex flex-col items-center gap-1.5 p-2.5 bg-slate-800 rounded-xl hover:bg-brand-500/10 hover:text-brand-400 transition-colors text-slate-300"
+                className="flex flex-col items-center gap-1.5 p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-brand-500/10 hover:text-brand-400 transition-colors text-slate-600 dark:text-slate-300"
               >
                 <Icon size={18} />
                 <span className="text-[10px] font-medium leading-tight text-center">{label}</span>

@@ -4,7 +4,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className = '', variant = 'text' }: SkeletonProps) {
-  const base = 'bg-slate-700/60 animate-pulse rounded';
+  const base = 'bg-slate-200 dark:bg-slate-700/60 animate-pulse rounded';
   const variants: Record<string, string> = {
     text:   'h-4 rounded-md',
     card:   'h-24 rounded-2xl',

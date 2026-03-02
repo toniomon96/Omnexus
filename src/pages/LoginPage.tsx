@@ -171,7 +171,7 @@ export function LoginPage() {
         </div>
 
         {showForgot && (
-          <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 space-y-3">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-4 space-y-3">
             {forgotSuccess ? (
               <p className="text-sm text-green-400">
                 Check your email for a password reset link.
@@ -209,7 +209,7 @@ export function LoginPage() {
             </p>
             {/* Email not confirmed — offer to resend */}
             {unconfirmedEmail && (
-              <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-3 space-y-1.5">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 px-3 py-3 space-y-1.5">
                 <p className="text-xs text-slate-400">Haven't confirmed your email yet?</p>
                 {resendSuccess ? (
                   <p className="text-xs text-green-400 font-medium">Confirmation email resent — check your inbox.</p>
@@ -249,14 +249,14 @@ export function LoginPage() {
         </p>
 
         <div className="relative flex items-center gap-3 my-2">
-          <div className="flex-1 h-px bg-slate-800" />
-          <span className="text-xs text-slate-600">or</span>
-          <div className="flex-1 h-px bg-slate-800" />
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+          <span className="text-xs text-slate-400 dark:text-slate-600">or</span>
+          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
         </div>
 
         <Link
           to="/guest"
-          className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-700 px-4 py-3 text-sm font-medium text-slate-400 hover:border-slate-600 hover:text-slate-300 transition-colors"
+          className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
         >
           Try without an account
         </Link>

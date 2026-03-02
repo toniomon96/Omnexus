@@ -14,7 +14,7 @@ export function FriendCard({ friendship, onAccept, onDecline, onRemove }: Friend
 
   return (
     <div className="flex items-center gap-3 py-3">
-      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+      <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0">
         <UserCircle size={22} className="text-slate-400" />
       </div>
 

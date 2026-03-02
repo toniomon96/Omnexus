@@ -15,7 +15,7 @@ function formatNumber(n: number | null): string {
 function StepBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="h-1 rounded-full bg-slate-700 overflow-hidden">
+    <div className="h-1 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
       <div
         className="h-full rounded-full bg-brand-500 transition-all"
         style={{ width: `${pct}%` }}
@@ -57,8 +57,8 @@ export function HealthWidget() {
   if (loading) {
     return (
       <Card className="space-y-2">
-        <div className="h-4 w-24 rounded-full bg-slate-700 animate-pulse" />
-        <div className="h-6 w-16 rounded-full bg-slate-700 animate-pulse" />
+        <div className="h-4 w-24 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+        <div className="h-6 w-16 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
       </Card>
     );
   }

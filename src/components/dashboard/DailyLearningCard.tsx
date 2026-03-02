@@ -45,7 +45,7 @@ export function DailyLearningCard({ goal }: DailyLearningCardProps) {
   if (loading) {
     return (
       <Card className="p-4">
-        <div className="h-16 animate-pulse bg-slate-800 rounded-lg" />
+        <div className="h-16 animate-pulse bg-slate-200 dark:bg-slate-800 rounded-lg" />
       </Card>
     );
   }

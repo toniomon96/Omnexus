@@ -176,7 +176,7 @@ export function PlateCalculatorPage() {
                   'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                   barKg === opt.value
                     ? 'bg-brand-500 text-white'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700',
                 ].join(' ')}
               >
                 {opt.label}
@@ -191,7 +191,7 @@ export function PlateCalculatorPage() {
           <div className="flex items-center justify-center gap-6">
             <button
               onClick={() => step(-2.5)}
-              className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-200 hover:bg-slate-700 active:scale-95 transition"
+              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition"
               aria-label="Decrease by 2.5 kg"
             >
               <Minus size={18} />

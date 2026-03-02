@@ -97,7 +97,7 @@ export function PreWorkoutBriefingPage() {
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-2">{day.label}</h2>
             <div className="flex flex-wrap gap-2">
               {exerciseNames.map((name) => (
-                <span key={name} className="px-2 py-1 bg-slate-800 rounded-lg text-xs text-slate-300">
+                <span key={name} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs text-slate-600 dark:text-slate-300">
                   {name}
                 </span>
               ))}
@@ -115,7 +115,7 @@ export function PreWorkoutBriefingPage() {
           {loading && (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-4 bg-slate-800 rounded animate-pulse" style={{ width: `${70 + i * 10}%` }} />
+                <div key={i} className="h-4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" style={{ width: `${70 + i * 10}%` }} />
               ))}
             </div>
           )}

@@ -80,7 +80,7 @@ export function ProfileSummaryCard({ profile, onProgramReady }: Props) {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-3xl font-bold text-white">Your profile is ready</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Your profile is ready</h1>
         <p className="mt-2 text-slate-400">
           Review your profile below, then generate your personalised 8-week program.
         </p>
@@ -99,29 +99,29 @@ export function ProfileSummaryCard({ profile, onProgramReady }: Props) {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
           <Dumbbell size={16} className="text-brand-400 shrink-0" />
           <div>
             <p className="text-[10px] text-slate-500 uppercase tracking-wide">Goal</p>
-            <p className="text-sm font-medium text-white leading-tight">{goalLabels}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white leading-tight">{goalLabels}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
           <Calendar size={16} className="text-brand-400 shrink-0" />
           <div>
             <p className="text-[10px] text-slate-500 uppercase tracking-wide">Schedule</p>
-            <p className="text-sm font-medium text-white leading-tight">
+            <p className="text-sm font-medium text-slate-900 dark:text-white leading-tight">
               {profile.daysPerWeek}×/week · {profile.sessionDurationMinutes} min
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
           <Wrench size={16} className="text-brand-400 shrink-0" />
           <div>
             <p className="text-[10px] text-slate-500 uppercase tracking-wide">Equipment</p>
-            <p className="text-sm font-medium text-white leading-tight truncate">
+            <p className="text-sm font-medium text-slate-900 dark:text-white leading-tight truncate">
               {profile.equipment.length > 0
                 ? profile.equipment.slice(0, 2).join(', ')
                 : 'Full gym'}
@@ -130,11 +130,11 @@ export function ProfileSummaryCard({ profile, onProgramReady }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
           <Dumbbell size={16} className="text-brand-400 shrink-0" />
           <div>
             <p className="text-[10px] text-slate-500 uppercase tracking-wide">Experience</p>
-            <p className="text-sm font-medium text-white leading-tight">
+            <p className="text-sm font-medium text-slate-900 dark:text-white leading-tight">
               {profile.trainingAgeYears === 0
                 ? 'Beginner'
                 : profile.trainingAgeYears <= 2
@@ -147,7 +147,7 @@ export function ProfileSummaryCard({ profile, onProgramReady }: Props) {
 
       {/* Priority muscles */}
       {showPriorityMuscles && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-slate-800 px-4 py-3">
+        <div className="flex items-start gap-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
           <Target size={16} className="text-brand-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Priority Muscles</p>
@@ -167,11 +167,11 @@ export function ProfileSummaryCard({ profile, onProgramReady }: Props) {
 
       {/* Program style preference */}
       {showProgramStyle && (
-        <div className="flex items-center gap-2.5 rounded-xl bg-slate-800 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-3">
           <LayoutGrid size={16} className="text-brand-400 shrink-0" />
           <div>
             <p className="text-[10px] text-slate-500 uppercase tracking-wide">Preferred Split</p>
-            <p className="text-sm font-medium text-white leading-tight">
+            <p className="text-sm font-medium text-slate-900 dark:text-white leading-tight">
               {SPLIT_LABELS[profile.programStyle!] ?? profile.programStyle}
             </p>
           </div>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { User, LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock } from 'lucide-react';
+import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
 import { useApp } from '../store/AppContext';
@@ -8,11 +8,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { setUser, clearGuestProfile } from '../utils/localStorage';
 import type { Goal, ExperienceLevel } from '../types';
+import { updateAvatarUrl } from '../lib/db';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Avatar } from '../components/ui/Avatar';
 import {
   getPushPermission,
   isSubscribed,
@@ -45,6 +47,8 @@ export function ProfilePage() {
   const { toast } = useToast();
 
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [exporting, setExporting] = useState(false);
 
@@ -109,6 +113,39 @@ export function ProfilePage() {
       toast('Profile saved', 'success');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser || isGuest) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Please select an image file', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Image must be smaller than 5 MB', 'error');
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `${currentUser.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw new Error(uploadError.message);
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+      await updateAvatarUrl(currentUser.id, data.publicUrl);
+      const updated = { ...currentUser, avatarUrl: data.publicUrl };
+      setUser(updated);
+      dispatch({ type: 'SET_USER', payload: updated });
+      toast('Profile picture updated', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Upload failed', 'error');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   }
 
@@ -242,10 +279,33 @@ export function ProfilePage() {
       <TopBar title="Profile" showBack />
 
       <div className="px-4 pb-6 space-y-4 mt-2">
-        {/* Avatar placeholder */}
+        {/* Avatar */}
         <div className="flex justify-center pt-4 pb-2">
-          <div className="w-20 h-20 rounded-full bg-brand-500/20 border-2 border-brand-500/40 flex items-center justify-center">
-            <User size={36} className="text-brand-400" />
+          <div className="relative">
+            <Avatar url={currentUser.avatarUrl} name={currentUser.name} size="lg" />
+            {uploading && (
+              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {!isGuest && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                aria-label="Change profile picture"
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand-500 hover:bg-brand-600 flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+              >
+                <Camera size={13} className="text-white" />
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
         </div>
 
@@ -281,7 +341,7 @@ export function ProfilePage() {
                 <select
                   value={goal}
                   onChange={(e) => setGoal(e.target.value as Goal)}
-                  className="w-full appearance-none rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
+                  className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
                 >
                   {(Object.keys(GOAL_LABELS) as Goal[]).map((g) => (
                     <option key={g} value={g}>
@@ -304,7 +364,7 @@ export function ProfilePage() {
                 <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value as ExperienceLevel)}
-                  className="w-full appearance-none rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
+                  className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
                 >
                   {(Object.keys(LEVEL_LABELS) as ExperienceLevel[]).map((l) => (
                     <option key={l} value={l}>

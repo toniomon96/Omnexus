@@ -124,7 +124,7 @@ export function OnboardingChat({ userName, onComplete }: Props) {
                 'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                 msg.role === 'user'
                   ? 'bg-brand-600 text-white rounded-br-sm'
-                  : 'bg-slate-800 text-slate-100 rounded-bl-sm',
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm',
               ].join(' ')}
             >
               {msg.content}
@@ -135,7 +135,7 @@ export function OnboardingChat({ userName, onComplete }: Props) {
         {/* Typing indicator */}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-800 rounded-2xl rounded-bl-sm px-4 py-3">
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1.5 items-center">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
@@ -179,7 +179,7 @@ export function OnboardingChat({ userName, onComplete }: Props) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your answer…"
           disabled={loading}
-          className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-60"
+          className="flex-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-60"
         />
         <button
           type="submit"

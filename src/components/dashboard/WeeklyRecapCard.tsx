@@ -65,7 +65,7 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
 
   return (
     <>
-      <div className="rounded-2xl bg-slate-900 dark:bg-slate-800 text-white px-4 py-4 space-y-3">
+      <div className="rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white px-4 py-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
             This Week
@@ -80,7 +80,7 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
             {thisWeek.length > 0 && (
               <button
                 onClick={() => setShowShare(true)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 aria-label="Share this week's progress"
               >
                 <Share2 size={14} />
@@ -119,13 +119,13 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
               <span>Last week {lastVol.toFixed(0)} kg</span>
               <span>This week {thisVol.toFixed(0)} kg</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <div
                 className="h-full rounded-full bg-brand-500 transition-all duration-700"
                 style={{ width: `${Math.min(100, (thisVol / Math.max(thisVol, lastVol)) * 100)}%` }}
               />
             </div>
-            <div className="h-1.5 rounded-full bg-slate-700/50 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-slate-200/50 dark:bg-slate-700/50 overflow-hidden">
               <div
                 className="h-full rounded-full bg-slate-500 transition-all duration-700"
                 style={{ width: `${Math.min(100, (lastVol / Math.max(thisVol, lastVol)) * 100)}%` }}
@@ -135,11 +135,11 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
         )}
 
         {topExerciseId && (
-          <div className="flex items-center gap-2 border-t border-slate-700 pt-2.5">
+          <div className="flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-2.5">
             <Dumbbell size={13} className="text-slate-400 shrink-0" />
             <p className="text-[11px] text-slate-400">
               Most sets:{' '}
-              <span className="text-white font-medium">
+              <span className="text-slate-900 dark:text-white font-medium">
                 {getExerciseById(topExerciseId)?.name ?? topExerciseId.replace(/-/g, ' ')}
               </span>
             </p>

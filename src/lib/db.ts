@@ -179,6 +179,16 @@ export async function deleteCustomProgramDb(id: string): Promise<void> {
   if (error) throw new Error(`[deleteCustomProgramDb] ${error.message}`);
 }
 
+// ─── Profile ──────────────────────────────────────────────────────────────────
+
+export async function updateAvatarUrl(userId: string, url: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: url })
+    .eq('id', userId);
+  if (error) throw new Error(`updateAvatarUrl: ${error.message}`);
+}
+
 // ─── Community: Friendships ───────────────────────────────────────────────────
 
 export async function searchProfiles(

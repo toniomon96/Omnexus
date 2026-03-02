@@ -13,7 +13,7 @@ function toISO(d: Date): string {
 }
 
 function volumeColor(vol: number): string {
-  if (vol === 0) return 'bg-slate-800/40 dark:bg-slate-700/20';
+  if (vol === 0) return 'bg-slate-200/80 dark:bg-slate-700/20';
   if (vol <= 3000) return 'bg-brand-500/25';
   if (vol <= 8000) return 'bg-brand-500/55';
   return 'bg-brand-500';
@@ -115,7 +115,7 @@ export function HeatmapCalendar({ sessions, weeks = 26 }: HeatmapCalendarProps) 
       {/* Legend */}
       <div className="flex items-center gap-2 mt-2 justify-end">
         <span className="text-[9px] text-slate-500">Less</span>
-        {['bg-slate-800/40', 'bg-brand-500/25', 'bg-brand-500/55', 'bg-brand-500'].map((c) => (
+        {['bg-slate-200/80 dark:bg-slate-700/20', 'bg-brand-500/25', 'bg-brand-500/55', 'bg-brand-500'].map((c) => (
           <div key={c} className={`w-3 h-3 rounded-sm ${c}`} />
         ))}
         <span className="text-[9px] text-slate-500">More</span>
