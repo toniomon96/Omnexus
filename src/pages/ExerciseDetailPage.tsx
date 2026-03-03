@@ -7,7 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
 import { MarkdownText } from '../components/ui/MarkdownText';
-import { getExerciseById } from '../data/exercises';
+import { getExerciseById, getExerciseYouTubeId } from '../data/exercises';
 import { useApp } from '../store/AppContext';
 import { getExerciseProgressionData } from '../utils/volumeUtils';
 import { ExerciseProgressChart } from '../components/exercise-library/ExerciseProgressChart';
@@ -15,7 +15,8 @@ import { askOmnexus } from '../services/claudeService';
 import { getContentRecommendations } from '../services/learningService';
 import { useLearningProgress } from '../hooks/useLearningProgress';
 import { courses } from '../data/courses';
-import { CheckCircle2, TrendingUp, Sparkles, Loader2, BookOpen, ArrowRight } from 'lucide-react';
+import { CheckCircle2, TrendingUp, Sparkles, Loader2, BookOpen, ArrowRight, Play } from 'lucide-react';
+import { YouTubeEmbed } from '../components/ui/YouTubeEmbed';
 import type { ContentRecommendation } from '../types';
 
 const equipEmoji: Record<string, string> = {
@@ -89,6 +90,7 @@ export function ExerciseDetailPage() {
   }
 
   const progressionData = getExerciseProgressionData(exercise.id, state.history);
+  const youtubeId = getExerciseYouTubeId(exercise.id);
 
   async function handleAiSuggestion() {
     if (!exercise) return;
@@ -170,6 +172,18 @@ export function ExerciseDetailPage() {
             ))}
           </div>
         </Card>
+
+        {/* Watch Demo */}
+        {youtubeId && (
+          <Card>
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
+              <Play size={15} className="text-brand-500" fill="currentColor" />
+              Watch Demo
+            </h2>
+            <YouTubeEmbed videoId={youtubeId} title={exercise.name} />
+            <p className="text-[11px] text-slate-400 mt-2">Tap to play · Tutorial from YouTube</p>
+          </Card>
+        )}
 
         {/* Your Progress */}
         <Card>

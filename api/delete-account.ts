@@ -49,6 +49,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await Promise.all([
       supabaseAdmin.from('challenge_participants').delete().eq('user_id', userId),
       supabaseAdmin
+        .from('challenge_invitations')
+        .delete()
+        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`),
+      supabaseAdmin
         .from('friendships')
         .delete()
         .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
@@ -57,6 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       supabaseAdmin.from('learning_progress').delete().eq('user_id', userId),
       supabaseAdmin.from('custom_programs').delete().eq('user_id', userId),
       supabaseAdmin.from('nutrition_logs').delete().eq('user_id', userId),
+      supabaseAdmin.from('subscriptions').delete().eq('user_id', userId),
+      supabaseAdmin.from('user_ai_usage').delete().eq('user_id', userId),
     ]);
 
     // Challenges created by the user — remove their ownership (or delete if desired)

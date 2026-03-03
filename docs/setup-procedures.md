@@ -226,12 +226,143 @@ If this returns rows, the join is configured correctly.
 
 ---
 
+## 5. Avatar Storage (Supabase Storage)
+
+Enables profile picture uploads. The upload code is already in `ProfilePage.tsx` —
+you just need to create the storage bucket and apply the access policies.
+
+### Step-by-step
+
+1. Open your **Supabase dashboard** → **Storage** → **New bucket**.
+   - Name: `avatars`
+   - Toggle **Public** ON (so uploaded images can be viewed by anyone with the URL)
+   - Click **Create bucket**
+
+2. Open the **SQL Editor** and run the contents of `docs/migrations/007_storage_avatars.sql`:
+   ```sql
+   CREATE POLICY "Users can upload own avatar" ...
+   CREATE POLICY "Users can update own avatar" ...
+   CREATE POLICY "Users can delete own avatar" ...
+   CREATE POLICY "Public can view avatars" ...
+   ```
+
+### Verification
+
+Sign in → Profile page → tap the camera icon → select a photo.
+The avatar should appear immediately and persist on page refresh.
+Check **Supabase → Storage → avatars** to confirm the file is there under `{userId}/`.
+
+---
+
+## 6. Premium Tier (Stripe)
+
+Enables the subscription paywall, usage limits, and the `/subscription` page.
+
+### Step-by-step
+
+#### 6a. Stripe setup
+
+1. Create a [Stripe account](https://stripe.com) (use test mode while developing).
+2. Go to **Products** → **Add product**:
+   - Name: `Omnexus Premium`
+   - Price: set your monthly price (e.g. $9.99/month, recurring)
+   - Copy the **Price ID** — it looks like `price_1ABC...`
+3. Go to **Developers** → **API keys**:
+   - Copy your **Publishable key** (`pk_test_...` for test mode)
+   - Copy your **Secret key** (`sk_test_...` for test mode)
+4. Go to **Developers** → **Webhooks** → **Add endpoint**:
+   - URL: `https://your-app.vercel.app/api/webhook-stripe`
+   - Events to listen for: `customer.subscription.created`, `customer.subscription.updated`,
+     `customer.subscription.deleted`, `invoice.payment_failed`
+   - Copy the **Signing secret** (`whsec_...`)
+
+#### 6b. Supabase SQL migrations
+
+Run the following SQL in the **Supabase SQL Editor** (in order):
+
+```sql
+-- Add Stripe customer ID to profiles
+ALTER TABLE profiles ADD COLUMN stripe_customer_id text UNIQUE;
+
+-- Subscriptions table
+CREATE TABLE subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_subscription_id text NOT NULL UNIQUE,
+  stripe_customer_id text NOT NULL,
+  status text NOT NULL CHECK (status IN ('active', 'past_due', 'canceled', 'unpaid', 'trialing')),
+  current_period_end timestamptz NOT NULL,
+  cancel_at_period_end boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Daily AI usage tracking
+CREATE TABLE user_ai_usage (
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  date date NOT NULL DEFAULT current_date,
+  ask_count int NOT NULL DEFAULT 0,
+  program_gen_count int NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, date)
+);
+
+-- RLS
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_ai_usage ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users can view own subscription" ON subscriptions
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "users can view own usage" ON user_ai_usage
+  FOR SELECT USING (auth.uid() = user_id);
+```
+
+#### 6c. Environment variables
+
+Add to **Vercel dashboard** → Settings → Environment Variables:
+
+| Variable | Value | Environment |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | `sk_live_...` (or `sk_test_...`) | Production (or All) |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Production |
+| `STRIPE_PRICE_ID` | `price_...` | All |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_live_...` | All |
+| `VITE_APP_URL` | `https://your-app.vercel.app` | Production |
+
+Also add to your local `.env.local` for development (use test keys):
+```
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+VITE_APP_URL=http://localhost:3000
+```
+
+For local webhook testing, install the [Stripe CLI](https://stripe.com/docs/stripe-cli) and run:
+```bash
+stripe listen --forward-to localhost:3000/api/webhook-stripe
+```
+
+#### 6d. Redeploy
+
+After adding env vars, redeploy your Vercel project.
+
+### Verification (test mode)
+
+1. Sign in → visit `/subscription` → click **Upgrade to Premium**
+2. Use test card `4242 4242 4242 4242`, any future expiry, any CVC
+3. After payment: redirected to `/subscription?success=true` → Premium status shown
+4. Ask page → send 6th question → succeeds (no limit hit)
+5. Profile page → shows "Premium" badge
+
+---
+
 ## Summary — Your Action Items
 
 | Priority | Task | Time |
 |----------|------|------|
 | 🔴 High | Add `ALLOWED_ORIGIN` to Vercel env vars + redeploy | 2 min |
 | 🔴 High | Create Upstash account + add 2 env vars to Vercel + redeploy | 10 min |
+| 🔴 High | Create `avatars` storage bucket + run SQL policies (Section 5) | 5 min |
+| 🔴 High | Run Stripe SQL migrations + add Stripe env vars (Section 6) | 20 min |
 | 🟡 Medium | Create E2E test Supabase account + `.env.test` file | 5 min |
 | 🟡 Medium | Run `npm run test:e2e` to verify tests pass | 5 min |
 | 🟢 Low | Verify PostgREST FK join in Supabase SQL Editor | 2 min |

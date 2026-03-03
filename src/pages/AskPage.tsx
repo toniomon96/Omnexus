@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { MarkdownText } from '../components/ui/MarkdownText';
 import { useApp } from '../store/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useSubscription } from '../hooks/useSubscription';
 import { askOmnexus } from '../services/claudeService';
 import type { ConversationMessage, Citation } from '../services/claudeService';
 import {
@@ -23,6 +25,7 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
+  Zap,
 } from 'lucide-react';
 
 const SUGGESTED = [
@@ -56,12 +59,15 @@ export function AskPage() {
   const { state } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+  const { session } = useAuth();
+  const { status } = useSubscription();
   const prefill = (location.state as { prefill?: string } | null)?.prefill ?? '';
   const [question, setQuestion] = useState(prefill);
   const [loading, setLoading] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
   const [sessions, setSessions] = useState<InsightSession[]>(() =>
     getInsightSessions().slice(0, 5),
   );
@@ -86,6 +92,7 @@ export function AskPage() {
     setCurrentAnswer(null);
     setCurrentQuestion(q);
     setError(null);
+    setUpgradeRequired(false);
     setFollowUps([]);
     setCurrentCitations([]);
 
@@ -124,7 +131,9 @@ export function AskPage() {
       setQuestion('');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
-      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      if (msg === 'Daily limit reached') {
+        setUpgradeRequired(true);
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
         setError('Cannot reach the API. Make sure you are running `vercel dev` instead of `npm run dev`.');
       } else {
         setError(msg);
@@ -152,6 +161,7 @@ export function AskPage() {
     setConversationHistory([]);
     setFollowUps([]);
     setCurrentCitations([]);
+    setUpgradeRequired(false);
   }
 
   return (
@@ -164,7 +174,7 @@ export function AskPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 shrink-0">
             <MessageCircle size={24} className="text-brand-500" />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-snug">
               Ask Anything
             </h2>
@@ -172,6 +182,11 @@ export function AskPage() {
               Science-backed answers, with citations
             </p>
           </div>
+          {session && status && status.tier === 'free' && (
+            <span className="shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {status.askCount}/{status.askLimit} today
+            </span>
+          )}
         </div>
 
         {/* Input area */}
@@ -229,6 +244,32 @@ export function AskPage() {
         {error && (
           <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
             <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          </Card>
+        )}
+
+        {/* Upgrade prompt when daily limit reached */}
+        {upgradeRequired && (
+          <Card className="border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10">
+                <Zap size={18} className="text-brand-500" fill="currentColor" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Daily limit reached
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Free users get 5 AI questions per day. Upgrade to Premium for unlimited access.
+                </p>
+                <Link
+                  to="/subscription"
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors"
+                >
+                  <Zap size={12} fill="currentColor" />
+                  Upgrade to Premium
+                </Link>
+              </div>
+            </div>
           </Card>
         )}
 

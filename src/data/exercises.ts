@@ -760,3 +760,57 @@ export const exercises: Exercise[] = [
 export function getExerciseById(id: string): Exercise | undefined {
   return exercises.find((e) => e.id === id);
 }
+
+// ─── YouTube Demo IDs ─────────────────────────────────────────────────────────
+// Curated technique tutorial videos from Jeff Nippard, Alan Thrall, Athlean-X
+const EXERCISE_YOUTUBE_IDS: Record<string, string> = {
+  'barbell-bench-press':       'vcBig73ojpE', // Jeff Nippard — bench press technique
+  'dumbbell-bench-press':      'vthMCtgVtFw', // Athlean-X — bench press checklist
+  'incline-dumbbell-press':    'LwHoNk-sjgs', // Jeff Nippard — push workout
+  'cable-chest-fly':           'NsEbXsTwas8', // Jeff Nippard — chest exercises ranked
+  'push-up':                   'AhdtowFDKT0', // Athlean-X — perfect push-up
+  'barbell-row':               'axoeDmW0oAY', // Jeff Nippard — rowing technique
+  'dumbbell-row':              'spKGN0XzErU', // Jeff Nippard — pull day
+  'lat-pulldown':              'WQasM7Jh9dQ', // Athlean-X — lat exercises
+  'pull-up':                   'Hdc7Mw6BIEE', // Jeff Nippard — pull-up for wide back
+  'seated-cable-row':          'IOl42YpK_Es', // Athlean-X — pull workout
+  'face-pull':                 'eIq5CB9JfKE', // Athlean-X — face pulls
+  'overhead-press':            '_RlRDWO2jfg', // Jeff Nippard — overhead press
+  'dumbbell-lateral-raise':    'v_ZkxWzYnMc', // Jeff Nippard — side delts
+  'dumbbell-shoulder-press':   'SgyUoY0IZ7A', // Jeff Nippard — shoulder tier list
+  'barbell-curl':              'i1YgFZB6alI', // Jeff Nippard — biceps
+  'hammer-curl':               'spKGN0XzErU', // Jeff Nippard — pull day (includes hammer curls)
+  'tricep-pushdown':           '8Nkfuhxsl-0', // Athlean-X — tricep workout
+  'skull-crusher':             'popGXI-qs98', // Jeff Nippard — triceps
+  'overhead-tricep-extension': 'G9uZ7fxgBjY', // Athlean-X — triceps
+  'barbell-back-squat':        'bs_Ej32IYgo', // Alan Thrall — squat technique
+  'goblet-squat':              'RjexvOAsVtI', // Athlean-X — perfect leg workout
+  'leg-press':                 'H6mRkx1x77k', // Jeff Nippard — leg day
+  'leg-extension':             'sDMAPXzvjAo', // Athlean-X — leg workout
+  'walking-lunge':             'H6mRkx1x77k', // Jeff Nippard — leg day
+  'bulgarian-split-squat':     'sDMAPXzvjAo', // Athlean-X — leg workout
+  'romanian-deadlift':         '_oyxCn2iSjU', // Jeff Nippard — RDL technique
+  'deadlift':                  'VL5Ab0T07e4', // Jeff Nippard — conventional deadlift
+  'hip-thrust':                'xDmFkJxPzeM', // Jeff Nippard — hip thrust
+  'glute-bridge':              '1jp2uhfO8M0', // Athlean-X — glute bridge
+  'leg-curl':                  '0a_fVS2s4Ho', // Jeff Nippard — hamstring training
+  'standing-calf-raise':       'RjexvOAsVtI', // Athlean-X — leg workout
+  'plank':                     '1G0y8D5rFDc', // Jeff Nippard — core training
+  'hanging-leg-raise':         'Pr1ieGZ5atk', // Athlean-X — hanging leg raise
+  'ab-wheel-rollout':          'Xx_RyuA4DzU', // Athlean-X — ab wheel
+  'kettlebell-swing':          '9LIAhxQHmak', // Caroline Girvan — kettlebell workout
+  'box-jump':                  'JDnttfZ0c1s', // Athlean-X — bodyweight exercises
+  'mountain-climbers':         'pIbAhBxwcxo', // Athlean-X — essential exercises
+  'dips':                      'yN6Q1UI_xkE', // Jeff Nippard — dips
+  'incline-barbell-press':     'jPLdzuHckI8', // Buff Dudes — incline barbell press
+  'rear-delt-fly':             'qfc70k40318', // Jeff Nippard — rear delts
+  'arnold-press':              'tZafawk3arc', // Athlean-X — shoulder exercises
+  'step-up':                   'RjexvOAsVtI', // Athlean-X — leg workout
+  'nordic-hamstring-curl':     '0a_fVS2s4Ho', // Jeff Nippard — hamstring training
+  'cable-crunch':              '1G0y8D5rFDc', // Jeff Nippard — core training
+  't-bar-row':                 'BPXjwGiKOmo', // Athlean-X — back workout
+};
+
+export function getExerciseYouTubeId(id: string): string | undefined {
+  return EXERCISE_YOUTUBE_IDS[id];
+}

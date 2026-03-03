@@ -76,6 +76,7 @@ export function LoginPage() {
         activeProgramId: profile.active_program_id ?? undefined,
         onboardedAt: profile.created_at,
         theme: getTheme(),
+        avatarUrl: profile.avatar_url ?? null,
       };
 
       setUser(user);

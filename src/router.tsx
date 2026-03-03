@@ -49,6 +49,7 @@ const MeasurementsPage = lazy(() => import('./pages/MeasurementsPage').then(m =>
 const QuickLogPage = lazy(() => import('./pages/QuickLogPage').then(m => ({ default: m.QuickLogPage })))
 const PlateCalculatorPage = lazy(() => import('./pages/PlateCalculatorPage').then(m => ({ default: m.PlateCalculatorPage })))
 const PreWorkoutBriefingPage = lazy(() => import('./pages/PreWorkoutBriefingPage').then(m => ({ default: m.PreWorkoutBriefingPage })))
+const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
 
 function RootLayout() {
   return (
@@ -129,6 +130,7 @@ function GuestOrAuthGuard() {
             activeProgramId: profile.active_program_id ?? undefined,
             onboardedAt: profile.created_at,
             theme: getTheme(),
+            avatarUrl: profile.avatar_url ?? null,
           } satisfies User
 
           setUser(user)
@@ -292,6 +294,7 @@ export const router = createBrowserRouter([
           { path: '/workout/quick', element: <QuickLogPage /> },
           { path: '/tools/plate-calculator', element: <PlateCalculatorPage /> },
           { path: '/briefing', element: <PreWorkoutBriefingPage /> },
+          { path: '/subscription', element: <SubscriptionPage /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },

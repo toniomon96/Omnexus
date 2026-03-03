@@ -1,13 +1,19 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 
-// ─── Module-level client (reused across warm invocations) ──────────────────────
+// ─── Module-level clients (reused across warm invocations) ─────────────────────
 
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
+
+const supabaseAdmin =
+  process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    : null;
 
 // ─── Exercise ID catalogue (mirrors src/data/exercises.ts) ───────────────────
 
@@ -410,6 +416,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!await checkRateLimit(req, res)) return;
+
+  // Usage gating for authenticated users
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ') && supabaseAdmin) {
+    const token = authHeader.slice(7);
+    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+
+    if (user) {
+      const today = new Date().toISOString().split('T')[0];
+      const [{ data: sub }, { data: usage }] = await Promise.all([
+        supabaseAdmin
+          .from('subscriptions')
+          .select('status')
+          .eq('user_id', user.id)
+          .in('status', ['active', 'trialing'])
+          .maybeSingle(),
+        supabaseAdmin
+          .from('user_ai_usage')
+          .select('program_gen_count')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle(),
+      ]);
+
+      const isPremium = !!sub;
+      if (!isPremium && (usage?.program_gen_count ?? 0) >= 1) {
+        return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
+      }
+
+      // Increment usage (fire-and-forget)
+      supabaseAdmin
+        .from('user_ai_usage')
+        .upsert(
+          { user_id: user.id, date: today, program_gen_count: (usage?.program_gen_count ?? 0) + 1 },
+          { onConflict: 'user_id,date' },
+        )
+        .then(() => {/* non-blocking */});
+    }
+  }
 
   if (!anthropic) {
     console.error('[/api/generate-program] ANTHROPIC_API_KEY is not configured');

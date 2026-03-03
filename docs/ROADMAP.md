@@ -129,11 +129,49 @@
 
 ---
 
-### Sprint 10 — Premium Tier 💡
+### Sprint 10 — Premium Tier 🚧
 
 - Stripe integration for monthly subscription
-- Gated features: unlimited AI insights, PDF program export, priority AI response
+- Gated features: unlimited AI insights, priority AI response (2000 tokens vs 1024)
 - Free tier: 5 AI Q&A/day, 1 AI program generation, community access
+- PDF program export deferred to Sprint 11
+
+#### Sprint 10 required env vars
+```
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID (server)
+VITE_STRIPE_PUBLISHABLE_KEY, VITE_APP_URL (client)
+```
+See `docs/setup-procedures.md` Section 6 for full setup instructions.
+
+#### Sprint 10 Supabase SQL migrations
+```sql
+ALTER TABLE profiles ADD COLUMN stripe_customer_id text UNIQUE;
+
+CREATE TABLE subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_subscription_id text NOT NULL UNIQUE,
+  stripe_customer_id text NOT NULL,
+  status text NOT NULL CHECK (status IN ('active', 'past_due', 'canceled', 'unpaid', 'trialing')),
+  current_period_end timestamptz NOT NULL,
+  cancel_at_period_end boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE user_ai_usage (
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  date date NOT NULL DEFAULT current_date,
+  ask_count int NOT NULL DEFAULT 0,
+  program_gen_count int NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, date)
+);
+
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_ai_usage ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "users can view own subscription" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "users can view own usage" ON user_ai_usage FOR SELECT USING (auth.uid() = user_id);
+```
 
 ---
 
@@ -141,11 +179,11 @@
 
 | Item | Priority | Notes |
 |---|---|---|
-| Delete account doesn't clean `challenge_invitations` | Medium | Add to deletion order in `api/delete-account.ts` |
+| ~~Delete account doesn't clean `challenge_invitations`~~ | ✅ Resolved | Fixed in Sprint 10 — `challenge_invitations`, `subscriptions`, `user_ai_usage` all cleaned |
 | `getFriendFeed` two-step fallback pattern | Low | PostgREST FK join would be cleaner; blocked on Supabase FK declarations |
 | `omnexus_last_adaptation` localStorage key not cleared on sign-out | Low | Minor: shows stale data to next user on same device |
-| Playwright E2E tests skip auth-required pages | Medium | Challenge, Friends, Feed E2E tests need `signIn()` + test Supabase account |
-| Rate limiting on `/api/adapt` and `/api/insights` | Medium | Currently only on `/api/ask`, `/api/generate-program`, `/api/onboard` |
+| ~~Playwright E2E tests skip auth-required pages~~ | ✅ Resolved | `tests/e2e/community.spec.ts` added — Feed/Friends/Leaderboard covered |
+| ~~Rate limiting on `/api/adapt` and `/api/insights`~~ | ✅ Resolved | Both endpoints have rate limiting applied |
 
 ---
 

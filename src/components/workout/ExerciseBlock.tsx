@@ -1,8 +1,10 @@
-import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Play, X } from 'lucide-react';
 import type { LoggedExercise, LoggedSet } from '../../types';
 import { SetRow } from './SetRow';
-import { getExerciseById } from '../../data/exercises';
+import { getExerciseById, getExerciseYouTubeId } from '../../data/exercises';
 import { Badge } from '../ui/Badge';
+import { YouTubeEmbed } from '../ui/YouTubeEmbed';
 
 interface ExerciseBlockProps {
   loggedExercise: LoggedExercise;
@@ -27,6 +29,8 @@ export function ExerciseBlock({
 }: ExerciseBlockProps) {
   const exercise = getExerciseById(loggedExercise.exerciseId);
   const completedCount = loggedExercise.sets.filter((s) => s.completed).length;
+  const youtubeId = exercise ? getExerciseYouTubeId(exercise.id) : undefined;
+  const [showDemo, setShowDemo] = useState(false);
 
   return (
     <div data-testid="exercise-block" className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -47,9 +51,20 @@ export function ExerciseBlock({
               </div>
             )}
           </div>
-          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            {completedCount}/{loggedExercise.sets.length}
-          </span>
+          <div className="flex items-center gap-2">
+            {youtubeId && (
+              <button
+                onClick={() => setShowDemo(true)}
+                className="flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-brand-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Watch demo"
+              >
+                <Play size={14} />
+              </button>
+            )}
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              {completedCount}/{loggedExercise.sets.length}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -88,6 +103,34 @@ export function ExerciseBlock({
           Add Set
         </button>
       </div>
+
+      {/* Demo modal */}
+      {showDemo && youtubeId && exercise && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4"
+          onClick={() => setShowDemo(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 p-4 pb-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {exercise.name} — Demo
+              </p>
+              <button
+                onClick={() => setShowDemo(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                aria-label="Close demo"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <YouTubeEmbed videoId={youtubeId} title={exercise.name} />
+            <p className="text-[11px] text-slate-400 mt-2 text-center">Tutorial from YouTube</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

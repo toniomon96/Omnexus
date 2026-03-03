@@ -65,6 +65,18 @@ export interface User {
   avatarUrl?: string | null;
 }
 
+// ─── Subscription ─────────────────────────────────────────────────────────────
+
+export interface SubscriptionStatus {
+  tier: 'free' | 'premium';
+  periodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
+  askCount: number;
+  askLimit: number;
+  programGenCount: number;
+  programGenLimit: number;
+}
+
 // ─── AI Training Profile ──────────────────────────────────────────────────────
 
 export interface UserTrainingProfile {

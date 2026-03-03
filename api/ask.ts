@@ -76,6 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Verify Bearer token when present — reject invalid tokens, allow missing (guest access)
   const authHeader = req.headers.authorization;
+  let authedUserId: string | null = null;
+  let isPremium = false;
+
   if (authHeader?.startsWith('Bearer ')) {
     if (!supabaseAdmin) {
       return res.status(500).json({ error: 'Auth service not configured' });
@@ -85,6 +88,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    authedUserId = user.id;
+
+    // Usage gating — check subscription and daily ask count
+    const today = new Date().toISOString().split('T')[0];
+    const [{ data: sub }, { data: usage }] = await Promise.all([
+      supabaseAdmin
+        .from('subscriptions')
+        .select('status')
+        .eq('user_id', authedUserId)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle(),
+      supabaseAdmin
+        .from('user_ai_usage')
+        .select('ask_count')
+        .eq('user_id', authedUserId)
+        .eq('date', today)
+        .maybeSingle(),
+    ]);
+
+    isPremium = !!sub;
+
+    if (!isPremium && (usage?.ask_count ?? 0) >= 5) {
+      return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
+    }
+
+    // Increment usage (fire-and-forget)
+    supabaseAdmin
+      .from('user_ai_usage')
+      .upsert(
+        { user_id: authedUserId, date: today, ask_count: (usage?.ask_count ?? 0) + 1 },
+        { onConflict: 'user_id,date' },
+      )
+      .then(() => {/* non-blocking */});
   }
 
   if (!anthropic) {
@@ -172,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const message = await Promise.race([
       anthropic.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
+        max_tokens: isPremium ? 2000 : 1024,
         system: SYSTEM_PROMPT,
         messages,
       }),

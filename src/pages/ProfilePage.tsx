@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera } from 'lucide-react';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useSubscription } from '../hooks/useSubscription';
 import { setUser, clearGuestProfile } from '../utils/localStorage';
 import type { Goal, ExperienceLevel } from '../types';
 import { updateAvatarUrl } from '../lib/db';
@@ -38,6 +39,7 @@ export function ProfilePage() {
   const { state, dispatch } = useApp();
   const { user: authUser, signOut } = useAuth();
   const navigate = useNavigate();
+  const { status: subStatus } = useSubscription();
 
   const currentUser = state.user;
 
@@ -316,6 +318,42 @@ export function ProfilePage() {
               Account
             </p>
             <p className="text-sm text-slate-300">{authUser.email}</p>
+          </Card>
+        )}
+
+        {/* Subscription */}
+        {!isGuest && (
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                  Subscription
+                </p>
+                {subStatus?.tier === 'premium' ? (
+                  <div className="flex items-center gap-1.5">
+                    <Zap size={14} className="text-brand-500" fill="currentColor" />
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Premium
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-slate-600 dark:text-slate-300">Free plan</span>
+                )}
+                {subStatus?.tier === 'premium' && subStatus.periodEnd && (
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {subStatus.cancelAtPeriodEnd
+                      ? `Cancels ${new Date(subStatus.periodEnd).toLocaleDateString()}`
+                      : `Renews ${new Date(subStatus.periodEnd).toLocaleDateString()}`}
+                  </p>
+                )}
+              </div>
+              <Link
+                to="/subscription"
+                className="text-xs font-semibold text-brand-500 hover:text-brand-400 transition-colors"
+              >
+                {subStatus?.tier === 'premium' ? 'Manage' : 'Upgrade →'}
+              </Link>
+            </div>
           </Card>
         )}
 
