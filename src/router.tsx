@@ -50,6 +50,10 @@ const QuickLogPage = lazy(() => import('./pages/QuickLogPage').then(m => ({ defa
 const PlateCalculatorPage = lazy(() => import('./pages/PlateCalculatorPage').then(m => ({ default: m.PlateCalculatorPage })))
 const PreWorkoutBriefingPage = lazy(() => import('./pages/PreWorkoutBriefingPage').then(m => ({ default: m.PreWorkoutBriefingPage })))
 const SubscriptionPage = lazy(() => import('./pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
+const TrainPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m.TrainPage })))
+const CommunityPage = lazy(() => import('./pages/CommunityPage').then(m => ({ default: m.CommunityPage })))
+const HelpPage = lazy(() => import('./pages/HelpPage').then(m => ({ default: m.HelpPage })))
+const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })))
 
 function RootLayout() {
   return (
@@ -271,6 +275,8 @@ export const router = createBrowserRouter([
       { path: '/privacy', element: <PrivacyPolicyPage /> },
       { path: '/auth/callback', element: <AuthCallbackPage /> },
       { path: '/reset-password', element: <ResetPasswordPage /> },
+      // Public marketing landing page — no auth required
+      { path: '/landing', element: <Suspense fallback={<LoadingScreen />}><LandingPage /></Suspense> },
       {
         // Accessible to guests and authenticated users
         element: <GuestOrAuthGuard />,
@@ -295,6 +301,8 @@ export const router = createBrowserRouter([
           { path: '/tools/plate-calculator', element: <PlateCalculatorPage /> },
           { path: '/briefing', element: <PreWorkoutBriefingPage /> },
           { path: '/subscription', element: <SubscriptionPage /> },
+          { path: '/train', element: <TrainPage /> },
+          { path: '/help', element: <HelpPage /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },
@@ -302,6 +310,9 @@ export const router = createBrowserRouter([
         // Community — full Supabase account required
         element: <AuthOnlyGuard />,
         children: [
+          // /community is the hub; /feed, /leaderboard, /challenges, /friends are sub-pages
+          // All are AuthOnly so guests see a prompt to create an account
+          { path: '/community', element: <CommunityPage /> },
           { path: '/feed', element: <ActivityFeedPage /> },
           { path: '/friends', element: <FriendsPage /> },
           { path: '/leaderboard', element: <LeaderboardPage /> },
