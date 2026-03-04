@@ -50,7 +50,7 @@ const FAQS = [
 
 export function HelpPage() {
   const { session } = useAuth();
-  const { addToast } = useToast();
+  const { toast } = useToast();
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [bugForm, setBugForm] = useState({ description: '', steps: '', email: '' });
@@ -77,9 +77,9 @@ export function HelpPage() {
 
       if (!res.ok) throw new Error('Failed to submit');
       setSubmitted(true);
-      addToast({ type: 'success', message: 'Bug report submitted — thank you!' });
+      toast('Bug report submitted — thank you!', 'success');
     } catch {
-      addToast({ type: 'error', message: 'Failed to submit. Please try again.' });
+      toast('Failed to submit. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

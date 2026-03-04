@@ -88,7 +88,7 @@ export function TrainPage() {
               <span className="text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
             </div>
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              {nextWorkout.day.name}
+              {nextWorkout.day.label}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {nextWorkout.day.exercises.slice(0, 5).map(ex => (

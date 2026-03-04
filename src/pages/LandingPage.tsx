@@ -16,7 +16,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Brain,
   Dumbbell,
-  Trophy,
   BookOpen,
   BarChart2,
   Users,
