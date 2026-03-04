@@ -13,7 +13,9 @@ const supabaseAdmin =
     ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     : null;
 
-const APP_URL = process.env.VITE_APP_URL ?? 'http://localhost:3000';
+// BUG-06: Use APP_URL (server-side env var), not VITE_APP_URL (Vite inlines VITE_ vars at build
+// time — they are NOT available in Vercel serverless functions at runtime).
+const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
@@ -42,10 +44,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Payment service not configured' });
   }
 
-  const { priceId } = req.body ?? {};
-  const resolvedPriceId = priceId ?? process.env.STRIPE_PRICE_ID;
+  // BUG-07: Always use the server-side price ID — never trust a client-supplied priceId.
+  const resolvedPriceId = process.env.STRIPE_PRICE_ID;
   if (!resolvedPriceId) {
-    return res.status(400).json({ error: 'priceId is required' });
+    return res.status(500).json({ error: 'Payment not configured' });
   }
 
   try {
@@ -59,19 +61,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let customerId: string = profile?.stripe_customer_id ?? '';
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { userId: user.id },
-      });
-      customerId = customer.id;
-      await supabaseAdmin
+      // BUG-05: Check for an existing Stripe customer before creating to avoid orphans.
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId: user.id },
+        });
+        customerId = customer.id;
+      }
+
+      // Persist the customer ID — log on failure but don't abort; the
+      // checkout.session.completed webhook will also attempt to save it.
+      const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id);
+      if (updateError) {
+        console.error('[/api/create-checkout] Failed to save stripe_customer_id:', updateError);
+      }
     }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      // BUG-01: client_reference_id lets the webhook find the user by ID even if
+      // stripe_customer_id hasn't been persisted to profiles yet (race condition).
+      client_reference_id: user.id,
       line_items: [{ price: resolvedPriceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${APP_URL}/subscription?success=true`,

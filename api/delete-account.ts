@@ -45,7 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = user.id;
 
   try {
-    // Delete all user data in dependency order (children first)
+    // BUG-16: Delete all user data in dependency order (children first).
+    // Also removes tables that were missing from the original implementation.
     await Promise.all([
       supabaseAdmin.from('challenge_participants').delete().eq('user_id', userId),
       supabaseAdmin
@@ -63,7 +64,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       supabaseAdmin.from('nutrition_logs').delete().eq('user_id', userId),
       supabaseAdmin.from('subscriptions').delete().eq('user_id', userId),
       supabaseAdmin.from('user_ai_usage').delete().eq('user_id', userId),
+      // Previously missing:
+      supabaseAdmin.from('training_profiles').delete().eq('user_id', userId),
+      supabaseAdmin.from('measurements').delete().eq('user_id', userId),
+      supabaseAdmin.from('feed_reactions').delete().eq('user_id', userId),
     ]);
+
+    // Clean up avatar storage (non-blocking — profile deletion is the critical step).
+    supabaseAdmin.storage
+      .from('avatars')
+      .list(userId)
+      .then(({ data: files }) => {
+        if (files?.length) {
+          return supabaseAdmin.storage
+            .from('avatars')
+            .remove(files.map(f => `${userId}/${f.name}`));
+        }
+      })
+      .catch(err => console.error('[/api/delete-account] Avatar cleanup failed:', err));
 
     // Challenges created by the user — remove their ownership (or delete if desired)
     await supabaseAdmin.from('challenges').delete().eq('created_by', userId);

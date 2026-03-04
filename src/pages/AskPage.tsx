@@ -8,7 +8,7 @@ import { MarkdownText } from '../components/ui/MarkdownText';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { askOmnexus } from '../services/claudeService';
+import { askOmnexus, ApiError } from '../services/claudeService';
 import type { ConversationMessage, Citation } from '../services/claudeService';
 import {
   appendInsightSession,
@@ -130,13 +130,18 @@ export function AskPage() {
       setSessions(getInsightSessions().slice(0, 5));
       setQuestion('');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong.';
-      if (msg === 'Daily limit reached') {
+      // BUG-23: Use HTTP status code (403) rather than string matching to detect upgrade prompts.
+      if (err instanceof ApiError && err.status === 403) {
         setUpgradeRequired(true);
-      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-        setError('Cannot reach the API. Make sure you are running `vercel dev` instead of `npm run dev`.');
+      } else if (err instanceof Error) {
+        const msg = err.message;
+        if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+          setError('Cannot reach the API. Make sure you are running `vercel dev` instead of `npm run dev`.');
+        } else {
+          setError(msg);
+        }
       } else {
-        setError(msg);
+        setError('Something went wrong.');
       }
     } finally {
       setLoading(false);

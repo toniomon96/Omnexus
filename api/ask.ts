@@ -76,7 +76,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Verify Bearer token when present — reject invalid tokens, allow missing (guest access)
   const authHeader = req.headers.authorization;
-  let authedUserId: string | null = null;
   let isPremium = false;
 
   if (authHeader?.startsWith('Bearer ')) {
@@ -88,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
-    authedUserId = user.id;
+    const authedUserId = user.id;
 
     // Usage gating — check subscription and daily ask count
     const today = new Date().toISOString().split('T')[0];

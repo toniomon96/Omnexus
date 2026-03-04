@@ -49,6 +49,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     switch (event.type) {
+      // BUG-01: Handle checkout.session.completed as the authoritative provisioning event.
+      // customer.subscription.created may fire before create-checkout.ts has persisted
+      // stripe_customer_id to profiles, causing the profile lookup below to return null.
+      // client_reference_id (= user.id) is always set by create-checkout.ts and lets us
+      // provision the subscription without relying on the profiles.stripe_customer_id lookup.
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.client_reference_id;
+        const customerId = session.customer as string;
+
+        if (!userId) {
+          console.warn('[webhook-stripe] checkout.session.completed: missing client_reference_id');
+          break;
+        }
+
+        // Ensure stripe_customer_id is stored (may not have been saved in the race window).
+        if (customerId) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({ stripe_customer_id: customerId })
+            .eq('id', userId);
+        }
+
+        // Provision the subscription row immediately from the session data.
+        if (typeof session.subscription === 'string') {
+          const sub = await stripe.subscriptions.retrieve(session.subscription);
+          const periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+          await supabaseAdmin.from('subscriptions').upsert(
+            {
+              user_id: userId,
+              stripe_subscription_id: sub.id,
+              stripe_customer_id: customerId,
+              status: sub.status,
+              current_period_end: periodEnd,
+              cancel_at_period_end: sub.cancel_at_period_end,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' },
+          );
+        }
+        break;
+      }
+
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;

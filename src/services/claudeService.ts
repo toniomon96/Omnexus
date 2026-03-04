@@ -40,6 +40,15 @@ export interface InsightResponse {
 import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
 
+// BUG-23: Typed error that carries the HTTP status code so callers can distinguish
+// 403 (upgrade required) from other errors without fragile string matching.
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -53,7 +62,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({ error: 'Request failed' })) as { error?: string };
-    throw new Error(data.error ?? `HTTP ${res.status}`);
+    throw new ApiError(data.error ?? `HTTP ${res.status}`, res.status);
   }
   return res.json() as Promise<T>;
 }

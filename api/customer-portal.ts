@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -12,13 +13,17 @@ const supabaseAdmin =
     ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     : null;
 
-const APP_URL = process.env.VITE_APP_URL ?? 'http://localhost:3000';
+// BUG-06: Use APP_URL (server-side env var), not VITE_APP_URL.
+const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // BUG-08: Add rate limiting (was missing — portal URL creation calls Stripe API).
+  if (!await checkRateLimit(req, res)) return;
 
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {

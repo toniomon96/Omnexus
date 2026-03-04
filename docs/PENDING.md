@@ -144,12 +144,30 @@ Use Extended Controls → Screenshot in Android emulator:
 
 ---
 
-## Step 5 — Stripe Webhook Fix
+## Step 5 — Stripe Webhook Events
 
-The webhook is missing `customer.subscription.updated`. Without it, subscription status won't update after renewals or cancellations.
+Verify the webhook endpoint has ALL three events registered:
 
-**Fix:** Stripe Dashboard → Developers → Webhooks → your endpoint → Edit → add event:
+**Stripe Dashboard → Developers → Webhooks → your endpoint → Edit → ensure these events are listed:**
+- `checkout.session.completed`
+- `customer.subscription.created`
 - `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `invoice.payment_failed`
+
+---
+
+## Step 6 — Add `APP_URL` Server-Side Env Var
+
+`VITE_APP_URL` is not available in Vercel serverless functions (Vite inlines `VITE_` vars at build
+time only). The Stripe redirect URLs were using localhost in production until this was fixed.
+
+**Add to Vercel dashboard** (Settings → Environment Variables → Production):
+```
+APP_URL=https://fitness-app-ten-eta.vercel.app
+```
+
+This is separate from `VITE_API_BASE_URL` — both must be set.
 
 ---
 

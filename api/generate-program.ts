@@ -199,6 +199,14 @@ function buildFallback(profile: UserTrainingProfile): GeneratedProgram {
   };
 }
 
+// ─── Prompt sanitization ──────────────────────────────────────────────────────
+
+// BUG-15: Strip newlines and control characters from user-supplied strings before
+// injecting them into the AI system prompt to prevent prompt injection attacks.
+function sanitize(value: string): string {
+  return value.replace(/[\r\n\t]+/g, ' ').trim();
+}
+
 // ─── World-class system prompt ────────────────────────────────────────────────
 
 function buildSystemPrompt(profile: UserTrainingProfile): string {
@@ -215,9 +223,9 @@ function buildSystemPrompt(profile: UserTrainingProfile): string {
   const bodyweightOnly = profile.equipment.length > 0 &&
     profile.equipment.every(e => /bodyweight/i.test(e));
 
-  const primaryGoal = profile.goals[0] ?? 'general-fitness';
+  const primaryGoal = sanitize(profile.goals[0] ?? 'general-fitness');
   const priorityText = profile.priorityMuscles?.length
-    ? profile.priorityMuscles.join(', ')
+    ? profile.priorityMuscles.map(sanitize).join(', ')
     : 'balanced development';
   const cardioText = profile.includeCardio
     ? 'YES — build 1-2 conditioning sessions into the weekly schedule'
@@ -270,13 +278,13 @@ function buildSystemPrompt(profile: UserTrainingProfile): string {
   return `You are an NSCA-certified strength coach and exercise scientist specialising in evidence-based hypertrophy, fat loss, and performance programming. Generate a personalised, periodized 8-week training program as a SINGLE valid JSON object with NO surrounding text.
 
 ═══════════════════ USER PROFILE ═══════════════════
-Goal: ${profile.goals.join(', ')}
+Goal: ${profile.goals.map(sanitize).join(', ')}
 Priority muscles to develop: ${priorityText}
 Training age: ${profile.trainingAgeYears} year(s) → Experience level: ${expLevel}
 Days per week: ${profile.daysPerWeek}
 Session duration: ${profile.sessionDurationMinutes} minutes
-Equipment available: ${profile.equipment.join(', ') || 'full commercial gym (all equipment)'}
-Injuries/limitations: ${profile.injuries.join(', ') || 'none'}
+Equipment available: ${profile.equipment.map(sanitize).join(', ') || 'full commercial gym (all equipment)'}
+Injuries/limitations: ${profile.injuries.map(sanitize).join(', ') || 'none'}
 Include cardio/conditioning: ${cardioText}
 
 MANDATORY SPLIT FOR THIS PERSON: ${mandatorySplit}
@@ -423,37 +431,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = authHeader.slice(7);
     const { data: { user } } = await supabaseAdmin.auth.getUser(token);
 
-    if (user) {
-      const today = new Date().toISOString().split('T')[0];
-      const [{ data: sub }, { data: usage }] = await Promise.all([
-        supabaseAdmin
-          .from('subscriptions')
-          .select('status')
-          .eq('user_id', user.id)
-          .in('status', ['active', 'trialing'])
-          .maybeSingle(),
-        supabaseAdmin
-          .from('user_ai_usage')
-          .select('program_gen_count')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .maybeSingle(),
-      ]);
+    // BUG-13: An invalid token must be rejected. Previously user === null caused the
+    // entire gating block to be skipped, letting the request through ungated.
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
 
-      const isPremium = !!sub;
-      if (!isPremium && (usage?.program_gen_count ?? 0) >= 1) {
-        return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
-      }
-
-      // Increment usage (fire-and-forget)
+    const today = new Date().toISOString().split('T')[0];
+    const [{ data: sub }, { data: usage }] = await Promise.all([
+      supabaseAdmin
+        .from('subscriptions')
+        .select('status')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .maybeSingle(),
       supabaseAdmin
         .from('user_ai_usage')
-        .upsert(
-          { user_id: user.id, date: today, program_gen_count: (usage?.program_gen_count ?? 0) + 1 },
-          { onConflict: 'user_id,date' },
-        )
-        .then(() => {/* non-blocking */});
+        .select('program_gen_count')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle(),
+    ]);
+
+    const isPremium = !!sub;
+    if (!isPremium && (usage?.program_gen_count ?? 0) >= 1) {
+      return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
     }
+
+    // Increment usage (fire-and-forget)
+    supabaseAdmin
+      .from('user_ai_usage')
+      .upsert(
+        { user_id: user.id, date: today, program_gen_count: (usage?.program_gen_count ?? 0) + 1 },
+        { onConflict: 'user_id,date' },
+      )
+      .then(() => {/* non-blocking */});
   }
 
   if (!anthropic) {
