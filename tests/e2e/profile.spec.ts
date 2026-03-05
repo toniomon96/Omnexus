@@ -7,7 +7,7 @@ test.describe('Profile page — guest', () => {
   });
 
   test('navigates to profile page', async ({ page }) => {
-    await page.getByRole('link', { name: 'Me', exact: true }).click();
+    await page.goto('/profile');
     await expect(page).toHaveURL('/profile');
   });
 

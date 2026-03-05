@@ -8,17 +8,17 @@ test.describe('Bottom navigation', () => {
 
   test('Home tab navigates to /', async ({ page }) => {
     await page.goto('/learn');
-    await page.getByRole('link', { name: /home/i }).click();
+    await page.getByRole('link', { name: /^home$/i }).click();
     await expect(page).toHaveURL('/');
   });
 
   test('Train tab navigates to /train', async ({ page }) => {
-    await page.getByRole('link', { name: /train/i }).click();
+    await page.getByRole('link', { name: /^train$/i }).click();
     await expect(page).toHaveURL('/train');
   });
 
   test('Community tab navigates to /community', async ({ page }) => {
-    await page.getByRole('link', { name: /community/i }).click();
+    await page.getByRole('link', { name: /^community$/i }).click();
     await expect(page).toHaveURL('/community');
   });
 
@@ -28,8 +28,13 @@ test.describe('Bottom navigation', () => {
     await expect(page.getByRole('heading', { name: /^learn$/i })).toBeVisible();
   });
 
-  test('Me tab navigates to /profile', async ({ page }) => {
-    await page.getByRole('link', { name: 'Me', exact: true }).click();
+  test('Insights tab navigates to /insights', async ({ page }) => {
+    await page.getByRole('link', { name: /^insights$/i }).click();
+    await expect(page).toHaveURL('/insights');
+  });
+
+  test('profile icon in TopBar navigates to /profile', async ({ page }) => {
+    await page.getByRole('link', { name: /profile/i }).click();
     await expect(page).toHaveURL('/profile');
   });
 });

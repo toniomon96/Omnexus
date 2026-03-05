@@ -31,7 +31,7 @@ export function InsightsPage() {
   const { state } = useApp();
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
-  const user = state.user!;
+  const user = state.user;
   const sessions = state.history.sessions;
 
   const [loading, setLoading] = useState(false);
@@ -69,6 +69,8 @@ export function InsightsPage() {
       setLoading(false);
     }
   }
+
+  if (!user) return null;
 
   return (
     <AppShell>

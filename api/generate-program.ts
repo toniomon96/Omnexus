@@ -502,7 +502,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         program = { ...parsed, isCustom: true, isAiGenerated: true };
       } else {
         console.warn('[/api/generate-program] Validation failed — using fallback');
-        console.warn('[/api/generate-program] Raw output (first 500 chars):', raw.slice(0, 500));
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[/api/generate-program] Raw output (first 500 chars):', raw.slice(0, 500));
+        }
       }
     } catch (parseErr) {
       console.warn('[/api/generate-program] JSON parse error — using fallback', parseErr);

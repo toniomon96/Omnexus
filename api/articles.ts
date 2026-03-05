@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { HealthArticle, LearningCategory } from '../src/types/index.js';
+import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { checkRateLimit } from './_rateLimit.js';
 
 // ─── PubMed search queries per category ──────────────────────────────────────
 
@@ -83,9 +85,13 @@ async function fetchAbstracts(ids: string[]): Promise<Record<string, string>> {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCorsHeaders(res, ALLOWED_ORIGIN);
+
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!await checkRateLimit(req, res)) return;
 
   const category = (req.query.category as string) ?? 'strength-training';
   const limit = Math.min(Number(req.query.limit) || 5, 10);

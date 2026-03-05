@@ -8,7 +8,7 @@ import { NextSessionTab } from './NextSessionTab';
 import { formatDuration } from '../../utils/dateUtils';
 import { getExerciseById } from '../../data/exercises';
 import { generatePRCard } from '../../utils/shareCard';
-import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2 } from 'lucide-react';
+import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History } from 'lucide-react';
 import { triggerHapticNotification } from '../../lib/capacitor';
 import { getAdaptation } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
@@ -276,9 +276,15 @@ export function WorkoutCompleteModal({
               </button>
             )}
 
-            <Button onClick={() => navigate('/')} fullWidth size="lg">
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/')} fullWidth size="lg">
+                Dashboard
+              </Button>
+              <Button variant="ghost" onClick={() => navigate('/history')} fullWidth size="lg">
+                <History size={16} />
+                History
+              </Button>
+            </div>
           </>
         )}
 
@@ -297,9 +303,15 @@ export function WorkoutCompleteModal({
                 <p className="text-sm text-slate-500">No adaptation data available.</p>
               </div>
             )}
-            <Button onClick={() => navigate('/')} fullWidth size="lg">
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/')} fullWidth size="lg">
+                Dashboard
+              </Button>
+              <Button variant="ghost" onClick={() => navigate('/history')} fullWidth size="lg">
+                <History size={16} />
+                History
+              </Button>
+            </div>
           </>
         )}
       </div>

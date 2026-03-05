@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, Users, GraduationCap, User } from 'lucide-react';
+import { Home, Dumbbell, Users, GraduationCap, Sparkles } from 'lucide-react';
 
 // All routes that belong to the Community section — keeps the tab highlighted
 // when the user navigates into a community sub-page from the hub.
@@ -17,7 +17,7 @@ export function BottomNav() {
     { to: '/train',     icon: Dumbbell,      label: 'Train',     end: false, forceActive: undefined as boolean | undefined },
     { to: '/community', icon: Users,         label: 'Community', end: false, forceActive: isCommunityActive },
     { to: '/learn',     icon: GraduationCap, label: 'Learn',     end: false, forceActive: undefined as boolean | undefined },
-    { to: '/profile',   icon: User,          label: 'Me',        end: false, forceActive: undefined as boolean | undefined },
+    { to: '/insights',  icon: Sparkles,      label: 'Insights',  end: false, forceActive: undefined as boolean | undefined },
   ];
 
   return (

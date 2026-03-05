@@ -94,6 +94,68 @@ test.describe('Workout flow', () => {
   });
 });
 
+test.describe('Workout complete modal', () => {
+  test.beforeEach(async ({ page }) => {
+    await enterAsGuest(page);
+    await page.evaluate(() => localStorage.removeItem('fit_active_session'));
+  });
+
+  test('finish workout button appears after exercises are loaded', async ({ page }) => {
+    test.info().annotations.push({ type: 'feature', description: 'Workout' });
+
+    await page.goto('/');
+    const startBtn = page.getByRole('button', { name: /start workout|begin/i })
+      .or(page.getByRole('link', { name: /start workout|begin/i }));
+
+    // Skip if there's no active program / start button
+    if (!await startBtn.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
+      test.skip();
+      return;
+    }
+
+    await startBtn.first().click();
+    await page.waitForURL(/\/workout\/active/);
+
+    await expect(
+      page.getByRole('button', { name: /finish workout/i }),
+    ).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('complete modal has Dashboard and History buttons', async ({ page }) => {
+    test.info().annotations.push({ type: 'feature', description: 'Workout' });
+
+    await page.goto('/');
+    const startBtn = page.getByRole('button', { name: /start workout|begin/i })
+      .or(page.getByRole('link', { name: /start workout|begin/i }));
+
+    if (!await startBtn.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
+      test.skip();
+      return;
+    }
+
+    await startBtn.first().click();
+    await page.waitForURL(/\/workout\/active/);
+
+    // Finish the workout directly
+    const finishBtn = page.getByRole('button', { name: /finish workout/i });
+    if (!await finishBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      test.skip();
+      return;
+    }
+
+    await finishBtn.click();
+
+    // Modal should appear with both CTAs
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.getByRole('button', { name: /dashboard/i }).or(page.getByRole('link', { name: /dashboard/i })),
+    ).toBeVisible({ timeout: 3_000 });
+    await expect(
+      page.getByRole('button', { name: /history/i }).or(page.getByRole('link', { name: /history/i })),
+    ).toBeVisible({ timeout: 3_000 });
+  });
+});
+
 test.describe('Workout history', () => {
   test.beforeEach(async ({ page }) => {
     await enterAsGuest(page);

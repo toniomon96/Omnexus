@@ -293,3 +293,8 @@ export function setGuestProfile(profile: User): void {
 export function clearGuestProfile(): void {
   localStorage.removeItem(KEYS.GUEST_PROFILE);
 }
+
+/** Remove all app-owned keys without touching third-party entries (e.g. cookie consent). */
+export function clearAppStorage(): void {
+  Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
+}

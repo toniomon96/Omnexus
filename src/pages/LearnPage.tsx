@@ -55,6 +55,7 @@ export function LearnPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [showMicroLesson, setShowMicroLesson] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestGenRef = useRef(0);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -64,6 +65,8 @@ export function LearnPage() {
       setHasContentGap(false);
       return;
     }
+
+    const generation = ++requestGenRef.current;
 
     debounceRef.current = setTimeout(async () => {
       setSearchLoading(true);
@@ -75,13 +78,15 @@ export function LearnPage() {
           experienceLevel: level,
           limit: 6,
         });
+        if (generation !== requestGenRef.current) return; // stale response
         setSearchResults(res.recommendations);
         setHasContentGap(res.hasContentGap);
       } catch {
+        if (generation !== requestGenRef.current) return;
         setSearchResults([]);
         setHasContentGap(false);
       } finally {
-        setSearchLoading(false);
+        if (generation === requestGenRef.current) setSearchLoading(false);
       }
     }, 400);
 
