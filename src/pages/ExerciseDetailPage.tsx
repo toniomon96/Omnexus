@@ -81,7 +81,7 @@ export function ExerciseDetailPage() {
   if (!exercise) {
     return (
       <AppShell>
-        <TopBar title="Exercise" showBack backTo="/library" />
+        <TopBar title="Exercise" showBack />
         <div className="flex items-center justify-center h-60">
           <p className="text-slate-400">Exercise not found.</p>
         </div>
@@ -126,7 +126,7 @@ export function ExerciseDetailPage() {
 
   return (
     <AppShell>
-      <TopBar title={exercise.name} showBack backTo="/library" />
+      <TopBar title={exercise.name} showBack />
       <div className="px-4 pb-6 mt-2 space-y-5">
         {/* Muscles */}
         <Card>
