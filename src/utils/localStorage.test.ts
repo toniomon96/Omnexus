@@ -47,7 +47,7 @@ import {
   setGuestProfile,
   clearGuestProfile,
 } from './localStorage';
-import type { User, WorkoutSession, PersonalRecord, LearningProgress, Program } from '../types';
+import type { User, WorkoutSession, PersonalRecord, LearningProgress, Program, InsightSession } from '../types';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -82,6 +82,15 @@ function mockProgram(id: string): Program {
     estimatedDurationWeeks: 12,
     schedule: [],
     tags: [],
+  };
+}
+
+function makeInsight(id: string): InsightSession {
+  return {
+    id,
+    category: 'general-health',
+    messages: [{ id: 'm1', role: 'user', content: 'hi', timestamp: '2025-01-01' }],
+    createdAt: '2025-01-01',
   };
 }
 
@@ -264,22 +273,22 @@ describe('Insight sessions storage', () => {
   });
 
   it('prepends new sessions', () => {
-    appendInsightSession({ question: 'q1', answer: 'a1', askedAt: '2025-01-01' } as any);
-    appendInsightSession({ question: 'q2', answer: 'a2', askedAt: '2025-01-02' } as any);
+    appendInsightSession(makeInsight('i1'));
+    appendInsightSession(makeInsight('i2'));
     const sessions = getInsightSessions();
     expect(sessions).toHaveLength(2);
-    expect(sessions[0].question).toBe('q2'); // most recent first
+    expect(sessions[0].id).toBe('i2'); // most recent first
   });
 
   it('trims to 50 sessions max', () => {
     for (let i = 0; i < 55; i++) {
-      appendInsightSession({ question: `q${i}`, answer: `a${i}`, askedAt: `2025-01-${i}` } as any);
+      appendInsightSession(makeInsight(`i${i}`));
     }
     expect(getInsightSessions()).toHaveLength(50);
   });
 
   it('clears insight sessions', () => {
-    appendInsightSession({ question: 'q', answer: 'a', askedAt: '2025-01-01' } as any);
+    appendInsightSession(makeInsight('i1'));
     clearInsightSessions();
     expect(getInsightSessions()).toEqual([]);
   });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Action } from './AppContext';
 
 // ─── Mock localStorage (Node env) ────────────────────────────────────────────
 
@@ -219,7 +220,8 @@ describe('AppContext reducer', () => {
 
   it('returns state for unknown action', () => {
     const state = baseState();
-    const result = reducer(state, { type: 'NONEXISTENT' as any });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- intentionally testing an unknown action type
+    const result = reducer(state, { type: 'NONEXISTENT' } as unknown as Action);
     expect(result).toBe(state);
   });
 });
