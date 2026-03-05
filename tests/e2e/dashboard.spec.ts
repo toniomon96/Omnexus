@@ -35,17 +35,11 @@ test.describe('Dashboard — guest', () => {
     await expect(page).toHaveURL('/profile');
   });
 
-  test('no-program card shows Get Started button', async ({ page }) => {
-    // A fresh guest has no active program, so the prompt card should appear
+  test('today\'s workout card is visible for guest with program', async ({ page }) => {
+    // Guest setup auto-assigns a program, so TodayCard should render
     await page.goto('/');
     await expect(
-      page.getByRole('button', { name: /get started/i }),
+      page.getByText(/today|workout/i).first(),
     ).toBeVisible({ timeout: 5_000 });
-  });
-
-  test('Get Started button navigates to /train', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: /get started/i }).click();
-    await expect(page).toHaveURL('/train');
   });
 });

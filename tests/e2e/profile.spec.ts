@@ -33,8 +33,8 @@ test.describe('Profile page — guest', () => {
     }
   });
 
-  test('sign out button is visible for guest', async ({ page }) => {
+  test('exit guest mode button is visible for guest', async ({ page }) => {
     await page.goto('/profile');
-    await expect(page.getByRole('button', { name: /sign out|log out/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /exit guest mode/i })).toBeVisible();
   });
 });
