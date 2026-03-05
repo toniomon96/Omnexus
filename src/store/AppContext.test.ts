@@ -220,7 +220,6 @@ describe('AppContext reducer', () => {
 
   it('returns state for unknown action', () => {
     const state = baseState();
-    // eslint-disable-next-line -- intentionally testing an unknown action type
     const result = reducer(state, { type: 'NONEXISTENT' } as unknown as Action);
     expect(result).toBe(state);
   });
