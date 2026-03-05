@@ -157,7 +157,41 @@ Verify the webhook endpoint has ALL three events registered:
 
 ---
 
-## Step 6 — Add `APP_URL` Server-Side Env Var
+## Step 6 — Run Bug Reports Migration ⏳
+
+In the **Supabase SQL Editor**, run:
+
+```
+docs/migrations/008_bug_reports.sql
+```
+
+Creates the `bug_reports` table with RLS policies (anyone can insert, users can view own).
+Required for the Help page bug report form to work.
+
+---
+
+## Step 7 — Deploy Landing Page ⏳
+
+The marketing site is a standalone HTML file — no build step needed.
+
+**Option A — Netlify Drop (fastest):**
+1. Go to [netlify.com/drop](https://netlify.com/drop)
+2. Drag the `landing/` folder onto the page
+3. Get a shareable URL instantly
+
+**Option B — Netlify CLI:**
+```bash
+npx netlify-cli deploy --dir landing --prod
+```
+
+**Customise before sharing:**
+- Replace the phone mockup placeholder with a real screenshot: `landing/screenshot.png`
+- Add `landing/og-image.png` (1200×630) for rich link previews in iMessage/WhatsApp
+- Update App Store / Play Store `href="#"` links once the apps are live
+
+---
+
+## Step 8 — Add `APP_URL` Server-Side Env Var
 
 `VITE_APP_URL` is not available in Vercel serverless functions (Vite inlines `VITE_` vars at build
 time only). The Stripe redirect URLs were using localhost in production until this was fixed.

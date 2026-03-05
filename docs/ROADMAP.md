@@ -87,12 +87,13 @@
 | Sprint 8 | Analytics: PostHog HTTP wrapper (`src/lib/analytics.ts`), 8 tracked events (workout_completed, lesson_completed, challenge_joined/created, ask_submitted, program_activated, invitation_responded). No-op when VITE_POSTHOG_KEY unset | `src/lib/analytics.ts` |
 | Sprint 9 | Profile Picture (Supabase Storage avatars bucket, camera overlay, 5MB validation), Light Mode Polish (24 files fixed — hardcoded dark classes → dark: pairs), Exercise Demos (YouTubeEmbed lazy thumbnail→iframe, 45 YouTube IDs, play button → bottom-sheet modal) | `src/components/ui/Avatar.tsx`, `src/components/ui/YouTubeEmbed.tsx`, `src/data/exercises.ts` |
 | Sprint 10 | Premium Tier: Stripe checkout + customer portal + webhook handler, usage gating (5 asks/day free, 1 program gen/day free, 2000 tokens premium vs 1024 free), SubscriptionPage, useSubscription hook, AskPage usage badge + inline upgrade card, ProfilePage subscription section | `api/create-checkout.ts`, `api/webhook-stripe.ts`, `src/pages/SubscriptionPage.tsx`, `src/hooks/useSubscription.ts` |
+| Sprint 11 | UX Overhaul + Marketing Site: Redesigned 5-tab nav (Home · Train · Community · Learn · Me), TrainPage hub, CommunityPage hub, cleaned Dashboard (removed clutter, added AI insights teaser), HelpPage (FAQ accordion + in-app bug report form → Supabase), `/api/report-bug` endpoint, ProfilePage Help entry, standalone `landing/index.html` marketing site (no build needed, drag-to-Netlify) | `src/components/layout/BottomNav.tsx`, `src/pages/TrainPage.tsx`, `src/pages/CommunityPage.tsx`, `src/pages/HelpPage.tsx`, `api/report-bug.ts`, `landing/index.html`, `docs/migrations/008_bug_reports.sql` |
 
 ---
 
 ## v1.0 Status — Code Complete ✅
 
-All 10 sprints are code-complete. **0 TypeScript errors · 29/29 tests passing.**
+All 11 sprints are code-complete. **0 TypeScript errors · 29/29 tests passing.**
 
 Remaining work is platform/submission only — see `docs/PENDING.md` for the full checklist.
 

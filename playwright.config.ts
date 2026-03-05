@@ -1,5 +1,24 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const LOCAL_URL = 'http://localhost:4173';
+
+/** Return the env URL only when it looks like a valid http(s) origin. */
+function resolvedBaseURL(): string {
+  const raw = process.env.E2E_BASE_URL?.trim();
+  if (raw) {
+    try {
+      const u = new URL(raw);
+      if ((u.protocol === 'http:' || u.protocol === 'https:') && u.hostname && u.hostname !== 'https') {
+        return u.origin;
+      }
+    } catch { /* invalid URL — fall through */ }
+  }
+  return LOCAL_URL;
+}
+
+const baseURL = resolvedBaseURL();
+const isRemote = baseURL.startsWith('https://') || (baseURL.startsWith('http://') && !baseURL.includes('localhost'));
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -20,7 +39,7 @@ export default defineConfig({
       ],
 
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:4173',
+    baseURL,
     // Capture a full trace on first retry — lets you replay every action
     trace: 'on-first-retry',
     // Always capture a screenshot on failure
@@ -49,15 +68,10 @@ export default defineConfig({
   // `npm run test:e2e` builds the app first, then this server serves dist/.
   // If E2E_BASE_URL points to a remote deployment (CI Vercel preview), no
   // local server is started.
-  webServer: (() => {
-    const base = process.env.E2E_BASE_URL ?? '';
-    const isRemote = base.startsWith('https://') || (base.startsWith('http://') && !base.includes('localhost'));
-    if (isRemote) return undefined;
-    return {
-      command: 'npx vite preview',
-      url: 'http://localhost:4173',
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
-    };
-  })(),
+  webServer: isRemote ? undefined : {
+    command: 'npx vite preview',
+    url: LOCAL_URL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+  },
 });
