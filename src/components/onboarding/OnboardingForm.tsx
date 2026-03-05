@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { setUser, resetProgramCursors, saveCustomProgram } from '../../utils/localStorage';
 import { apiBase } from '../../lib/api';
 import { useApp } from '../../store/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { upsertTrainingProfile, upsertCustomProgram } from '../../lib/db';
 
@@ -18,8 +19,14 @@ const STEPS = ['Account', 'Name', 'Discover', 'Your Plan'];
 export function OnboardingForm() {
   const navigate = useNavigate();
   const { dispatch } = useApp();
+  const { session } = useAuth();
 
-  const [step, setStep] = useState(0);
+  // Repair mode: user already has a Supabase auth account but is missing a
+  // profiles row (e.g. profile creation failed during a previous signup, or the
+  // account was deleted and recreated). Skip step 0 — no new signup needed.
+  const repairMode = !!session;
+
+  const [step, setStep] = useState(repairMode ? 1 : 0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -89,33 +96,43 @@ export function OnboardingForm() {
     setLoading(true);
 
     try {
-      // 1. Create Supabase account (emailRedirectTo ensures confirmation link lands on our callback page)
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
+      let userId: string;
+      let sessionAccessToken: string | null = null;
 
-      if (signUpError) {
-        const msg = signUpError.message ?? '';
-        const isExisting = /already registered|already exists|email.*taken/i.test(msg);
-        setSubmitError(
-          isExisting
-            ? 'An account with this email already exists. Please sign in instead.'
-            : msg || 'Account creation failed. Please try again.'
-        );
-        setStep(0);
-        return;
-      }
-      // When email confirmation is ON and the email already exists, Supabase returns
-      // a fake/obfuscated user (no error, but ID won't exist in auth.users).
-      // data.session will also be null in this case — we detect it below.
-      if (!data.user) {
-        setSubmitError('Account creation failed. Please try again.');
-        return;
-      }
+      if (repairMode && session) {
+        // Repair mode: reuse the existing auth account — skip signUp entirely.
+        userId = session.user.id;
+        sessionAccessToken = session.access_token;
+      } else {
+        // 1. Create Supabase account (emailRedirectTo ensures confirmation link lands on our callback page)
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
 
-      const userId = data.user.id;
+        if (signUpError) {
+          const msg = signUpError.message ?? '';
+          const isExisting = /already registered|already exists|email.*taken/i.test(msg);
+          setSubmitError(
+            isExisting
+              ? 'An account with this email already exists. Please sign in instead.'
+              : msg || 'Account creation failed. Please try again.'
+          );
+          setStep(0);
+          return;
+        }
+        // When email confirmation is ON and the email already exists, Supabase returns
+        // a fake/obfuscated user (no error, but ID won't exist in auth.users).
+        // data.session will also be null in this case — we detect it below.
+        if (!data.user) {
+          setSubmitError('Account creation failed. Please try again.');
+          return;
+        }
+
+        userId = data.user.id;
+        sessionAccessToken = data.session?.access_token ?? null;
+      }
 
       // 2. Map the AI profile goal to a single Goal for the legacy User interface
       const primaryGoal = (profile.goals[0] ?? 'general-fitness') as 'hypertrophy' | 'fat-loss' | 'general-fitness';
@@ -140,11 +157,11 @@ export function OnboardingForm() {
       upsertCustomProgram(programWithMeta, userId).catch(() => { /* synced later */ });
 
       // 4. Server-side profile setup
-      // Pass the Bearer token when available (email confirmation OFF); setup-profile falls back
-      // to admin user verification when no session exists (email confirmation ON).
+      // Pass the Bearer token when available (email confirmation OFF or repair mode);
+      // setup-profile falls back to admin user verification when no session exists (email confirmation ON).
       const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (data.session?.access_token) {
-        profileHeaders['Authorization'] = `Bearer ${data.session.access_token}`;
+      if (sessionAccessToken) {
+        profileHeaders['Authorization'] = `Bearer ${sessionAccessToken}`;
       }
       const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
         method: 'POST',
@@ -160,7 +177,8 @@ export function OnboardingForm() {
 
       if (!profileRes.ok) {
         const body = await profileRes.json().catch(() => ({})) as { error?: string };
-        await supabase.auth.signOut();
+        // Don't sign out in repair mode — the user is already signed in.
+        if (!repairMode) await supabase.auth.signOut();
         // A 401 "User not found" means the email was already registered and Supabase
         // returned a fake user ID (email confirmation is ON). Direct the user to sign in.
         const serverErr = body.error ?? '';
@@ -169,12 +187,13 @@ export function OnboardingForm() {
             ? 'An account with this email already exists. Please sign in instead.'
             : serverErr || 'Profile setup failed. Please try again.'
         );
-        setStep(0);
+        if (!repairMode) setStep(0);
         return;
       }
 
       // 5. Email confirmation is ON — no session yet. Show the check-inbox screen.
-      if (!data.session) {
+      // (Never triggered in repair mode since session already exists.)
+      if (!sessionAccessToken) {
         setEmailConfirmPending(true);
         return;
       }
@@ -256,6 +275,13 @@ export function OnboardingForm() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8">
+      {/* Repair mode banner */}
+      {repairMode && (
+        <p className="mb-4 rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
+          Your account exists — just finish setting up your profile.
+        </p>
+      )}
+
       {/* Progress dots */}
       <div className="flex justify-center gap-2 mb-10">
         {STEPS.map((s, i) => (
