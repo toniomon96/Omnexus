@@ -51,7 +51,10 @@ test.describe('TopBar back button', () => {
     await page.goto('/library');
     await page.locator('[data-testid="exercise-card"]').first().click();
     await page.waitForURL(/\/library\/.+/);
+    // Scroll to top so the sticky TopBar sits below the fixed GuestBanner
+    // instead of being obscured behind it (z-30 vs z-50).
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.getByRole('button', { name: /back/i }).click();
-    await expect(page).toHaveURL('/library', { timeout: 10_000 });
+    await expect(page).toHaveURL('/library');
   });
 });
