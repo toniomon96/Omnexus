@@ -40,6 +40,7 @@ export type Action =
   | { type: 'UPDATE_ACTIVE_SESSION'; payload: WorkoutSession }
   | { type: 'CLEAR_ACTIVE_SESSION' }
   | { type: 'APPEND_SESSION'; payload: WorkoutSession }
+  | { type: 'UPDATE_SESSION'; payload: WorkoutSession }
   | { type: 'SET_HISTORY'; payload: WorkoutHistory }
   | { type: 'TOGGLE_THEME' }
   | { type: 'SET_THEME'; payload: 'dark' | 'light' }
@@ -72,6 +73,16 @@ export function reducer(state: AppState, action: Action): AppState {
         history: {
           ...state.history,
           sessions: [...state.history.sessions, action.payload],
+        },
+      };
+    case 'UPDATE_SESSION':
+      return {
+        ...state,
+        history: {
+          ...state.history,
+          sessions: state.history.sessions.map((s) =>
+            s.id === action.payload.id ? action.payload : s,
+          ),
         },
       };
     case 'SET_HISTORY':

@@ -87,6 +87,14 @@ export function appendSession(session: WorkoutSession): void {
   safeWrite(KEYS.HISTORY, history);
 }
 
+export function updateSession(updated: WorkoutSession): void {
+  const history = getHistory();
+  history.sessions = history.sessions.map((s) =>
+    s.id === updated.id ? updated : s,
+  );
+  safeWrite(KEYS.HISTORY, history);
+}
+
 export function updatePersonalRecords(prs: PersonalRecord[]): void {
   const history = getHistory();
   // Merge: for each PR, replace existing record for that exercise if new one is better

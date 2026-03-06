@@ -1,6 +1,7 @@
 import type { WorkoutSession } from '../../types';
 import { getExerciseById } from '../../data/exercises';
 import { getWeekStart } from '../../utils/dateUtils';
+import { useApp } from '../../store/AppContext';
 
 interface MuscleHeatMapProps {
   sessions: WorkoutSession[];
@@ -97,6 +98,8 @@ function intensityToColor(intensity: number, dark: boolean): string {
 }
 
 export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
+  const { state } = useApp();
+  const isDark = state.theme === 'dark';
   const weekStart = getWeekStart();
   const thisWeek = sessions.filter((s) => s.startedAt >= weekStart);
 
@@ -131,10 +134,10 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
             <path
               key={muscle}
               d={d}
-              fill={intensityToColor(pct, false)}
+              fill={intensityToColor(pct, isDark)}
               opacity={0.85}
               className="dark:opacity-90 transition-all duration-500"
-              style={{ fill: intensityToColor(pct, false) }}
+              style={{ fill: intensityToColor(pct, isDark) }}
             >
               <title>{def.label}: {counts[muscle] ?? 0} sets</title>
             </path>
@@ -196,7 +199,7 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
               <span key={m} className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
                 <span
                   className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: intensityToColor(intensity(m), false) }}
+                  style={{ backgroundColor: intensityToColor(intensity(m), isDark) }}
                 />
                 {MUSCLE_PATHS[m].label}
                 <span className="text-slate-300 dark:text-slate-600">·{counts[m]}</span>

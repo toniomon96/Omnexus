@@ -52,9 +52,11 @@ function BarbellSVG({ plates, barKg }: { plates: number[]; barKg: number }) {
 
   return (
     <svg
-      viewBox={`0 ${-50} ${totalW + 40} 120`}
-      className="w-full overflow-visible"
-      style={{ maxHeight: 120 }}
+      width={totalW + 40}
+      height={120}
+      viewBox={`0 -50 ${totalW + 40} 120`}
+      className="overflow-visible"
+      style={{ minWidth: 200, display: 'block' }}
       aria-label="Barbell plate diagram"
     >
       {/* Bar sleeve */}
@@ -225,7 +227,9 @@ export function PlateCalculatorPage() {
           {plates.length === 0 ? (
             <p className="text-center text-slate-500 text-sm py-4">No plates needed — just the bar!</p>
           ) : (
-            <BarbellSVG plates={plates} barKg={barKg} />
+            <div className="overflow-x-auto scrollbar-hide py-2">
+              <BarbellSVG plates={plates} barKg={barKg} />
+            </div>
           )}
           {actualKg !== targetKg && plates.length > 0 && (
             <p className="text-center text-amber-400 text-xs mt-2">

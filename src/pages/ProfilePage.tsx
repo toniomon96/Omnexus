@@ -121,7 +121,9 @@ export function ProfilePage() {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !currentUser || isGuest) return;
-    if (!file.type.startsWith('image/')) {
+    // iOS Safari may return an empty type for some photos (HEIC, web-saved images).
+    // Allow empty type or explicit image/* types; reject clearly non-image types.
+    if (file.type && !file.type.startsWith('image/')) {
       toast('Please select an image file', 'error');
       return;
     }
@@ -131,7 +133,9 @@ export function ProfilePage() {
     }
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg';
+      const rawExt = file.name.split('.').pop()?.toLowerCase() ?? '';
+      // Normalize HEIC/HEIF (from iPhone camera) to jpg for broad browser support.
+      const ext = rawExt === 'heic' || rawExt === 'heif' || !rawExt ? 'jpg' : rawExt;
       const path = `${currentUser.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')

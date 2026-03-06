@@ -114,11 +114,11 @@ export function OnboardingForm() {
         if (signUpError) {
           const msg = signUpError.message ?? '';
           const isExisting = /already registered|already exists|email.*taken/i.test(msg);
-          setSubmitError(
-            isExisting
-              ? 'An account with this email already exists. Please sign in instead.'
-              : msg || 'Account creation failed. Please try again.'
-          );
+          const errMsg = isExisting
+            ? 'An account with this email already exists. Please sign in instead.'
+            : msg || 'Account creation failed. Please try again.';
+          console.error('[OnboardingForm] signUp error:', signUpError);
+          setSubmitError(errMsg);
           setStep(0);
           return;
         }
@@ -126,7 +126,9 @@ export function OnboardingForm() {
         // a fake/obfuscated user (no error, but ID won't exist in auth.users).
         // data.session will also be null in this case — we detect it below.
         if (!data.user) {
+          console.error('[OnboardingForm] signUp returned no user and no error — likely duplicate email with confirmation ON');
           setSubmitError('Account creation failed. Please try again.');
+          setStep(0);
           return;
         }
 
@@ -182,11 +184,11 @@ export function OnboardingForm() {
         // A 401 "User not found" means the email was already registered and Supabase
         // returned a fake user ID (email confirmation is ON). Direct the user to sign in.
         const serverErr = body.error ?? '';
-        setSubmitError(
-          profileRes.status === 401
-            ? 'An account with this email already exists. Please sign in instead.'
-            : serverErr || 'Profile setup failed. Please try again.'
-        );
+        const profileErrMsg = profileRes.status === 401
+          ? 'An account with this email already exists. Please sign in instead.'
+          : serverErr || 'Profile setup failed. Please try again.';
+        console.error('[OnboardingForm] setup-profile failed:', profileRes.status, body);
+        setSubmitError(profileErrMsg);
         if (!repairMode) setStep(0);
         return;
       }
@@ -274,7 +276,7 @@ export function OnboardingForm() {
   // ─── Normal onboarding steps ──────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8">
+    <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8 overflow-y-auto">
       {/* Repair mode banner */}
       {repairMode && (
         <p className="mb-4 rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
@@ -303,6 +305,11 @@ export function OnboardingForm() {
               <h1 className="text-3xl font-bold text-white">Create account</h1>
               <p className="mt-2 text-slate-400">Sign up to sync your data across all devices.</p>
             </div>
+            {submitError && (
+              <p className="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
+                {submitError}
+              </p>
+            )}
             <Input
               label="Email"
               type="email"
