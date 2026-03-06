@@ -38,6 +38,8 @@ export function InsightsPage() {
   const [insight, setInsight] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  if (!user) return null;
+
   const hasHistory = sessions.some((s) => s.completedAt);
 
   async function handleAnalyze() {
@@ -69,8 +71,6 @@ export function InsightsPage() {
       setLoading(false);
     }
   }
-
-  if (!user) return null;
 
   return (
     <AppShell>
