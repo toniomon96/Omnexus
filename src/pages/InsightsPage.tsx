@@ -43,6 +43,7 @@ export function InsightsPage() {
   const hasHistory = sessions.some((s) => s.completedAt);
 
   async function handleAnalyze() {
+    if (!user) return;
     setLoading(true);
     setInsight(null);
     setError(null);
