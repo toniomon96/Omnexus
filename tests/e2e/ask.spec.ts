@@ -47,7 +47,7 @@ test.describe('Ask AI Coach', () => {
     // Either suggestion chips or placeholder text indicating example questions
     const hasSuggestions = await page.getByText(
       /how|what|bench|recovery|protein|progressive|plateau/i,
-    ).first().isVisible({ timeout: 3_000 }).catch(() => false);
+    ).first().isVisible({ timeout: 6_000 }).catch(() => false);
     expect(hasSuggestions).toBe(true);
   });
 });

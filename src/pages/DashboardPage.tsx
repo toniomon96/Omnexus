@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -51,13 +51,13 @@ export function DashboardPage() {
         right={
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <button
-              onClick={() => navigate('/profile')}
+            <Link
+              to="/profile"
               className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Profile"
             >
               <UserCircle size={22} />
-            </button>
+            </Link>
           </div>
         }
       />

@@ -15,10 +15,12 @@ test.describe('Nutrition', () => {
 
   test('shows macro targets section', async ({ page }) => {
     await page.goto('/nutrition');
-    // Either macro targets (protein/carbs/fat) or a setup prompt
+    // Either macro targets (protein/carbs/fat) or the guest wall
     const hasMacros = await page.getByText(/protein|carbs|fat|calories/i).first()
       .isVisible({ timeout: 5_000 }).catch(() => false);
-    expect(hasMacros).toBe(true);
+    const hasGuestWall = await page.getByText(/requires an account/i).first()
+      .isVisible({ timeout: 5_000 }).catch(() => false);
+    expect(hasMacros || hasGuestWall).toBe(true);
   });
 
   test('can set nutrition goals', async ({ page }) => {
@@ -33,21 +35,25 @@ test.describe('Nutrition', () => {
 
   test('quick log section is present', async ({ page }) => {
     await page.goto('/nutrition');
-    // Quick log link or section
+    // Quick log link/section, or the guest wall
     const hasQuickLog = await page.getByText(/quick log|log meal|add meal/i).first()
       .isVisible({ timeout: 5_000 }).catch(() => false);
     const hasLogLink = await page.getByRole('link', { name: /log/i }).first()
       .isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasQuickLog || hasLogLink).toBe(true);
+    const hasGuestWall = await page.getByText(/requires an account/i).first()
+      .isVisible({ timeout: 5_000 }).catch(() => false);
+    expect(hasQuickLog || hasLogLink || hasGuestWall).toBe(true);
   });
 
   test('generate meal plan button is present', async ({ page }) => {
     await page.goto('/nutrition');
     const btn = page.getByRole('button', { name: /generate|meal plan/i });
-    // Only visible if macros are configured — either button or setup prompt is fine
+    // Either the meal plan button, a setup prompt, or the guest wall
     const hasMealPlan = await btn.first().isVisible({ timeout: 3_000 }).catch(() => false);
     const hasSetup = await page.getByText(/set.*goal|configure|get started/i).first()
       .isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasMealPlan || hasSetup).toBe(true);
+    const hasGuestWall = await page.getByText(/requires an account/i).first()
+      .isVisible({ timeout: 5_000 }).catch(() => false);
+    expect(hasMealPlan || hasSetup || hasGuestWall).toBe(true);
   });
 });

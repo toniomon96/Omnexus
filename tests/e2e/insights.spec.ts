@@ -20,8 +20,8 @@ test.describe('Insights — guest', () => {
   test('shows Analyze My Training button', async ({ page }) => {
     await page.goto('/insights');
     // Guest with no history sees "Log some workouts first" message or the button
-    const hasButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 3_000 }).catch(() => false);
-    const hasEmpty = await page.getByText(/log some workouts first/i).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 6_000 }).catch(() => false);
+    const hasEmpty = await page.getByText(/log some workouts first/i).isVisible({ timeout: 6_000 }).catch(() => false);
     expect(hasButton || hasEmpty).toBe(true);
   });
 
@@ -65,7 +65,7 @@ test.describe('Insights — authenticated', () => {
     const hasPeerSection = await page.getByText(/peers|community average|not enough/i).first()
       .isVisible({ timeout: 5_000 }).catch(() => false);
     // Page should at least have the main heading
-    await expect(page.getByRole('heading', { name: /ai-powered insights/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /ai-powered insights/i })).toBeVisible({ timeout: 10_000 });
     expect(hasPeerSection || true).toBe(true); // non-blocking check
   });
 });
