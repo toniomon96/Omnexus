@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Omnexus</string>
+    <string name="title_activity_main">Omnexus</string>
+    <string name="package_name">com.omnexus.app</string>
+    <string name="custom_url_scheme">com.omnexus.app</string>
+</resources>
