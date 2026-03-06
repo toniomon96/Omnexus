@@ -560,7 +560,7 @@ function Footer() {
         </div>
         <div className="flex items-center gap-6">
           <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="mailto:support@omnexus.app" className="hover:text-white transition-colors">
+          <a href="mailto:support@omnexus.fit" className="hover:text-white transition-colors">
             Contact
           </a>
           <a href="/help" className="hover:text-white transition-colors">Help</a>

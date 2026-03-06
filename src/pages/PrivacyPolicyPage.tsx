@@ -120,7 +120,7 @@ export function PrivacyPolicyPage() {
             <h2 className="text-base font-semibold text-white mb-3">10. Contact</h2>
             <p>
               For any privacy-related questions or requests, please contact us at{' '}
-              <span className="text-brand-400">privacy@omnexus.app</span>.
+              <span className="text-brand-400">privacy@omnexus.fit</span>.
             </p>
           </section>
         </div>

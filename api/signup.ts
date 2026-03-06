@@ -12,8 +12,8 @@ const supabaseAdmin =
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Sender address — set RESEND_FROM_EMAIL in Vercel env vars (must be verified domain).
-// Example: "Omnexus <no-reply@omnexus.app>"
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'Omnexus <no-reply@omnexus.app>';
+// Example: "Omnexus <no-reply@notifications.omnexus.fit>"
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'Omnexus <no-reply@notifications.omnexus.fit>';
 
 function buildConfirmationEmail(confirmUrl: string): string {
   return `<!DOCTYPE html>

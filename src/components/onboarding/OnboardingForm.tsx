@@ -106,7 +106,7 @@ export function OnboardingForm() {
       } else {
         // 1. Create account via server-side signup endpoint.
         //    This uses the Supabase admin API and sends the confirmation email via Resend
-        //    so users see a branded email from @omnexus.app rather than Supabase's mailer.
+        //    so users see a branded email from @notifications.omnexus.fit rather than Supabase's mailer.
         const signupRes = await fetch(`${apiBase}/api/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

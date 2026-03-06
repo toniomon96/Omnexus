@@ -217,10 +217,10 @@ export function HelpPage() {
               <div>
                 <p className="text-sm font-medium text-slate-900 dark:text-white">Email Support</p>
                 <a
-                  href="mailto:support@omnexus.app"
+                  href="mailto:support@omnexus.fit"
                   className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
                 >
-                  support@omnexus.app
+                  support@omnexus.fit
                 </a>
               </div>
             </div>
