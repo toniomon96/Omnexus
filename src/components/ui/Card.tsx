@@ -28,7 +28,7 @@ export function Card({
       className={[
         'rounded-2xl border',
         gradient
-          ? 'border-slate-700/60 bg-gradient-to-br from-slate-800/80 to-slate-900/60'
+          ? 'border-slate-200 bg-gradient-to-br from-slate-100 to-slate-50 dark:border-slate-700/60 dark:from-slate-800/80 dark:to-slate-900/60'
           : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/60',
         paddingClasses[padding],
         hover
