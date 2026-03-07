@@ -126,14 +126,21 @@ export function WelcomeTutorial({ userName, programPromise, signupPromise, onCom
       setProgress((p) => {
         if (p + step >= 100) {
           if (progressRef.current) clearInterval(progressRef.current);
-          advanceSlide();
+          // Inline advance to avoid adding advanceSlide as a dependency
+          setSlideIdx((i) => {
+            const next = i + 1;
+            if (next >= SLIDES.length) {
+              setSlideDone(true);
+              return i;
+            }
+            return next;
+          });
           return 100;
         }
         return p + step;
       });
     }, 100);
     return () => { if (progressRef.current) clearInterval(progressRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slideIdx, slideDone]);
 
   function advanceSlide() {
