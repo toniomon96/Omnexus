@@ -205,7 +205,7 @@ export function AskPage() {
     setFollowUps([]);
     setCurrentCitations([]);
     setUpgradeRequired(false);
-    try { sessionStorage.removeItem('omnexus_ask_conversation'); } catch { /* ignore */ }
+    try { sessionStorage.removeItem(CONVO_KEY); } catch { /* ignore */ }
   }
 
   return (

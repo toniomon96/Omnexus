@@ -165,6 +165,7 @@ export function WorkoutCompleteModal({
           {(['summary', 'next'] as Tab[]).map((tab) => (
             <button
               key={tab}
+              type="button"
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-xs font-semibold transition-colors ${
                 activeTab === tab

@@ -1,5 +1,5 @@
 # Omnexus — Full UX Audit
-*Generated: 2026-03-07 | Codebase: v1.0 (all sprints complete)*
+*Generated: 2026-03-07 | Updated: 2026-03-07 (UX Polish sprint — R3/R7 fixed, R1 partial)*
 
 ---
 
@@ -209,7 +209,9 @@ Signup email → link click → /auth/callback
 GuestBanner "Save progress" → /onboarding
   → Full AI onboarding chat
   → Supabase account created
-  → Guest localStorage data NOT migrated (R1 risk)
+  → Guest localStorage history + PRs migrated to Supabase (fire-and-forget)
+     ✓ repairMode path (existing session) — FIXED
+     ✗ email-confirm path (AuthCallbackPage) — still pending (R1 partial)
 ```
 
 ---
@@ -218,20 +220,23 @@ GuestBanner "Save progress" → /onboarding
 
 ### DashboardPage (`/`)
 - **Guards:** GuestOrAuthGuard
-- **Components:** TopBar, TodayCard, StreakDisplay, RecoveryScoreCard, MuscleHeatMap, WeeklyRecapCard, Card
+- **Components:** TopBar, ProgramContextBar, TodayCard, StreakDisplay, RecoveryScoreCard, MuscleHeatMap, WeeklyRecapCard, Card
 - **Conditional sections:**
   - Greeting + streak (always)
+  - ProgramContextBar — Program Name · Week X of Y · Day Z (if program active)
   - `genStatus='ready'` banner (emerald — program just generated)
-  - `genStatus='generating'` card (brand spinner + progress bar)
+  - `genStatus='error'` card (red — with retry CTA) ← **[NEW]**
+  - `genStatus='generating'` subtle dashed placeholder card (no blocking spinner)
   - Active session resume banner (if `activeSession` exists)
   - TodayCard (if program + no active session)
   - No-program prompt card → `/train`
+  - Last workout continuity bar (if program + last session + no active session) ← **[NEW]**
   - AI Insights teaser → `/insights`
   - RecoveryScoreCard (always)
   - MuscleHeatMap (always)
   - WeeklyRecapCard (always)
   - Deload warning (if week >= 4)
-- **Entry points:** `/workout/active` (resume), `/briefing` (via TodayCard), `/train`, `/insights`, `/ask`, `/programs/:id`
+- **Entry points:** `/workout/active` (resume), `/briefing` (via TodayCard), `/train`, `/insights`, `/ask`, `/programs/:id`, `/history` (continuity bar)
 
 ### TrainPage (`/train`)
 - **Guards:** GuestOrAuthGuard
@@ -254,6 +259,7 @@ GuestBanner "Save progress" → /onboarding
 - **API:** `getAdaptation()` → `api/adapt` (skipped for guest users)
 - **Confetti:** Canvas animation (80 particles, 140 frames) triggered if PRs detected
 - **Haptic:** `triggerHapticNotification('success')` on PR
+- **Ask Omnexus button** in Summary tab — pre-fills AskPage with session volume + sets ← **[NEW]**
 
 ### ProgramsPage (`/programs`)
 - **Sections:** Active program card, Recommended programs, All programs, Custom programs
@@ -265,19 +271,22 @@ GuestBanner "Save progress" → /onboarding
 - **Sections:** Search bar, muscle group filter chips, exercise cards
 
 ### ExerciseDetailPage (`/library/:id`)
-- **Sections:** Muscle tags, equipment, difficulty, YouTube Demo embed (lazy thumbnail → iframe), PR history, AI Progression Suggestion, How To steps, Pro Tips, Related Learning
+- **Sections:** Muscle tags, equipment, YouTube Demo embed (lazy thumbnail → iframe), Your Progress chart, AI Progression Suggestion, How To steps, Pro Tips, Ask Omnexus button ← **[NEW]**, Related Learning
+- **Ask Omnexus button:** pre-fills AskPage with exercise-specific form/programming question
 
 ### HistoryPage (`/history`)
 - **View toggle:** List | Calendar
 - **Sections:** Summary stats grid (total workouts, total volume in tonnes), Personal Records card (top 5), VolumeChart (weekly, 4 weeks), HeatmapCalendar, SessionList, Empty state
+- **Empty state:** Clock icon + "No workouts yet" + "Start your first workout" button → `/train` ← **[IMPROVED]**
 
 ### InsightsPage (`/insights`)
 - **Sections:** AdaptationCard (from `omnexus_last_adaptation` localStorage), PeerInsightsCard (auth-only), Workout Analysis button, Quick Questions → /ask, Latest Research (ArticleFeed by goal), Safety disclaimer
+- **Empty state (no history):** "Start a workout" CTA button → `/train` shown inside Workout Analysis card ← **[IMPROVED]**
 
 ### AskPage (`/ask`)
 - **API:** `api/ask` (Claude + pgvector RAG)
-- **State:** Conversation history in component state (not persisted), citations list
-- **Prefill:** `location.state.prefill` supported (used by deload warning)
+- **State:** Conversation history persisted to `omnexus_ask_conversation` sessionStorage (restored on mount if no prefill; clears on browser close) ← **[IMPROVED]**
+- **Prefill:** `location.state.prefill` supported — used by deload warning, ExerciseDetailPage, WorkoutCompleteModal
 - **Conversation limit:** 4 exchanges before context warning shown
 
 ### LearnPage (`/learn`)
@@ -353,9 +362,11 @@ Progress persisted: localStorage (immediate) + Supabase (debounced 2s)
 ## SECTION 5 — UX RISK AREAS
 
 ### R1 — Guest Data Loss on Upgrade
-**Severity:** High
+**Severity:** High → **[PARTIAL FIX — 2026-03-07]**
 Guest localStorage data (workouts, PRs, nutrition logs) is NOT migrated when a guest signs up. User loses all prior session history silently.
-**Recommendation:** Implement migration step in OnboardingPage that reads `omnexus_guest` data and syncs to Supabase post-signup.
+**Fix applied:** `migrateGuestData()` in `OnboardingForm.tsx` — fire-and-forget sync of history sessions + PRs to Supabase. Covers the repairMode path (existing Supabase session, missing profile row).
+**Still pending:** Email-confirm path — user creates account, confirms email via link, lands in `AuthCallbackPage`. Guest migration not yet triggered there.
+**Recommendation:** Call `migrateGuestData()` in `AuthCallbackPage` on `SIGNED_IN` event for new accounts.
 
 ### R2 — No Back Navigation from Active Workout
 **Severity:** High
@@ -363,9 +374,9 @@ ActiveWorkoutPage has no explicit intercept for browser back. Accidental browser
 **Recommendation:** Intercept browser back during active workout with the ConfirmDialog.
 
 ### R3 — Program Generation Fails Silently
-**Severity:** High
-If `api/generate-program` fails (timeout, rate limit), `genStatus` moves to `'error'` but there is no prominent user-facing error message on DashboardPage.
-**Recommendation:** Show error state card on Dashboard with retry CTA.
+**Severity:** High → **[FIXED — 2026-03-07]**
+~~If `api/generate-program` fails (timeout, rate limit), `genStatus` moves to `'error'` but there is no prominent user-facing error message on DashboardPage.~~
+**Fix applied:** Red error card shown on DashboardPage when `genStatus='error'`. Card includes "Retry" button that calls `startGeneration()` using stored profile from `getGenerationState()`. The subtle dashed placeholder also replaces the previous blocking spinner card during generation.
 
 ### R4 — AI Briefing Not Cached
 **Severity:** Medium
@@ -383,9 +394,9 @@ Nutrition goals and logs are localStorage-only (`omnexus_nutrition_goals`). No S
 **Recommendation:** Add `nutrition_logs` Supabase table + sync in NutritionPage.
 
 ### R7 — AskPage Conversation Not Persisted
-**Severity:** Medium
-Conversation history in AskPage is component state only — navigating away clears the entire chat.
-**Recommendation:** Persist conversation to `omnexus_ask_history` sessionStorage.
+**Severity:** Medium → **[FIXED — 2026-03-07]**
+~~Conversation history in AskPage is component state only — navigating away clears the entire chat.~~
+**Fix applied:** Conversation persisted to `omnexus_ask_conversation` sessionStorage after each answer. Restored on mount when no `prefill` is active. Cleared on `resetConversation()`. SessionStorage is appropriate (clears on browser close, not permanent chat logs).
 
 ### R8 — No Offline Indicator
 **Severity:** Medium
@@ -481,19 +492,19 @@ OnboardingPage
 
 ## SECTION 7 — V1 IMPROVEMENT PRIORITY TAGS
 
-| # | Issue | Priority | Effort |
-|---|---|---|---|
-| R1 | Guest data loss on upgrade | `P0-critical` | High |
-| R3 | Generation error not surfaced on Dashboard | `P1-high` | Low |
-| R7 | AskPage conversation lost on navigate | `P1-high` | Low |
-| R8 | No offline indicator | `P1-high` | Low |
-| R2 | No back intercept in active workout | `P2-medium` | Medium |
-| R4 | AI briefing not cached | `P2-medium` | Low |
-| R6 | Nutrition not synced to cloud | `P2-medium` | High |
-| R10 | Community tab confuses guests | `P2-medium` | Low |
-| R5 | Complete modal not dismissible | `P3-low` | Low |
-| R12 | No search in exercise picker | `P3-low` | Medium |
-| R17 | Empty feed state (no friends) | `P3-low` | Low |
+| # | Issue | Priority | Effort | Status |
+|---|---|---|---|---|
+| R1 | Guest data loss on upgrade | `P0-critical` | High | **Partial fix** — repairMode path covered; email-confirm path pending |
+| R3 | Generation error not surfaced on Dashboard | `P1-high` | Low | **✅ Fixed** |
+| R7 | AskPage conversation lost on navigate | `P1-high` | Low | **✅ Fixed** |
+| R8 | No offline indicator | `P1-high` | Low | Open |
+| R2 | No back intercept in active workout | `P2-medium` | Medium | Open |
+| R4 | AI briefing not cached | `P2-medium` | Low | Open |
+| R6 | Nutrition not synced to cloud | `P2-medium` | High | Open |
+| R10 | Community tab confuses guests | `P2-medium` | Low | Open |
+| R5 | Complete modal not dismissible | `P3-low` | Low | Open |
+| R12 | No search in exercise picker | `P3-low` | Medium | Open |
+| R17 | Empty feed state (no friends) | `P3-low` | Low | Open |
 
 ---
 
@@ -584,9 +595,9 @@ OnboardingPage
 
 | Screen | Condition | Message / Action |
 |---|---|---|
-| DashboardPage | No program, not generating | "Set up a training program" + "Get Started" -> /train |
-| HistoryPage | No sessions | Clock icon + "No workouts yet" |
-| InsightsPage | No `omnexus_last_adaptation` | Empty/placeholder state |
+| DashboardPage | No program, not generating | "Set up a training program" + "Get Started" → /train |
+| HistoryPage | No sessions | Clock icon + "No workouts yet" + **"Start your first workout"** → /train |
+| InsightsPage | No workout history | "Log workouts to unlock..." + **"Start a workout"** → /train |
 | ActivityFeedPage | No friends/posts | Likely empty list (R17 risk — no "find friends" CTA) |
 | WorkoutCompleteModal (Next tab) | No adaptation | "No adaptation data available." |
 | ExerciseLibraryPage | No search results | Filtered empty state |
@@ -604,7 +615,7 @@ OnboardingPage
 | ResetPasswordPage | Weak password | Inline validation error |
 | WorkoutCompleteModal | Adaptation API fails | Silent — tab shows "No adaptation data" |
 | useWorkoutSession | Supabase sync fails | Toast: "Workout saved locally, but cloud sync failed" |
-| ProgramGeneration | API error | `genStatus='error'` — no Dashboard UI (R3) |
+| ProgramGeneration | API error | `genStatus='error'` — red error card on Dashboard with retry button (**[R3 fixed]**) |
 | api/ask | Rate limited (429) | Unclear client handling — needs verification |
 | ProfilePage | Avatar upload > 5MB | Inline validation error |
 | ProfilePage | Avatar upload fails | Toast error |
@@ -631,7 +642,8 @@ OnboardingPage
 | GuestBanner | `user.isGuest === true` | "Guest mode — data saved on this device only" + "Save progress" button |
 | DashboardPage emerald banner | `genStatus='ready'` | "Your personalized program is ready!" + "View ->" |
 | DashboardPage amber warning | `week >= 4` | "Consider a deload week" + "Ask Omnexus ->" |
-| DashboardPage brand card | `genStatus='generating'` | "Building your training program..." + progress bar |
+| DashboardPage dashed card | `genStatus='generating'` | Subtle placeholder with animated pulse (no blocking spinner) |
+| DashboardPage error card | `genStatus='error'` | "Program generation failed" + Retry button |
 | DashboardPage alert card | `activeSession` exists | "Workout in progress" + "Resume" button |
 | ChallengesPage | Pending invitation | Invitation banner with accept/decline |
 
@@ -692,6 +704,7 @@ OnboardingPage
 | Personal records | `fit_personal_records` localStorage | Yes (personal_records table) |
 | Measurements | `omnexus_measurements` localStorage | No |
 | Avatar URL | `user.avatarUrl` in `fit_user` | Yes (Supabase Storage + profiles) |
+| Ask conversation | `omnexus_ask_conversation` sessionStorage | No (session only — clears on browser close) |
 
 ---
 
@@ -751,5 +764,14 @@ OnboardingPage
 | Analytics (PostHog) | Live | Guest OK (anon) | No | No |
 
 ---
+
+---
+
+## CHANGELOG
+
+| Date | Changes |
+|---|---|
+| 2026-03-07 | Initial audit — 8 sections, 10 appendices |
+| 2026-03-07 | UX Polish sprint: R3 fixed (Dashboard error state), R7 fixed (AskPage persistence), R1 partial (guest migration repairMode), R16 resolved (TopBar uses navigate(-1) consistently). Empty states enhanced on HistoryPage + InsightsPage. Contextual AI entry points added on ExerciseDetailPage + WorkoutCompleteModal. ProgramContextBar + last-workout continuity bar on Dashboard + TrainPage. |
 
 *End of Omnexus Product Audit — 8 sections + 10 appendices*
