@@ -6,13 +6,25 @@ import { OnboardingChat } from './OnboardingChat';
 import { ProfileSummaryCard } from './ProfileSummaryCard';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { setUser, resetProgramCursors } from '../../utils/localStorage';
+import { setUser, resetProgramCursors, getHistory } from '../../utils/localStorage';
 import { apiBase } from '../../lib/api';
 import { useApp } from '../../store/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { upsertTrainingProfile } from '../../lib/db';
+import { upsertTrainingProfile, upsertSession, upsertPersonalRecords } from '../../lib/db';
 import { startGeneration } from '../../lib/programGeneration';
+
+/** Migrate any guest workout history + PRs to Supabase after account creation. Fire-and-forget. */
+function migrateGuestData(userId: string): void {
+  const history = getHistory();
+  if (history.sessions.length === 0 && history.personalRecords.length === 0) return;
+  Promise.all([
+    ...history.sessions.map(s => upsertSession(s, userId)),
+    upsertPersonalRecords(history.personalRecords, userId),
+  ]).catch(err => {
+    console.warn('[OnboardingForm] Guest data migration failed:', err);
+  });
+}
 
 // Step 0: Account, Step 1: Name, Step 2: AI Chat, Step 3: Profile summary + kick-off
 const STEPS = ['Account', 'Name', 'Discover', 'Your Plan'];
@@ -208,6 +220,10 @@ export function OnboardingForm() {
       resetProgramCursors('');
       dispatch({ type: 'SET_USER', payload: user });
       dispatch({ type: 'SET_THEME', payload: 'dark' });
+
+      // Migrate any guest workout data to Supabase (fire-and-forget)
+      migrateGuestData(userId);
+
       navigate('/');
     } finally {
       setGenerating(false);

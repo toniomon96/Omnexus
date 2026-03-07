@@ -4,6 +4,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { ProgramContextBar } from '../components/dashboard/ProgramContextBar';
 import { programs } from '../data/programs';
 import { getCustomPrograms } from '../utils/localStorage';
 import { getNextWorkout } from '../utils/programUtils';
@@ -38,6 +39,11 @@ export function TrainPage() {
     <AppShell>
       <TopBar title="Train" />
       <div className="px-4 pb-6 pt-4 space-y-4">
+
+        {/* Program context */}
+        {program && (
+          <ProgramContextBar program={program} />
+        )}
 
         {/* Resume active workout banner */}
         {activeSession && (
@@ -133,6 +139,7 @@ export function TrainPage() {
             ].map(({ to, icon: Icon, label }) => (
               <button
                 key={to}
+                type="button"
                 onClick={() => navigate(to)}
                 className="flex flex-col items-center gap-2 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl hover:bg-brand-500/10 hover:text-brand-500 transition-colors text-slate-600 dark:text-slate-300"
               >
@@ -149,6 +156,7 @@ export function TrainPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Recent Workouts</h3>
               <button
+                type="button"
                 onClick={() => navigate('/history')}
                 className="flex items-center gap-1 text-xs text-brand-500 font-medium"
               >

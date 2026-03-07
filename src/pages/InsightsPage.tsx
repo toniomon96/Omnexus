@@ -12,7 +12,7 @@ import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getWorkoutInsights } from '../services/claudeService';
 import { buildInsightRequest } from '../services/insightsService';
-import { Sparkles, Loader, Shield, MessageCircle, BarChart2, Newspaper } from 'lucide-react';
+import { Sparkles, Loader, Shield, MessageCircle, BarChart2, Newspaper, Play } from 'lucide-react';
 import type { LearningCategory, Goal } from '../types';
 
 const GOAL_CATEGORY: Record<Goal, LearningCategory> = {
@@ -123,9 +123,15 @@ export function InsightsPage() {
           </div>
 
           {!hasHistory ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-2">
-              Log some workouts first — then come back for insights.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-2 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Insights appear after you complete workouts. Log a few sessions and Omnexus will analyze your progress.
+              </p>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/train')}>
+                <Play size={14} />
+                Start a workout
+              </Button>
+            </div>
           ) : (
             <Button
               fullWidth
@@ -173,6 +179,7 @@ export function InsightsPage() {
             {QUICK_QUESTIONS.map((q) => (
               <button
                 key={q}
+                type="button"
                 onClick={() => navigate('/ask', { state: { prefill: q } })}
                 className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
               >
