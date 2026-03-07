@@ -8,22 +8,28 @@ import { StreakDisplay } from '../components/dashboard/StreakDisplay';
 import { RecoveryScoreCard } from '../components/dashboard/RecoveryScoreCard';
 import { WeeklyRecapCard } from '../components/dashboard/WeeklyRecapCard';
 import { MuscleHeatMap } from '../components/dashboard/MuscleHeatMap';
+import { ProgramContextBar } from '../components/dashboard/ProgramContextBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { programs } from '../data/programs';
 import { getNextWorkout } from '../utils/programUtils';
 import { getProgramWeekCursor, getCustomPrograms, setUser } from '../utils/localStorage';
 import { calculateStreak, getWeekStart } from '../utils/dateUtils';
-import { Play, AlertCircle, AlertTriangle, Sparkles, Dumbbell, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  Play,
+  AlertCircle,
+  AlertTriangle,
+  Sparkles,
+  Dumbbell,
+  CheckCircle2,
+  RefreshCw,
+  RotateCcw,
+} from 'lucide-react';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { useProgramGeneration } from '../hooks/useProgramGeneration';
-import { clearGenerationState } from '../lib/programGeneration';
+import { clearGenerationState, getGenerationState, startGeneration } from '../lib/programGeneration';
 import { supabase } from '../lib/supabase';
-
-// Dashboard is intentionally minimal — it's your daily at-a-glance view.
-// Training tools (programs, library, history) live in the Train tab.
-// Community (feed, leaderboard, challenges) lives in the Community tab.
-// Learning content lives in the Learn tab.
+import { formatDuration } from '../utils/dateUtils';
 
 export function DashboardPage() {
   const { state, dispatch } = useApp();
@@ -41,12 +47,10 @@ export function DashboardPage() {
     if (!user) return;
     if (genStatus !== 'ready' || !generatedProgramId || user.activeProgramId === generatedProgramId) return;
 
-    // Update local state
     const updated = { ...user, activeProgramId: generatedProgramId };
     setUser(updated);
     dispatch({ type: 'SET_USER', payload: updated });
 
-    // Sync to Supabase (best-effort)
     supabase
       .from('profiles')
       .update({ active_program_id: generatedProgramId })
@@ -55,7 +59,6 @@ export function DashboardPage() {
         if (error) console.warn('[Dashboard] Failed to sync activeProgramId:', error.message);
       });
 
-    // Clear generation state after a delay so the "ready" banner shows briefly
     const t = setTimeout(() => clearGenerationState(), 8000);
     return () => clearTimeout(t);
   }, [genStatus, generatedProgramId, user, dispatch]);
@@ -74,26 +77,40 @@ export function DashboardPage() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = user.name?.split(' ')[0] ?? 'there';
 
+  // Last completed workout for continuity signal
+  const lastSession = state.history.sessions.length > 0
+    ? state.history.sessions[state.history.sessions.length - 1]
+    : null;
+
+  function retryGeneration() {
+    if (!user) return;
+    const stored = getGenerationState();
+    if (!stored) return;
+    void startGeneration(user.id, stored.profile);
+  }
+
   return (
     <AppShell>
-      {/* TopBar default: shows ThemeToggle + Avatar profile link automatically */}
       <TopBar title="Omnexus" />
 
       <div className="px-4 pb-6 space-y-4 mt-2">
 
-        {/* Greeting */}
-        <div>
+        {/* ── Greeting + Program Context ─────────────────────────────── */}
+        <div className="space-y-1">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
             {greeting}, {firstName}
           </h2>
           {streak > 0 && (
-            <p className="text-sm text-brand-500 font-medium mt-0.5">
+            <p className="text-sm text-brand-500 font-medium">
               {streak}-day streak — keep it up!
             </p>
           )}
+          {program && (
+            <ProgramContextBar program={program} className="mt-1" />
+          )}
         </div>
 
-        {/* Program ready celebration banner */}
+        {/* ── Program ready banner ──────────────────────────────────── */}
         {genStatus === 'ready' && generatedProgramId && (
           <div className="flex items-center gap-3 rounded-2xl border border-emerald-400/50 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3">
             <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
@@ -114,29 +131,30 @@ export function DashboardPage() {
           </div>
         )}
 
-        {/* Program generating card */}
-        {genStatus === 'generating' && (
-          <Card className="border-brand-300/50 bg-brand-50/80 dark:bg-brand-900/15 dark:border-brand-700/40">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                <Loader2 size={20} className="text-brand-500 animate-spin" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-brand-700 dark:text-brand-300">
-                  Building your training program…
-                </p>
-                <p className="text-xs text-brand-600/80 dark:text-brand-400/80 mt-0.5">
-                  Your personalized 8-week plan is generating. Explore the app in the meantime.
-                </p>
-              </div>
+        {/* ── Generation error state ────────────────────────────────── */}
+        {genStatus === 'error' && (
+          <div className="flex items-center gap-3 rounded-2xl border border-red-300/50 bg-red-50 dark:bg-red-900/15 dark:border-red-700/40 px-4 py-3">
+            <AlertCircle size={18} className="text-red-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                Program generation failed
+              </p>
+              <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">
+                We couldn't build your program. Tap retry to try again.
+              </p>
             </div>
-            <div className="mt-3 h-1.5 rounded-full bg-brand-200/60 dark:bg-brand-800/40 overflow-hidden">
-              <div className="h-full w-2/3 rounded-full bg-brand-500 animate-pulse" />
-            </div>
-          </Card>
+            <button
+              type="button"
+              onClick={retryGeneration}
+              className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
+            >
+              <RefreshCw size={13} />
+              Retry
+            </button>
+          </div>
         )}
 
-        {/* Resume active workout */}
+        {/* ── Resume active workout ─────────────────────────────────── */}
         {activeSession && (
           <Card className="border-brand-400 bg-brand-50 dark:bg-brand-900/20">
             <div className="flex items-center justify-between gap-3">
@@ -154,17 +172,35 @@ export function DashboardPage() {
           </Card>
         )}
 
-        {/* Today's workout (only when not mid-session) */}
-        {!activeSession && program && (
+        {/* ── PRIMARY: Today's Workout ──────────────────────────────── */}
+        {!activeSession && program && nextWorkout && (
           <TodayCard
             program={program}
-            day={nextWorkout?.day ?? null}
-            dayIndex={nextWorkout?.dayIndex ?? 0}
+            day={nextWorkout.day}
+            dayIndex={nextWorkout.dayIndex}
           />
         )}
 
-        {/* No program — show skeleton if generating, otherwise prompt */}
-        {!activeSession && !program && genStatus !== 'generating' && (
+        {/* ── Subtle generating placeholder (no spinner card) ──────── */}
+        {!activeSession && !program && genStatus === 'generating' && (
+          <Card className="border-dashed border-slate-300 dark:border-slate-700">
+            <div className="flex items-center gap-3 py-1">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 animate-pulse">
+                <Dumbbell size={18} className="text-slate-300 dark:text-slate-600" />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 w-40 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                <div className="h-2.5 w-28 rounded-full bg-slate-100 dark:bg-slate-700/60 animate-pulse" />
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
+              Building your program in the background…
+            </p>
+          </Card>
+        )}
+
+        {/* ── No program — prompt to get started ───────────────────── */}
+        {!activeSession && !program && genStatus !== 'generating' && genStatus !== 'error' && (
           <Card className="text-center py-6">
             <Dumbbell size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
@@ -174,21 +210,37 @@ export function DashboardPage() {
           </Card>
         )}
 
-        {/* Program skeleton while generating */}
-        {!program && genStatus === 'generating' && (
-          <Card>
-            <div className="space-y-3">
-              <div className="h-4 w-32 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
-              <div className="h-3 w-48 rounded-full bg-slate-100 dark:bg-slate-700/60 animate-pulse" />
-              <div className="h-3 w-40 rounded-full bg-slate-100 dark:bg-slate-700/60 animate-pulse" />
+        {/* ── Continuity: last workout + program progress ───────────── */}
+        {program && lastSession && !activeSession && (
+          <div className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <RotateCcw size={12} className="text-slate-400" />
+              <span>Last workout</span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {new Date(lastSession.startedAt).toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+              {lastSession.durationSeconds && (
+                <span>· {formatDuration(lastSession.durationSeconds)}</span>
+              )}
             </div>
-          </Card>
+            <button
+              type="button"
+              onClick={() => navigate('/history')}
+              className="text-brand-500 font-medium hover:underline"
+            >
+              History →
+            </button>
+          </div>
         )}
 
-        {/* Streak */}
+        {/* ── Streak ───────────────────────────────────────────────── */}
         <StreakDisplay streak={streak} sessionDates={sessionDates} />
 
-        {/* AI Insights teaser */}
+        {/* ── AI Insights teaser ────────────────────────────────────── */}
         <button type="button" onClick={() => navigate('/insights')} className="w-full text-left">
           <Card hover>
             <div className="flex items-center gap-3">
@@ -208,16 +260,16 @@ export function DashboardPage() {
           </Card>
         </button>
 
-        {/* Recovery score */}
+        {/* ── Recovery score ────────────────────────────────────────── */}
         <RecoveryScoreCard sessions={state.history.sessions} />
 
-        {/* Muscle heat map */}
+        {/* ── Muscle heat map ───────────────────────────────────────── */}
         <MuscleHeatMap sessions={state.history.sessions} />
 
-        {/* Weekly recap */}
+        {/* ── Weekly recap ──────────────────────────────────────────── */}
         <WeeklyRecapCard sessions={state.history.sessions} />
 
-        {/* Deload warning */}
+        {/* ── Deload warning ────────────────────────────────────────── */}
         {program && week >= 4 && (
           <div className="flex items-start gap-3 rounded-2xl border border-amber-400/40 bg-amber-50 dark:bg-amber-900/15 px-4 py-3">
             <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />

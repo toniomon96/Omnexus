@@ -1,17 +1,19 @@
 import { useState, useMemo, memo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import type { WorkoutSession } from '../types';
 import { Skeleton } from '../components/ui/Skeleton';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LogCard } from '../components/history/LogCard';
 import { VolumeChart } from '../components/history/VolumeChart';
 import { HeatmapCalendar } from '../components/history/HeatmapCalendar';
 import { getWeeklyVolumeByMuscle } from '../utils/volumeUtils';
 import { getExerciseById } from '../data/exercises';
-import { Clock, List, Calendar } from 'lucide-react';
+import { Clock, List, Calendar, Play } from 'lucide-react';
 
 const SessionList = memo(function SessionList({ sessions }: { sessions: WorkoutSession[] }) {
   const cards = useMemo(
@@ -23,6 +25,7 @@ const SessionList = memo(function SessionList({ sessions }: { sessions: WorkoutS
 
 export function HistoryPage() {
   const { state } = useApp();
+  const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [ready, setReady] = useState(false);
   useEffect(() => { setReady(true); }, []);
@@ -140,7 +143,13 @@ export function HistoryPage() {
           <EmptyState
             icon={<Clock size={40} />}
             title="No workouts yet"
-            description="Complete your first workout to see your history here."
+            description="Complete your first workout to start building your history. Every session counts."
+            action={
+              <Button onClick={() => navigate('/train')}>
+                <Play size={15} />
+                Start your first workout
+              </Button>
+            }
           />
         ) : null}
       </div>
