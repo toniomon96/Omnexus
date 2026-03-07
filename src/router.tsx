@@ -9,6 +9,8 @@ import { runMigrationIfNeeded } from './lib/dataMigration'
 import type { User } from './types'
 import { CookieConsent } from './components/ui/CookieConsent'
 import { GuestBanner } from './components/ui/GuestBanner'
+import { AppTutorial, hasTutorialBeenSeen } from './components/onboarding/AppTutorial'
+import { resumeIfNeeded } from './lib/programGeneration'
 
 // Module-level set — survives component unmount/remount cycles.
 // Prevents repeated 406 profile queries for users who have a Supabase session
@@ -82,6 +84,7 @@ function GuestOrAuthGuard() {
   const { state, dispatch } = useApp()
   const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
   const hydratedRef = useRef(false)
 
   useEffect(() => {
@@ -160,6 +163,14 @@ function GuestOrAuthGuard() {
         }
         setCustomPrograms(customPrograms)
 
+        // Resume background program generation if the page was reloaded mid-generation
+        resumeIfNeeded(user.id).catch(() => {})
+
+        // Show tutorial once on first login after account creation
+        if (!hasTutorialBeenSeen()) {
+          setShowTutorial(true)
+        }
+
         hydratedRef.current = true
       } catch (err) {
         console.error('[GuestOrAuthGuard] Hydration failed:', err)
@@ -197,9 +208,12 @@ function GuestOrAuthGuard() {
 
   if (!state.user) return <LoadingScreen />
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Outlet />
-    </Suspense>
+    <>
+      <Suspense fallback={<LoadingScreen />}>
+        <Outlet />
+      </Suspense>
+      {showTutorial && <AppTutorial onDismiss={() => setShowTutorial(false)} />}
+    </>
   )
 }
 
