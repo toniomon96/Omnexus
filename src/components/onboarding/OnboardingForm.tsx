@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Mail, RefreshCw } from 'lucide-react';
 import type { UserTrainingProfile, Program, ExperienceLevel } from '../../types';
 import { OnboardingChat } from './OnboardingChat';
 import { ProfileSummaryCard } from './ProfileSummaryCard';
+import { WelcomeTutorial } from './WelcomeTutorial';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { setUser, resetProgramCursors, saveCustomProgram } from '../../utils/localStorage';
@@ -13,17 +14,50 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { upsertTrainingProfile, upsertCustomProgram } from '../../lib/db';
 
-// Step 0: Account, Step 1: Name, Step 2: AI Chat, Step 3: Profile summary + generate
-const STEPS = ['Account', 'Name', 'Discover', 'Your Plan'];
+// Step 0: Account, Step 1: Name, Step 2: AI Chat, Step 3: Profile summary, Step 4: Tutorial
+const STEPS = ['Account', 'Name', 'Discover', 'Your Plan', 'Welcome'];
+
+// ─── Async fetch helpers (defined outside component to avoid closure issues) ──
+
+async function fetchSignup(email: string, password: string, origin: string) {
+  const res = await fetch(`${apiBase}/api/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, redirectTo: `${origin}/auth/callback` }),
+  });
+  const body = await res.json().catch(() => ({})) as { userId?: string; error?: string };
+  if (!res.ok) {
+    const isExisting = res.status === 409 || /already exists|already registered/i.test(body.error ?? '');
+    throw new Error(isExisting
+      ? 'An account with this email already exists. Please sign in instead.'
+      : (body.error ?? 'Account creation failed. Please try again.'));
+  }
+  if (!body.userId) throw new Error('Account creation failed. Please try again.');
+  return { userId: body.userId, token: null as string | null };
+}
+
+async function fetchGenerateProgram(profile: UserTrainingProfile): Promise<Program> {
+  const res = await fetch(`${apiBase}/api/generate-program`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(data.error ?? `HTTP ${res.status}`);
+  }
+  const data = await res.json() as { program: Program };
+  return data.program;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function OnboardingForm() {
   const navigate = useNavigate();
   const { dispatch } = useApp();
   const { session } = useAuth();
 
-  // Repair mode: user already has a Supabase auth account but is missing a
-  // profiles row (e.g. profile creation failed during a previous signup, or the
-  // account was deleted and recreated). Skip step 0 — no new signup needed.
+  // Repair mode: user already has a Supabase auth account but is missing a profiles row
   const repairMode = !!session;
 
   const [step, setStep] = useState(repairMode ? 1 : 0);
@@ -36,20 +70,38 @@ export function OnboardingForm() {
   const [passwordError, setPasswordError] = useState('');
   const [nameError, setNameError] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // Generating state for ProfileSummaryCard UI
+  const [generating, setGenerating] = useState(false);
+  const [generatingIdx, setGeneratingIdx] = useState(0);
+  const [generateError, setGenerateError] = useState('');
+
+  // Promises stored in refs — don't trigger re-renders, survive unmount/remount
+  const signupPromiseRef = useRef<Promise<{ userId: string; token: string | null } | null>>(
+    Promise.resolve(null)
+  );
+  const generatePromiseRef = useRef<Promise<Program | null>>(
+    Promise.resolve(null)
+  );
 
   // Email confirmation pending — shown instead of normal steps
   const [emailConfirmPending, setEmailConfirmPending] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
+  // Cycle through generating messages while waiting
+  useEffect(() => {
+    if (!generating) { setGeneratingIdx(0); return; }
+    const id = setInterval(() => {
+      setGeneratingIdx((i) => (i + 1) % 4);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [generating]);
+
   function back() {
     setStep((s) => Math.max(s - 1, 0));
   }
 
-  // Sign out any existing session before navigating to /login.
-  // Without this, LoginGuard sees the session and redirects back to / →
-  // GuestOrAuthGuard can't find a profile → /onboarding → infinite loop.
   async function handleGoToSignIn() {
     await supabase.auth.signOut();
     navigate('/login');
@@ -90,150 +142,135 @@ export function OnboardingForm() {
     }
   }
 
-  async function handleProgramReady(program: Program) {
+  /**
+   * Called when user clicks "Generate My 8-Week Program" on step 3.
+   *
+   * Instead of waiting for program generation to complete, we:
+   * 1. Kick off account creation (fast) in parallel with program generation (slow)
+   * 2. Immediately advance to the Welcome Tutorial (step 4)
+   * 3. Resolve both promises when the tutorial ends
+   */
+  function handleGenerateClick() {
     if (!profile) return;
-    setSubmitError('');
-    setLoading(true);
+    setGenerating(true);
+    setGenerateError('');
 
-    try {
-      let userId: string;
-      let sessionAccessToken: string | null = null;
-
-      if (repairMode && session) {
-        // Repair mode: reuse the existing auth account — skip signUp entirely.
-        userId = session.user.id;
-        sessionAccessToken = session.access_token;
-      } else {
-        // 1. Create account via server-side signup endpoint.
-        //    This uses the Supabase admin API and sends the confirmation email via Resend
-        //    so users see a branded email from @notifications.omnexus.fit rather than Supabase's mailer.
-        const signupRes = await fetch(`${apiBase}/api/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password,
-            redirectTo: `${window.location.origin}/auth/callback`,
-          }),
+    if (repairMode && session) {
+      // Repair mode: account already exists — just generate the program
+      signupPromiseRef.current = Promise.resolve({
+        userId: session.user.id,
+        token: session.access_token,
+      });
+    } else {
+      signupPromiseRef.current = fetchSignup(email, password, window.location.origin)
+        .catch((err: Error) => {
+          setSubmitError(err.message);
+          return null;
         });
+    }
 
-        const signupBody = await signupRes.json().catch(() => ({})) as { userId?: string; emailSent?: boolean; error?: string };
-
-        if (!signupRes.ok) {
-          const msg = signupBody.error ?? 'Account creation failed. Please try again.';
-          const isExisting = signupRes.status === 409 || /already exists|already registered/i.test(msg);
-          const errMsg = isExisting
-            ? 'An account with this email already exists. Please sign in instead.'
-            : msg;
-          console.error('[OnboardingForm] /api/signup error:', signupRes.status, signupBody);
-          setSubmitError(errMsg);
-          setStep(0);
-          return;
-        }
-
-        if (!signupBody.userId) {
-          console.error('[OnboardingForm] /api/signup returned no userId');
-          setSubmitError('Account creation failed. Please try again.');
-          setStep(0);
-          return;
-        }
-
-        userId = signupBody.userId;
-        // After admin.createUser with email_confirm: false, there's no session yet —
-        // the user must click the confirmation link first.
-        sessionAccessToken = null;
-      }
-
-      // 2. Map the AI profile goal to a single Goal for the legacy User interface
-      const primaryGoal = (profile.goals[0] ?? 'general-fitness') as 'hypertrophy' | 'fat-loss' | 'general-fitness';
-      const experienceLevel: ExperienceLevel = profile.trainingAgeYears === 0
-        ? 'beginner'
-        : profile.trainingAgeYears <= 2
-          ? 'intermediate'
-          : 'advanced';
-
-      // 3. Save AI-generated program locally first (works regardless of email confirmation status)
-      const programId = crypto.randomUUID();
-      const programWithMeta: Program = {
-        ...program,
-        id: programId,
-        isCustom: true,
-        isAiGenerated: true,
-        createdAt: new Date().toISOString(),
-      };
-      saveCustomProgram(programWithMeta);
-      // Best-effort DB sync — will fail if email confirmation is pending (no session yet).
-      // The dataMigration will sync it on first login.
-      upsertCustomProgram(programWithMeta, userId).catch(() => { /* synced later */ });
-
-      // 4. Server-side profile setup
-      // Pass the Bearer token when available (email confirmation OFF or repair mode);
-      // setup-profile falls back to admin user verification when no session exists (email confirmation ON).
-      const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (sessionAccessToken) {
-        profileHeaders['Authorization'] = `Bearer ${sessionAccessToken}`;
-      }
-      const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
-        method: 'POST',
-        headers: profileHeaders,
-        body: JSON.stringify({
-          userId,
-          name: name.trim(),
-          goal: primaryGoal,
-          experienceLevel,
-          activeProgramId: programId,
-        }),
+    generatePromiseRef.current = fetchGenerateProgram(profile)
+      .catch((err: Error) => {
+        setGenerateError(err.message || 'Failed to generate program. Please try again.');
+        return null;
       });
 
-      if (!profileRes.ok) {
-        const body = await profileRes.json().catch(() => ({})) as { error?: string };
-        // Don't sign out in repair mode — the user is already signed in.
-        if (!repairMode) await supabase.auth.signOut();
-        // A 401 "User not found" means the email was already registered and Supabase
-        // returned a fake user ID (email confirmation is ON). Direct the user to sign in.
-        const serverErr = body.error ?? '';
-        const profileErrMsg = profileRes.status === 401
-          ? 'An account with this email already exists. Please sign in instead.'
-          : serverErr || 'Profile setup failed. Please try again.';
-        console.error('[OnboardingForm] setup-profile failed:', profileRes.status, body);
-        setSubmitError(profileErrMsg);
-        if (!repairMode) setStep(0);
-        return;
-      }
+    // Advance to tutorial immediately — don't wait for either promise
+    setStep(4);
+  }
 
-      // 5. Email confirmation is ON — no session yet. Show the check-inbox screen.
-      // (Never triggered in repair mode since session already exists.)
-      if (!sessionAccessToken) {
-        setEmailConfirmPending(true);
-        return;
-      }
+  /**
+   * Called by WelcomeTutorial once the user is ready to enter the app.
+   * Both promises are guaranteed resolved at this point (WelcomeTutorial awaits them).
+   */
+  const handleTutorialComplete = useCallback(async (
+    program: Program,
+    userId: string,
+    token: string | null,
+  ) => {
+    if (!profile) return;
 
-      // 6. Session available (email confirmation OFF). Save training profile + enter app.
-      await upsertTrainingProfile(userId, profile).catch(() => {
-        // Non-fatal — training_profiles table may not exist yet in development
-      });
+    const primaryGoal = (profile.goals[0] ?? 'general-fitness') as 'hypertrophy' | 'fat-loss' | 'general-fitness';
+    const experienceLevel: ExperienceLevel = profile.trainingAgeYears === 0
+      ? 'beginner'
+      : profile.trainingAgeYears <= 2
+        ? 'intermediate'
+        : 'advanced';
 
-      const user = {
-        id: userId,
+    // Save program locally
+    const programId = crypto.randomUUID();
+    const programWithMeta: Program = {
+      ...program,
+      id: programId,
+      isCustom: true,
+      isAiGenerated: true,
+      createdAt: new Date().toISOString(),
+    };
+    saveCustomProgram(programWithMeta);
+    upsertCustomProgram(programWithMeta, userId).catch(() => { /* synced on next login */ });
+
+    // Setup Supabase profile (includes activeProgramId now that program is ready)
+    const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) profileHeaders['Authorization'] = `Bearer ${token}`;
+
+    const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
+      method: 'POST',
+      headers: profileHeaders,
+      body: JSON.stringify({
+        userId,
         name: name.trim(),
         goal: primaryGoal,
         experienceLevel,
         activeProgramId: programId,
-        onboardedAt: new Date().toISOString(),
-        theme: 'dark' as const,
-      };
+      }),
+    });
 
-      setUser(user);
-      resetProgramCursors(programId);
-      dispatch({ type: 'SET_USER', payload: user });
-      dispatch({ type: 'SET_THEME', payload: 'dark' });
-      navigate('/');
-    } finally {
-      setLoading(false);
+    if (!profileRes.ok) {
+      const body = await profileRes.json().catch(() => ({})) as { error?: string };
+      if (!repairMode) await supabase.auth.signOut();
+      const serverErr = body.error ?? '';
+      const profileErrMsg = profileRes.status === 401
+        ? 'An account with this email already exists. Please sign in instead.'
+        : serverErr || 'Profile setup failed. Please try again.';
+      setSubmitError(profileErrMsg);
+      setStep(0);
+      return;
     }
+
+    // Email confirmation is ON — no session yet
+    if (!token) {
+      setEmailConfirmPending(true);
+      return;
+    }
+
+    // Session available — save training profile + enter app
+    await upsertTrainingProfile(userId, profile).catch(() => {
+      // Non-fatal — training_profiles table may not exist in development
+    });
+
+    const user = {
+      id: userId,
+      name: name.trim(),
+      goal: primaryGoal,
+      experienceLevel,
+      activeProgramId: programId,
+      onboardedAt: new Date().toISOString(),
+      theme: 'dark' as const,
+    };
+
+    setUser(user);
+    resetProgramCursors(programId);
+    dispatch({ type: 'SET_USER', payload: user });
+    dispatch({ type: 'SET_THEME', payload: 'dark' });
+    navigate('/');
+  }, [profile, name, repairMode, session, dispatch, navigate]);
+
+  function handleTutorialError(msg: string) {
+    setSubmitError(msg);
+    setStep(0);
   }
 
-  // ─── Email confirmation pending screen ────────────────────────────────────────
+  // ─── Email confirmation pending screen ──────────────────────────────────────
 
   if (emailConfirmPending) {
     return (
@@ -281,11 +318,24 @@ export function OnboardingForm() {
     );
   }
 
-  // ─── Normal onboarding steps ──────────────────────────────────────────────────
+  // ─── Step 4: Welcome Tutorial (full-screen, owns its own layout) ────────────
+
+  if (step === 4 && profile) {
+    return (
+      <WelcomeTutorial
+        userName={name}
+        programPromise={generatePromiseRef.current}
+        signupPromise={signupPromiseRef.current}
+        onComplete={handleTutorialComplete}
+        onError={handleTutorialError}
+      />
+    );
+  }
+
+  // ─── Normal onboarding steps (0–3) ──────────────────────────────────────────
 
   return (
     <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8 overflow-y-auto">
-      {/* Repair mode banner */}
       {repairMode && (
         <p className="mb-4 rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
           Your account exists — just finish setting up your profile.
@@ -294,7 +344,7 @@ export function OnboardingForm() {
 
       {/* Progress dots */}
       <div className="flex justify-center gap-2 mb-10">
-        {STEPS.map((s, i) => (
+        {STEPS.slice(0, 4).map((s, i) => (
           <div
             key={s}
             className={[
@@ -387,20 +437,20 @@ export function OnboardingForm() {
           <OnboardingChat userName={name} onComplete={handleProfileComplete} />
         )}
 
-        {/* Step 3 — Profile summary + generate program */}
+        {/* Step 3 — Profile summary */}
         {step === 3 && profile && (
           <>
             <ProfileSummaryCard
               profile={profile}
-              onProgramReady={handleProgramReady}
+              onGenerate={handleGenerateClick}
+              generating={generating}
+              generatingIdx={generatingIdx}
+              error={generateError}
             />
             {submitError && (
               <p className="mt-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
                 {submitError}
               </p>
-            )}
-            {loading && (
-              <p className="mt-3 text-sm text-slate-400 text-center">Creating your account…</p>
             )}
           </>
         )}
