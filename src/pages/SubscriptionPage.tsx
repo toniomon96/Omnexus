@@ -41,6 +41,7 @@ export function SubscriptionPage() {
 
   useEffect(() => {
     if (successParam !== 'true' || !session) return;
+    const accessToken = session.access_token;
     if (isPremium) {
       setCheckoutVerified(true);
       setVerificationError(null);
@@ -59,7 +60,7 @@ export function SubscriptionPage() {
             ? `${apiBase}/api/checkout-status?session_id=${encodeURIComponent(checkoutSessionId)}`
             : `${apiBase}/api/subscription-status`;
           const res = await fetch(url, {
-            headers: { Authorization: `Bearer ${session.access_token}` },
+            headers: { Authorization: `Bearer ${accessToken}` },
           });
           const data = await res.json().catch(() => ({})) as { tier?: string; error?: string };
 
