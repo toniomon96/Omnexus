@@ -1,5 +1,5 @@
 import { test, expect } from './helpers/fixtures';
-import { signIn, enterAsGuest, TEST_USER } from './helpers/auth';
+import { signIn, enterAsGuest } from './helpers/auth';
 
 const hasRealCredentials =
   !!process.env.E2E_TEST_EMAIL &&

@@ -11,6 +11,7 @@ import { CookieConsent } from './components/ui/CookieConsent'
 import { GuestBanner } from './components/ui/GuestBanner'
 import { AppTutorial, hasTutorialBeenSeen } from './components/onboarding/AppTutorial'
 import { resumeIfNeeded, getGenerationState } from './lib/programGeneration'
+import { RouterErrorBoundary } from './components/ui/RouterErrorBoundary'
 
 // Module-level set — survives component unmount/remount cycles.
 // Prevents repeated 406 profile queries for users who have a Supabase session
@@ -345,6 +346,7 @@ function GuestGuard() {
 
 export const router = createBrowserRouter([
   {
+    errorElement: <RouterErrorBoundary />,
     element: <RootLayout />,
     children: [
       { path: '/onboarding', element: <OnboardingGuard /> },

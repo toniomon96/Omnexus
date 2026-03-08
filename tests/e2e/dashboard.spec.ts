@@ -8,6 +8,16 @@ test('dashboard "View" link loads program detail after generation completes', as
   const PROGRAM_ID = 'e2e-generated-program';
 
   await page.addInitScript((id: string) => {
+    const guest = {
+      id: 'guest_e2e',
+      name: 'You',
+      goal: 'hypertrophy',
+      experienceLevel: 'intermediate',
+      activeProgramId: id,
+      onboardedAt: new Date().toISOString(),
+      theme: 'dark',
+      isGuest: true,
+    };
     const program = {
       id,
       name: 'AI E2E Test Program',
@@ -22,17 +32,20 @@ test('dashboard "View" link loads program detail after generation completes', as
       isAiGenerated: true,
       createdAt: new Date().toISOString(),
     };
+    localStorage.setItem('omnexus_guest', JSON.stringify(guest));
+    localStorage.setItem('fit_user', JSON.stringify(guest));
     localStorage.setItem('omnexus_custom_programs', JSON.stringify([program]));
     localStorage.setItem('omnexus_program_generation', JSON.stringify({
       status: 'ready',
-      userId: 'guest',
+      userId: guest.id,
       programId: id,
       profile: {},
       startedAt: new Date().toISOString(),
+      activateOnReady: true,
+      countAgainstQuota: false,
     }));
   }, PROGRAM_ID);
 
-  await enterAsGuest(page);
   await page.goto('/');
 
   // The "program ready" banner should be visible

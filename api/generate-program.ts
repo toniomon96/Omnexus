@@ -433,8 +433,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let usageAuthUserId: string | null = null;
   let usageToday = '';
   let currentDayProgramCount = 0;
-  let monthlyProgramCount = 0;
-  let monthlyProgramLimit = 0;
 
   if (countAgainstQuota) {
     if (!authHeader?.startsWith('Bearer ') || !supabaseAdmin) {
@@ -470,9 +468,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]);
 
     const isPremium = !!sub;
-    monthlyProgramLimit = isPremium ? 5 : 1;
+  const monthlyProgramLimit = isPremium ? 5 : 1;
     currentDayProgramCount = (monthUsage ?? []).find((row) => row.date === usageToday)?.program_gen_count ?? 0;
-    monthlyProgramCount = (monthUsage ?? []).reduce((sum, row) => sum + (row.program_gen_count ?? 0), 0);
+  const monthlyProgramCount = (monthUsage ?? []).reduce((sum, row) => sum + (row.program_gen_count ?? 0), 0);
 
     if (monthlyProgramCount >= monthlyProgramLimit) {
       return res.status(403).json({ error: 'Monthly AI program limit reached', upgradeRequired: !isPremium });

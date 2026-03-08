@@ -35,10 +35,20 @@ interface StartGenerationOptions {
 
 const LS_KEY = 'omnexus_program_generation';
 
+function normalizeGenerationState(state: GenerationState | null): GenerationState | null {
+  if (!state) return null;
+
+  return {
+    ...state,
+    activateOnReady: state.activateOnReady ?? true,
+    countAgainstQuota: state.countAgainstQuota ?? false,
+  };
+}
+
 export function getGenerationState(): GenerationState | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as GenerationState) : null;
+    return raw ? normalizeGenerationState(JSON.parse(raw) as GenerationState) : null;
   } catch {
     return null;
   }
@@ -46,7 +56,7 @@ export function getGenerationState(): GenerationState | null {
 
 function saveState(data: GenerationState) {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    localStorage.setItem(LS_KEY, JSON.stringify(normalizeGenerationState(data)));
   } catch { /* quota */ }
 }
 
