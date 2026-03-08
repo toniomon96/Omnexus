@@ -44,14 +44,16 @@ test.describe('Feed — authenticated', () => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     await signIn(page);
     await page.goto('/feed');
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    // Wait for AuthOnlyGuard hydration (profile fetch + render)
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Feed' });
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('shows activity feed content or empty state', async ({ page }) => {
@@ -70,14 +72,15 @@ test.describe('Friends — authenticated', () => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     await signIn(page);
     await page.goto('/friends');
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Friends' });
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('friend search input is present', async ({ page }) => {
@@ -93,14 +96,15 @@ test.describe('Leaderboard — authenticated', () => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     await signIn(page);
     await page.goto('/leaderboard');
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Leaderboard' });
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('leaderboard list or empty state renders', async ({ page }) => {

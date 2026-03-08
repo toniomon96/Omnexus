@@ -1,21 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
+import { getStripeConfig } from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
     ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     : null;
-
-// BUG-06: Use APP_URL (server-side env var), not VITE_APP_URL (Vite inlines VITE_ vars at build
-// time — they are NOT available in Vercel serverless functions at runtime).
-const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
@@ -40,14 +32,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
-  if (!stripe) {
-    return res.status(500).json({ error: 'Payment service not configured' });
-  }
-
-  // BUG-07: Always use the server-side price ID — never trust a client-supplied priceId.
-  const resolvedPriceId = process.env.STRIPE_PRICE_ID;
-  if (!resolvedPriceId) {
-    return res.status(500).json({ error: 'Payment not configured' });
+  const stripeConfig = getStripeConfig({ requirePriceId: true, requireAppUrl: true });
+  if (stripeConfig.error || !stripeConfig.stripe || !stripeConfig.priceId) {
+    console.error('[/api/create-checkout] Stripe config error:', stripeConfig.error);
+    return res.status(500).json({ error: stripeConfig.error ?? 'Payment service not configured' });
   }
 
   try {
@@ -62,11 +50,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!customerId) {
       // BUG-05: Check for an existing Stripe customer before creating to avoid orphans.
-      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      const existing = await stripeConfig.stripe.customers.list({ email: user.email, limit: 1 });
       if (existing.data.length > 0) {
         customerId = existing.data[0].id;
       } else {
-        const customer = await stripe.customers.create({
+        const customer = await stripeConfig.stripe.customers.create({
           email: user.email,
           metadata: { userId: user.id },
         });
@@ -84,15 +72,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripeConfig.stripe.checkout.sessions.create({
       customer: customerId,
       // BUG-01: client_reference_id lets the webhook find the user by ID even if
       // stripe_customer_id hasn't been persisted to profiles yet (race condition).
       client_reference_id: user.id,
-      line_items: [{ price: resolvedPriceId, quantity: 1 }],
+      line_items: [{ price: stripeConfig.priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${APP_URL}/subscription?success=true`,
-      cancel_url: `${APP_URL}/subscription`,
+      success_url: `${stripeConfig.appUrl}/subscription?success=true`,
+      cancel_url: `${stripeConfig.appUrl}/subscription`,
       allow_promotion_codes: true,
     });
 
