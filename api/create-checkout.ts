@@ -39,6 +39,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const { data: existingSubscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('stripe_subscription_id, status')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle();
+
+    if (existingSubscription) {
+      return res.status(409).json({ error: 'Premium is already active for this account', alreadyPremium: true });
+    }
+
     // Get or create Stripe customer
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -79,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       client_reference_id: user.id,
       line_items: [{ price: stripeConfig.priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${stripeConfig.appUrl}/subscription?success=true`,
+      success_url: `${stripeConfig.appUrl}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${stripeConfig.appUrl}/subscription`,
       allow_promotion_codes: true,
     });
