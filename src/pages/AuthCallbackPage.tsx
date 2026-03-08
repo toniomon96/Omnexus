@@ -2,8 +2,22 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getHistory } from '../utils/localStorage';
+import { upsertSession, upsertPersonalRecords } from '../lib/db';
 
 type Status = 'loading' | 'confirmed' | 'recovery' | 'error';
+
+/** Sync any guest workout history + PRs to Supabase after email confirmation. Fire-and-forget. */
+function migrateGuestData(userId: string): void {
+  const history = getHistory();
+  if (history.sessions.length === 0 && history.personalRecords.length === 0) return;
+  Promise.all([
+    ...history.sessions.map(s => upsertSession(s, userId)),
+    upsertPersonalRecords(history.personalRecords, userId),
+  ]).catch(err => {
+    console.warn('[AuthCallbackPage] Guest data migration failed:', err);
+  });
+}
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -19,6 +33,7 @@ export function AuthCallbackPage() {
         setTimeout(() => navigate('/reset-password', { replace: true }), 1200);
       } else if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
         setStatus('confirmed');
+        migrateGuestData(session.user.id);
         setTimeout(() => navigate('/', { replace: true }), 2000);
       }
     });

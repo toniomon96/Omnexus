@@ -61,8 +61,7 @@ export function ActiveWorkoutPage() {
   const trainingDay = program?.schedule[session.trainingDayIndex];
 
   function handleComplete() {
-    if (!program) return;
-    const result = completeWorkout(program);
+    const result = completeWorkout(program ?? null);
     if (result) {
       setCompletedData(result);
       if (result.prs.length > 0) {

@@ -156,6 +156,43 @@ test.describe('Workout complete modal', () => {
   });
 });
 
+test.describe('Quick log workout', () => {
+  test.beforeEach(async ({ page }) => {
+    await enterAsGuest(page);
+    await page.evaluate(() => localStorage.removeItem('fit_active_session'));
+  });
+
+  test('quick-log workout can be started and finished', async ({ page }) => {
+    test.info().annotations.push({ type: 'feature', description: 'Quick Log' });
+    test.info().annotations.push({ type: 'severity', description: 'critical' });
+    test.info().annotations.push({ type: 'description', description: 'Regression: quick-log "Finish" button was a no-op because program lookup returned undefined' });
+
+    await test.step('navigate to quick log page', () => page.goto('/workout/quick'));
+
+    await test.step('select at least one exercise', async () => {
+      const firstExercise = page.locator('button').filter({ hasText: /press|squat|deadlift|curl/i }).first();
+      await expect(firstExercise).toBeVisible({ timeout: 5_000 });
+      await firstExercise.click();
+    });
+
+    await test.step('start the workout', async () => {
+      await page.getByRole('button', { name: /start workout/i }).click();
+      await page.waitForURL(/\/workout\/active/);
+    });
+
+    await test.step('finish the workout', async () => {
+      const finishBtn = page.getByRole('button', { name: /finish/i });
+      await expect(finishBtn).toBeVisible({ timeout: 5_000 });
+      await finishBtn.click();
+    });
+
+    await test.step('completion modal appears — workout was saved', async () => {
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/workout complete/i)).toBeVisible({ timeout: 3_000 });
+    });
+  });
+});
+
 test.describe('Workout history', () => {
   test.beforeEach(async ({ page }) => {
     await enterAsGuest(page);

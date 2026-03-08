@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Mail, RefreshCw, Loader2 } from 'lucide-react';
 import type { UserTrainingProfile, ExperienceLevel } from '../../types';
@@ -51,8 +51,17 @@ export function OnboardingForm() {
 
   // Generating UI state for ProfileSummaryCard
   const [generating, setGenerating] = useState(false);
-  const [generatingIdx] = useState(0);
+  const [generatingIdx, setGeneratingIdx] = useState(0);
   const [generateError, setGenerateError] = useState('');
+
+  // Cycle through generating messages while generation is in progress
+  useEffect(() => {
+    if (!generating) { setGeneratingIdx(0); return; }
+    const id = setInterval(() => {
+      setGeneratingIdx(i => (i + 1) % 4);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [generating]);
 
   // Email confirmation pending screen
   const [emailConfirmPending, setEmailConfirmPending] = useState(false);

@@ -9,6 +9,7 @@ import { programs } from '../data/programs';
 import { getCustomPrograms } from '../utils/localStorage';
 import { getNextWorkout } from '../utils/programUtils';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
+import { getExerciseById } from '../data/exercises';
 import {
   Play,
   Zap,
@@ -102,7 +103,7 @@ export function TrainPage() {
                   key={ex.exerciseId}
                   className="text-xs px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300 capitalize"
                 >
-                  {ex.exerciseId.replace(/-/g, ' ')}
+                  {getExerciseById(ex.exerciseId)?.name ?? ex.exerciseId.replace(/-/g, ' ')}
                 </span>
               ))}
               {nextWorkout.day.exercises.length > 5 && (

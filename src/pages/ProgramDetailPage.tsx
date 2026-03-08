@@ -11,6 +11,7 @@ import { Button } from '../components/ui/Button';
 import { programs } from '../data/programs';
 import { setUser, resetProgramCursors, getCustomPrograms } from '../utils/localStorage';
 import { generateMissions } from '../services/adaptService';
+import { supabase } from '../lib/supabase';
 import { Calendar, Clock, CheckCircle2, Sparkles, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 
 export function ProgramDetailPage() {
@@ -42,8 +43,17 @@ export function ProgramDetailPage() {
     resetProgramCursors(program.id);
     dispatch({ type: 'SET_USER', payload: updated });
 
-    // Fire-and-forget: generate block missions for this program
+    // Sync activeProgramId to Supabase so it persists across devices/sessions
     if (authUser) {
+      supabase
+        .from('profiles')
+        .update({ active_program_id: program.id })
+        .eq('id', authUser.id)
+        .then(({ error }) => {
+          if (error) console.warn('[ProgramDetailPage] Failed to sync activeProgramId:', error.message);
+        });
+
+      // Fire-and-forget: generate block missions for this program
       generateMissions({
         userId: authUser.id,
         programId: program.id,

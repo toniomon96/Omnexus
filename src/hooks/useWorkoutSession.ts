@@ -213,7 +213,7 @@ export function useWorkoutSession() {
   );
 
   const completeWorkout = useCallback(
-    (program: Program) => {
+    (program: Program | null) => {
       if (!state.activeSession) return;
       const now = new Date().toISOString();
       const startMs = new Date(state.activeSession.startedAt).getTime();
@@ -240,7 +240,8 @@ export function useWorkoutSession() {
 
       appendSession(completed);
       updatePersonalRecords(prs);
-      advanceProgramCursor(program);
+      // Only advance the program cursor for scheduled workouts (not quick-log)
+      if (program) advanceProgramCursor(program);
       clearActiveSession();
 
       dispatch({ type: 'APPEND_SESSION', payload: completed });
