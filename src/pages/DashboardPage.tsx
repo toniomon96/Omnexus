@@ -30,12 +30,15 @@ import { useProgramGeneration } from '../hooks/useProgramGeneration';
 import { clearGenerationState, getGenerationState, startGeneration } from '../lib/programGeneration';
 import { supabase } from '../lib/supabase';
 import { formatDuration } from '../utils/dateUtils';
+import { applyAiProgramLifecycle } from '../utils/programLifecycle';
+import { setCustomPrograms } from '../utils/localStorage';
+import { upsertCustomProgram } from '../lib/db';
 
 export function DashboardPage() {
   const { state, dispatch } = useApp();
   const navigate = useNavigate();
   const { session: activeSession } = useWorkoutSession();
-  const { status: genStatus, programId: generatedProgramId } = useProgramGeneration();
+  const { status: genStatus, programId: generatedProgramId, generationState } = useProgramGeneration();
   const repairedMissingProgramRef = useRef(false);
 
   const user = state.user;
@@ -49,11 +52,21 @@ export function DashboardPage() {
   // When generation completes: activate the program on the user
   useEffect(() => {
     if (!user) return;
+    if (!generationState?.activateOnReady) return;
     if (genStatus !== 'ready' || !generatedProgramId || user.activeProgramId === generatedProgramId) return;
 
     const updated = { ...user, activeProgramId: generatedProgramId };
     setUser(updated);
     dispatch({ type: 'SET_USER', payload: updated });
+
+    const nextPrograms = applyAiProgramLifecycle(allPrograms, generatedProgramId, user.activeProgramId)
+      .filter((p) => p.isCustom);
+    setCustomPrograms(nextPrograms);
+    nextPrograms
+      .filter((program) => program.isAiGenerated)
+      .forEach((program) => {
+        void upsertCustomProgram(program, user.id).catch(() => {});
+      });
 
     supabase
       .from('profiles')
@@ -65,7 +78,7 @@ export function DashboardPage() {
 
     const t = setTimeout(() => clearGenerationState(), 8000);
     return () => clearTimeout(t);
-  }, [genStatus, generatedProgramId, user, dispatch]);
+  }, [genStatus, generatedProgramId, generationState?.activateOnReady, user, dispatch]);
 
   // Self-heal older stuck accounts where a stale local "ready" flag exists but
   // the generated program record never made it to localStorage/Supabase.
@@ -141,7 +154,7 @@ export function DashboardPage() {
         </div>
 
         {/* ── Program ready banner ──────────────────────────────────── */}
-        {genStatus === 'ready' && generatedProgramId && generatedProgramExists && (
+        {genStatus === 'ready' && generatedProgramId && generatedProgramExists && generationState?.activateOnReady && (
           <div className="flex items-center gap-3 rounded-2xl border border-emerald-400/50 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3">
             <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -161,7 +174,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        {genStatus === 'ready' && generatedProgramId && !generatedProgramExists && (
+        {genStatus === 'ready' && generatedProgramId && !generatedProgramExists && generationState?.activateOnReady && (
           <div className="flex items-center gap-3 rounded-2xl border border-amber-300/50 bg-amber-50 dark:bg-amber-900/15 dark:border-amber-700/40 px-4 py-3">
             <AlertTriangle size={18} className="text-amber-500 shrink-0" />
             <div className="flex-1 min-w-0">

@@ -41,6 +41,7 @@ const LessonPage = lazy(() => import('./pages/LessonPage').then(m => ({ default:
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then(m => ({ default: m.InsightsPage })))
 const AskPage = lazy(() => import('./pages/AskPage').then(m => ({ default: m.AskPage })))
 const ProgramBuilderPage = lazy(() => import('./pages/ProgramBuilderPage').then(m => ({ default: m.ProgramBuilderPage })))
+const AiProgramGenerationPage = lazy(() => import('./pages/AiProgramGenerationPage').then(m => ({ default: m.AiProgramGenerationPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
 const ActivityFeedPage = lazy(() => import('./pages/ActivityFeedPage').then(m => ({ default: m.ActivityFeedPage })))
 const FriendsPage = lazy(() => import('./pages/FriendsPage').then(m => ({ default: m.FriendsPage })))
@@ -361,6 +362,7 @@ export const router = createBrowserRouter([
           { path: '/', element: <DashboardPage /> },
           { path: '/profile', element: <ProfilePage /> },
           { path: '/programs', element: <ProgramsPage /> },
+          { path: '/programs/ai/new', element: <AiProgramGenerationPage /> },
           { path: '/programs/builder', element: <ProgramBuilderPage /> },
           { path: '/programs/:programId', element: <ProgramDetailPage /> },
           { path: '/library', element: <ExerciseLibraryPage /> },

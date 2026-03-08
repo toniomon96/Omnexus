@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { DaySchedule } from '../components/programs/DaySchedule';
@@ -9,16 +10,21 @@ import { BlockMissionsCard } from '../components/programs/BlockMissionsCard';
 import { GoalBadge, LevelBadge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { programs } from '../data/programs';
-import { setUser, resetProgramCursors, getCustomPrograms } from '../utils/localStorage';
+import { setUser, resetProgramCursors, getCustomPrograms, setCustomPrograms } from '../utils/localStorage';
 import { generateMissions } from '../services/adaptService';
 import { supabase } from '../lib/supabase';
+import { upsertCustomProgram } from '../lib/db';
+import { useWorkoutSession } from '../hooks/useWorkoutSession';
+import { applyAiProgramLifecycle } from '../utils/programLifecycle';
 import { Calendar, Clock, CheckCircle2, Sparkles, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 
 export function ProgramDetailPage() {
   const { programId } = useParams<{ programId: string }>();
   const { state, dispatch } = useApp();
   const { user: authUser } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
+  const { session: activeSession } = useWorkoutSession();
 
   const allPrograms = [...programs, ...getCustomPrograms()];
   const program = allPrograms.find((p) => p.id === programId);
@@ -34,10 +40,26 @@ export function ProgramDetailPage() {
   }
 
   const isActive = state.user?.activeProgramId === program.id;
+  const isDraft = program.aiLifecycleStatus === 'draft';
   const [roadmapOpen, setRoadmapOpen] = useState(true);
 
   function handleActivate() {
     if (!state.user || !program) return;
+    if (activeSession) {
+      toast('Finish or discard your current workout before starting a new program.', 'error');
+      return;
+    }
+
+    const updatedCustomPrograms = applyAiProgramLifecycle(getCustomPrograms(), program.id, state.user.activeProgramId);
+    setCustomPrograms(updatedCustomPrograms);
+    updatedCustomPrograms
+      .filter((candidate) => candidate.isAiGenerated)
+      .forEach((candidate) => {
+        if (authUser) {
+          void upsertCustomProgram(candidate, authUser.id).catch(() => {});
+        }
+      });
+
     const updated = { ...state.user, activeProgramId: program.id };
     setUser(updated);
     resetProgramCursors(program.id);
@@ -122,6 +144,17 @@ export function ProgramDetailPage() {
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {program.trainingPhilosophy}
+            </p>
+          </div>
+        )}
+
+        {isDraft && !isActive && (
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+              This is a draft AI program
+            </p>
+            <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1">
+              Your current program stays active until you tap Start This Program.
             </p>
           </div>
         )}
@@ -211,7 +244,7 @@ export function ProgramDetailPage() {
           </div>
         ) : (
           <Button onClick={handleActivate} fullWidth size="lg">
-            Activate Program
+            {isDraft ? 'Start This Program' : 'Activate Program'}
           </Button>
         )}
 

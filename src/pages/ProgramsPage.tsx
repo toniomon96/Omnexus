@@ -10,7 +10,7 @@ import { Card } from '../components/ui/Card';
 import { programs as builtInPrograms } from '../data/programs';
 import { getCustomPrograms, deleteCustomProgram } from '../utils/localStorage';
 import { deleteCustomProgramDb } from '../lib/db';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Sparkles, Trash2 } from 'lucide-react';
 
 const GOAL_TABS: { value: Goal | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -41,6 +41,10 @@ export function ProgramsPage() {
       ? customPrograms
       : customPrograms.filter((p) => p.goal === activeGoal);
 
+  const draftPrograms = filteredCustom.filter((p) => p.aiLifecycleStatus === 'draft');
+  const archivedPrograms = filteredCustom.filter((p) => p.aiLifecycleStatus === 'archived');
+  const activeAndSavedPrograms = filteredCustom.filter((p) => p.aiLifecycleStatus !== 'draft' && p.aiLifecycleStatus !== 'archived');
+
   const activeProgramId = state.user?.activeProgramId;
 
   function handleDelete(id: string) {
@@ -62,6 +66,34 @@ export function ProgramsPage() {
     <AppShell>
       <TopBar title="Programs" />
       <div className="px-4 pb-6">
+        {!state.user?.isGuest && (
+          <div className="grid grid-cols-2 gap-3 pt-3">
+            <Card hover onClick={() => navigate('/programs/ai/new')}>
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-900/30">
+                  <Sparkles size={18} className="text-brand-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-slate-800 dark:text-white">AI Draft</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Generate a new block</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card hover onClick={() => navigate('/programs/builder')}>
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-900/30">
+                  <Plus size={18} className="text-brand-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-slate-800 dark:text-white">Manual Builder</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Create from scratch</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Goal filter tabs */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide py-3">
           {GOAL_TABS.map((tab) => (
@@ -81,22 +113,55 @@ export function ProgramsPage() {
         </div>
 
         {/* My Programs */}
-        {customPrograms.length > 0 && (
+        {draftPrograms.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                AI Drafts
+              </h2>
+              <span className="text-xs text-slate-400">Review before starting</span>
+            </div>
+            <div className="space-y-3">
+              {draftPrograms.map((p) => (
+                <div key={p.id} className="relative">
+                  <ProgramCard program={p} isActive={p.id === activeProgramId} />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                    className={[
+                      'absolute top-3 right-10 flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors',
+                      deleteConfirm === p.id
+                        ? 'bg-red-500 text-white'
+                        : 'text-slate-400 hover:text-red-500',
+                    ].join(' ')}
+                    title={deleteConfirm === p.id ? 'Tap again to confirm delete' : 'Delete draft'}
+                  >
+                    <Trash2 size={12} />
+                    {deleteConfirm === p.id && <span>Delete?</span>}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeAndSavedPrograms.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 My Programs
               </h2>
-              <button
-                onClick={() => navigate('/programs/builder')}
-                className="flex items-center gap-1 text-sm text-brand-500 font-medium"
-              >
-                <Plus size={14} />
-                New
-              </button>
+              {!state.user?.isGuest && (
+                <button
+                  onClick={() => navigate('/programs/ai/new')}
+                  className="flex items-center gap-1 text-sm text-brand-500 font-medium"
+                >
+                  <Sparkles size={14} />
+                  New AI Draft
+                </button>
+              )}
             </div>
             <div className="space-y-3">
-              {filteredCustom.map((p) => (
+              {activeAndSavedPrograms.map((p) => (
                 <div key={p.id} className="relative">
                   <ProgramCard program={p} isActive={p.id === activeProgramId} />
                   <button
@@ -122,19 +187,51 @@ export function ProgramsPage() {
         {customPrograms.length === 0 && (
           <Card
             hover
-            onClick={() => navigate('/programs/builder')}
+            onClick={() => navigate(state.user?.isGuest ? '/programs/builder' : '/programs/ai/new')}
             className="mb-5 border-2 border-dashed border-brand-200 dark:border-brand-800/40 bg-brand-50/30 dark:bg-brand-900/10"
           >
             <div className="flex items-center gap-3 py-1">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-900/30">
-                <Plus size={18} className="text-brand-500" />
+                {state.user?.isGuest ? <Plus size={18} className="text-brand-500" /> : <Sparkles size={18} className="text-brand-500" />}
               </div>
               <div>
-                <p className="font-semibold text-sm text-slate-800 dark:text-white">Build a Custom Program</p>
-                <p className="text-xs text-slate-400 mt-0.5">Create a program tailored to your needs</p>
+                <p className="font-semibold text-sm text-slate-800 dark:text-white">
+                  {state.user?.isGuest ? 'Build a Custom Program' : 'Generate an AI Program Draft'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {state.user?.isGuest ? 'Create a program tailored to your needs' : 'Review the new plan before you start it'}
+                </p>
               </div>
             </div>
           </Card>
+        )}
+
+        {archivedPrograms.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
+              Archived AI Programs
+            </h2>
+            <div className="space-y-3">
+              {archivedPrograms.map((p) => (
+                <div key={p.id} className="relative">
+                  <ProgramCard program={p} isActive={p.id === activeProgramId} />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                    className={[
+                      'absolute top-3 right-10 flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors',
+                      deleteConfirm === p.id
+                        ? 'bg-red-500 text-white'
+                        : 'text-slate-400 hover:text-red-500',
+                    ].join(' ')}
+                    title={deleteConfirm === p.id ? 'Tap again to confirm delete' : 'Delete program'}
+                  >
+                    <Trash2 size={12} />
+                    {deleteConfirm === p.id && <span>Delete?</span>}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Built-in programs */}

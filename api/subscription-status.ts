@@ -16,7 +16,8 @@ const supabaseAdmin =
 
 const FREE_ASK_LIMIT = 5;
 const FREE_PROGRAM_LIMIT = 1;
-const PREMIUM_LIMIT = 999;
+const PREMIUM_PROGRAM_LIMIT = 5;
+const PREMIUM_ASK_LIMIT = 999;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
@@ -41,8 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const today = new Date().toISOString().split('T')[0];
+    const monthStart = `${today.slice(0, 8)}01`;
 
-    const [{ data: sub }, { data: usage }, { data: profile }] = await Promise.all([
+    const [{ data: sub }, { data: askUsage }, { data: monthProgramUsage }, { data: profile }] = await Promise.all([
       supabaseAdmin
         .from('subscriptions')
         .select('status, current_period_end, cancel_at_period_end')
@@ -51,10 +53,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle(),
       supabaseAdmin
         .from('user_ai_usage')
-        .select('ask_count, program_gen_count')
+        .select('ask_count')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle(),
+      supabaseAdmin
+        .from('user_ai_usage')
+        .select('date, program_gen_count')
+        .eq('user_id', user.id)
+        .gte('date', monthStart)
+        .lte('date', today),
       supabaseAdmin
         .from('profiles')
         .select('stripe_customer_id')
@@ -115,15 +123,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const isPremium = !!activeSub;
+    const monthProgramCount = (monthProgramUsage ?? []).reduce((sum, row) => sum + (row.program_gen_count ?? 0), 0);
 
     return res.status(200).json({
       tier: isPremium ? 'premium' : 'free',
       periodEnd: activeSub?.current_period_end ?? null,
       cancelAtPeriodEnd: activeSub?.cancel_at_period_end ?? false,
-      askCount: usage?.ask_count ?? 0,
-      askLimit: isPremium ? PREMIUM_LIMIT : FREE_ASK_LIMIT,
-      programGenCount: usage?.program_gen_count ?? 0,
-      programGenLimit: isPremium ? PREMIUM_LIMIT : FREE_PROGRAM_LIMIT,
+      askCount: askUsage?.ask_count ?? 0,
+      askLimit: isPremium ? PREMIUM_ASK_LIMIT : FREE_ASK_LIMIT,
+      programGenCount: monthProgramCount,
+      programGenLimit: isPremium ? PREMIUM_PROGRAM_LIMIT : FREE_PROGRAM_LIMIT,
     });
   } catch (err) {
     console.error('[/api/subscription-status]', err);

@@ -18,8 +18,8 @@ const FEATURES: { label: string; free: boolean; premium: boolean }[] = [
   { label: 'Community & challenges', free: true, premium: true },
   { label: 'AI Q&A (5 questions/day)', free: true, premium: false },
   { label: 'AI Q&A (unlimited)', free: false, premium: true },
-  { label: 'AI program generation (1/day)', free: true, premium: false },
-  { label: 'AI program generation (unlimited)', free: false, premium: true },
+  { label: 'AI program generation drafts (1/month)', free: true, premium: false },
+  { label: 'AI program generation drafts (5/month)', free: false, premium: true },
   { label: 'Priority AI responses (2× detail)', free: false, premium: true },
 ];
 
@@ -251,7 +251,7 @@ export function SubscriptionPage() {
               )}
             </div>
 
-            {!effectivePremium && status && (
+            {status && (
               <div className="mt-3 flex gap-4 text-xs text-slate-500">
                 <span>
                   AI Q&A: <strong className="text-slate-700 dark:text-slate-300">
@@ -259,9 +259,9 @@ export function SubscriptionPage() {
                   </strong> today
                 </span>
                 <span>
-                  Programs: <strong className="text-slate-700 dark:text-slate-300">
+                  AI drafts: <strong className="text-slate-700 dark:text-slate-300">
                     {status.programGenCount}/{status.programGenLimit}
-                  </strong> today
+                  </strong> this month
                 </span>
               </div>
             )}

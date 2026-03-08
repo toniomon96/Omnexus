@@ -10,6 +10,7 @@ import type { UserTrainingProfile, Program } from '../types';
 import { saveCustomProgram } from '../utils/localStorage';
 import { upsertCustomProgram } from './db';
 import { apiBase } from './api';
+import { supabase } from './supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,13 @@ export interface GenerationState {
   programId: string;    // assigned at start so dashboard can optimistically reference it
   profile: UserTrainingProfile; // stored so generation can be resumed after a page reload
   startedAt: string;
+  activateOnReady: boolean;
+  countAgainstQuota: boolean;
+}
+
+interface StartGenerationOptions {
+  activateOnReady?: boolean;
+  countAgainstQuota?: boolean;
 }
 
 // ─── localStorage ─────────────────────────────────────────────────────────────
@@ -68,9 +76,16 @@ function notify(state: GenerationState) {
  * Fire-and-forget: starts program generation in the background.
  * Safe to call multiple times — a guard prevents double-runs in the same session.
  */
-export async function startGeneration(userId: string, profile: UserTrainingProfile): Promise<void> {
+export async function startGeneration(
+  userId: string,
+  profile: UserTrainingProfile,
+  options: StartGenerationOptions = {},
+): Promise<void> {
   if (_running) return;
   _running = true;
+
+  const activateOnReady = options.activateOnReady ?? true;
+  const countAgainstQuota = options.countAgainstQuota ?? false;
 
   const programId = crypto.randomUUID();
   const state: GenerationState = {
@@ -79,15 +94,23 @@ export async function startGeneration(userId: string, profile: UserTrainingProfi
     programId,
     profile,
     startedAt: new Date().toISOString(),
+    activateOnReady,
+    countAgainstQuota,
   };
   saveState(state);
   notify(state);
 
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+
     const res = await fetch(`${apiBase}/api/generate-program`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profile),
+      headers,
+      body: JSON.stringify({ ...profile, countAgainstQuota }),
     });
 
     if (!res.ok) {
@@ -101,6 +124,7 @@ export async function startGeneration(userId: string, profile: UserTrainingProfi
       id: programId,
       isCustom: true,
       isAiGenerated: true,
+      aiLifecycleStatus: 'draft',
       createdAt: new Date().toISOString(),
     };
 
@@ -135,5 +159,8 @@ export async function resumeIfNeeded(userId: string): Promise<void> {
   if (stored.status !== 'generating') return;
   if (_running) return;
 
-  await startGeneration(userId, stored.profile);
+  await startGeneration(userId, stored.profile, {
+    activateOnReady: stored.activateOnReady,
+    countAgainstQuota: stored.countAgainstQuota,
+  });
 }

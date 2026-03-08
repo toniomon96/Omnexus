@@ -838,6 +838,33 @@ export async function upsertTrainingProfile(
   if (error) throw new Error(`[upsertTrainingProfile] ${error.message}`);
 }
 
+export async function fetchTrainingProfile(
+  userId: string,
+): Promise<UserTrainingProfile | null> {
+  const { data, error } = await supabase
+    .from('training_profiles')
+    .select('raw_profile, goals, training_age_years, days_per_week, session_duration_minutes, equipment, injuries, ai_summary')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw new Error(`[fetchTrainingProfile] ${error.message}`);
+  if (!data) return null;
+
+  if (data.raw_profile) {
+    return data.raw_profile as UserTrainingProfile;
+  }
+
+  return {
+    goals: data.goals ?? [],
+    trainingAgeYears: data.training_age_years ?? 0,
+    daysPerWeek: data.days_per_week ?? 4,
+    sessionDurationMinutes: data.session_duration_minutes ?? 60,
+    equipment: data.equipment ?? [],
+    injuries: data.injuries ?? [],
+    aiSummary: data.ai_summary ?? '',
+  } satisfies UserTrainingProfile;
+}
+
 export async function saveAiGeneratedProgram(
   userId: string,
   program: Program,

@@ -92,6 +92,7 @@ interface GeneratedProgram {
   tags: string[];
   isCustom: boolean;
   isAiGenerated: boolean;
+  aiLifecycleStatus?: 'draft' | 'active' | 'archived';
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -425,9 +426,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!await checkRateLimit(req, res)) return;
 
+  const { countAgainstQuota = false, ...rawProfile } = req.body ?? {};
+
   // Usage gating for authenticated users
   const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ') && supabaseAdmin) {
+  let usageAuthUserId: string | null = null;
+  let usageToday = '';
+  let currentDayProgramCount = 0;
+  let monthlyProgramCount = 0;
+  let monthlyProgramLimit = 0;
+
+  if (countAgainstQuota) {
+    if (!authHeader?.startsWith('Bearer ') || !supabaseAdmin) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const token = authHeader.slice(7);
     const { data: { user } } = await supabaseAdmin.auth.getUser(token);
 
@@ -437,8 +450,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const [{ data: sub }, { data: usage }] = await Promise.all([
+    usageAuthUserId = user.id;
+    usageToday = new Date().toISOString().split('T')[0];
+    const monthStart = `${usageToday.slice(0, 8)}01`;
+
+    const [{ data: sub }, { data: monthUsage }] = await Promise.all([
       supabaseAdmin
         .from('subscriptions')
         .select('status')
@@ -447,25 +463,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle(),
       supabaseAdmin
         .from('user_ai_usage')
-        .select('program_gen_count')
+        .select('date, program_gen_count')
         .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle(),
+        .gte('date', monthStart)
+        .lte('date', usageToday),
     ]);
 
     const isPremium = !!sub;
-    if (!isPremium && (usage?.program_gen_count ?? 0) >= 1) {
-      return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
-    }
+    monthlyProgramLimit = isPremium ? 5 : 1;
+    currentDayProgramCount = (monthUsage ?? []).find((row) => row.date === usageToday)?.program_gen_count ?? 0;
+    monthlyProgramCount = (monthUsage ?? []).reduce((sum, row) => sum + (row.program_gen_count ?? 0), 0);
 
-    // Increment usage (fire-and-forget)
-    supabaseAdmin
-      .from('user_ai_usage')
-      .upsert(
-        { user_id: user.id, date: today, program_gen_count: (usage?.program_gen_count ?? 0) + 1 },
-        { onConflict: 'user_id,date' },
-      )
-      .then(() => {/* non-blocking */});
+    if (monthlyProgramCount >= monthlyProgramLimit) {
+      return res.status(403).json({ error: 'Monthly AI program limit reached', upgradeRequired: !isPremium });
+    }
   }
 
   if (!anthropic) {
@@ -473,7 +484,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'AI service is not configured' });
   }
 
-  const profile = req.body as UserTrainingProfile;
+  const profile = rawProfile as UserTrainingProfile;
   if (!profile?.goals || !Array.isArray(profile.goals)) {
     return res.status(400).json({ error: 'Valid UserTrainingProfile is required' });
   }
@@ -514,10 +525,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       program = buildFallback(profile);
     }
 
+    if (countAgainstQuota && supabaseAdmin && usageAuthUserId) {
+      await supabaseAdmin
+        .from('user_ai_usage')
+        .upsert(
+          { user_id: usageAuthUserId, date: usageToday, program_gen_count: currentDayProgramCount + 1 },
+          { onConflict: 'user_id,date' },
+        );
+    }
+
     return res.status(200).json({ program });
   } catch (err: unknown) {
     console.error('[/api/generate-program]', err);
     // Always return a usable program even on hard server errors
+    if (countAgainstQuota && supabaseAdmin && usageAuthUserId) {
+      await supabaseAdmin
+        .from('user_ai_usage')
+        .upsert(
+          { user_id: usageAuthUserId, date: usageToday, program_gen_count: currentDayProgramCount + 1 },
+          { onConflict: 'user_id,date' },
+        )
+        .catch(() => {});
+    }
     return res.status(200).json({ program: buildFallback(profile) });
   }
 }
