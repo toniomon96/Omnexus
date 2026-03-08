@@ -245,11 +245,17 @@ function GuestOrAuthGuard() {
 function AuthOnlyGuard() {
   const { session, loading } = useAuth()
   const { state, dispatch } = useApp()
+  const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     // Only hydrate when we have a session but no user yet (direct navigation)
     if (!session || loading || state.user) return
+
+    if (sessionsWithNoProfile.has(session.user.id)) {
+      navigate('/onboarding', { replace: true })
+      return
+    }
 
     async function hydrate() {
       if (!session) return
@@ -260,21 +266,26 @@ function AuthOnlyGuard() {
           .select('*')
           .eq('id', session.user.id)
           .single()
-        if (profile) {
-          dispatch({
-            type: 'SET_USER',
-            payload: {
-              id: profile.id,
-              name: profile.name,
-              goal: profile.goal,
-              experienceLevel: profile.experience_level,
-              activeProgramId: profile.active_program_id ?? undefined,
-              onboardedAt: profile.created_at,
-              theme: getTheme(),
-              avatarUrl: profile.avatar_url ?? null,
-            } satisfies User,
-          })
+        if (!profile) {
+          sessionsWithNoProfile.add(session.user.id)
+          navigate('/onboarding', { replace: true })
+          return
         }
+
+        sessionsWithNoProfile.delete(session.user.id)
+        dispatch({
+          type: 'SET_USER',
+          payload: {
+            id: profile.id,
+            name: profile.name,
+            goal: profile.goal,
+            experienceLevel: profile.experience_level,
+            activeProgramId: profile.active_program_id ?? undefined,
+            onboardedAt: profile.created_at,
+            theme: getTheme(),
+            avatarUrl: profile.avatar_url ?? null,
+          } satisfies User,
+        })
       } catch (err) {
         console.error('[AuthOnlyGuard] Profile fetch failed:', err)
       } finally {
@@ -283,7 +294,7 @@ function AuthOnlyGuard() {
     }
 
     hydrate()
-  }, [session, loading, state.user, dispatch])
+  }, [session, loading, state.user, dispatch, navigate])
 
   if (loading || syncing) return <LoadingScreen />
 

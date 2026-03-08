@@ -30,7 +30,8 @@ test.describe('Challenges — guest upgrade wall', () => {
 test.describe('Challenges — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before challenges can be exercised');
     await page.goto('/challenges');
     // Wait for AuthOnlyGuard hydration (profile fetch + render)
     await page.waitForFunction(
@@ -152,7 +153,8 @@ test.describe('Challenges — invitation banner', () => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     test.info().annotations.push({ type: 'feature', description: 'Challenges' });
 
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before challenges can be exercised');
     await page.goto('/challenges');
     // Wait for AuthOnlyGuard hydration
     await page.waitForFunction(

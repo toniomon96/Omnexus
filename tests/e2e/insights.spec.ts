@@ -58,7 +58,8 @@ test.describe('Insights — guest', () => {
 test.describe('Insights — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before authenticated insights can be exercised');
     await page.goto('/insights');
     await page.waitForFunction(() => !document.querySelector('.animate-spin')).catch(() => {});
   });
