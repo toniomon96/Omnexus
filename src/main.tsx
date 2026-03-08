@@ -4,6 +4,21 @@ import './styles/index.css'
 import { App } from './App'
 import { initStatusBar, hideSplashScreen, registerAndroidBackButton, isAndroid } from './lib/capacitor'
 
+const CHUNK_RELOAD_KEY = 'omnexus:chunk-reload';
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', () => {
+    const currentPath = window.location.pathname;
+    const lastReload = window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+    if (lastReload === currentPath) return;
+
+    window.sessionStorage.setItem(CHUNK_RELOAD_KEY, currentPath);
+    window.location.reload();
+  });
+
+  window.sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+}
+
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('Root element not found. Ensure index.html contains <div id="root"></div>.');
 

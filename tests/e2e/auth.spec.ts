@@ -1,5 +1,5 @@
 import { test, expect } from './helpers/fixtures';
-import { signIn, signOut, TEST_USER } from './helpers/auth';
+import { signIn, signOut } from './helpers/auth';
 
 /** True when real test credentials have been configured (not placeholder values). */
 const hasRealCredentials =
