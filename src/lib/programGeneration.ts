@@ -105,7 +105,10 @@ export async function startGeneration(userId: string, profile: UserTrainingProfi
     };
 
     saveCustomProgram(program);
-    upsertCustomProgram(program, userId).catch(() => { /* synced on next login */ });
+    // Await the Supabase write before marking 'ready' — this prevents a race where
+    // GuestOrAuthGuard hydration runs setCustomPrograms([]) between the local save
+    // and the Supabase write, causing "No program found" when the user clicks "View".
+    await upsertCustomProgram(program, userId).catch(() => { /* synced on next login */ });
 
     const ready: GenerationState = { ...state, status: 'ready' };
     saveState(ready);

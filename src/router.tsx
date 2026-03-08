@@ -3,14 +3,14 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useApp } from './store/AppContext'
 import { supabase } from './lib/supabase'
-import { setUser, setCustomPrograms, getGuestProfile, getTheme } from './utils/localStorage'
+import { setUser, setCustomPrograms, getCustomPrograms, getGuestProfile, getTheme } from './utils/localStorage'
 import * as db from './lib/db'
 import { runMigrationIfNeeded } from './lib/dataMigration'
 import type { User } from './types'
 import { CookieConsent } from './components/ui/CookieConsent'
 import { GuestBanner } from './components/ui/GuestBanner'
 import { AppTutorial, hasTutorialBeenSeen } from './components/onboarding/AppTutorial'
-import { resumeIfNeeded } from './lib/programGeneration'
+import { resumeIfNeeded, getGenerationState } from './lib/programGeneration'
 
 // Module-level set — survives component unmount/remount cycles.
 // Prevents repeated 406 profile queries for users who have a Supabase session
@@ -161,7 +161,21 @@ function GuestOrAuthGuard() {
         if (learningProgress) {
           dispatch({ type: 'SET_LEARNING_PROGRESS', payload: learningProgress })
         }
-        setCustomPrograms(customPrograms)
+        // Safety net: if generation was 'ready' but the Supabase upsert hadn't
+        // landed yet, the fetch returns [] and would wipe the locally-stored program.
+        // Preserve any locally-stored generated program that Supabase doesn't have yet.
+        const genState = getGenerationState();
+        if (genState?.userId === user.id && genState.status === 'ready') {
+          const local = getCustomPrograms();
+          const localGen = local.find(p => p.id === genState.programId);
+          if (localGen && !customPrograms.some(p => p.id === genState.programId)) {
+            setCustomPrograms([...customPrograms, localGen]);
+          } else {
+            setCustomPrograms(customPrograms);
+          }
+        } else {
+          setCustomPrograms(customPrograms);
+        }
 
         // Resume background program generation if the page was reloaded mid-generation
         resumeIfNeeded(user.id).catch(() => {})

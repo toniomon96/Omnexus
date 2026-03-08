@@ -24,6 +24,7 @@ All 11 sprints complete. **0 TypeScript errors · 115 tests passing.**
 | Sprint 11 | UX overhaul, TrainPage + CommunityPage hubs, HelpPage (FAQ + bug report), `/api/report-bug`, marketing landing page |
 | Signup + Email | Custom `/api/signup` with Resend — branded confirmation emails, server-side admin user creation |
 | Inline Workout Editing | Edit logged sets inline in history cards |
+| UX Polish + Audit | Full product UX audit (`docs/omnexus-product-audit.md`); Dashboard: generation error card + retry, ProgramContextBar, last-workout continuity bar; AskPage: sessionStorage conversation persistence; HistoryPage + InsightsPage: empty states with action CTAs; ExerciseDetailPage + WorkoutCompleteModal: contextual Ask Omnexus buttons; E2E back-nav fix; guest data migration (repairMode path) |
 
 **Live:** https://fitness-app-ten-eta.vercel.app
 
