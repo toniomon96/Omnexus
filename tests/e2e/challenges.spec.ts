@@ -32,16 +32,17 @@ test.describe('Challenges — authenticated', () => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     await signIn(page);
     await page.goto('/challenges');
-    // Wait for the page to finish loading (spinner disappears)
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    // Wait for AuthOnlyGuard hydration (profile fetch + render)
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Challenges' });
 
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('Create Challenge button toggles the create form', async ({ page }) => {
@@ -153,11 +154,16 @@ test.describe('Challenges — invitation banner', () => {
 
     await signIn(page);
     await page.goto('/challenges');
+    // Wait for AuthOnlyGuard hydration
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
+    ).catch(() => {});
 
     // The banner is only shown when invitations exist. We just verify
     // the page renders without crashing regardless.
     await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
 
     // If banner exists, verify it has Join and Decline buttons

@@ -71,6 +71,11 @@ test.describe('Authentication', () => {
 
     await test.step('navigate to profile and sign out', async () => {
       await page.goto('/profile');
+      // Wait for GuestOrAuthGuard to finish re-hydrating after the full page reload
+      await page.waitForFunction(
+        () => !document.querySelector('.animate-spin'),
+        { timeout: 20_000 },
+      ).catch(() => {});
       await page.getByRole('button', { name: /sign out|log out/i }).click();
     });
 

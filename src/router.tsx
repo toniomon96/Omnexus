@@ -234,12 +234,48 @@ function GuestOrAuthGuard() {
 /**
  * Hard auth required — community features need a real Supabase account.
  * Guests see an upgrade prompt instead of a broken page.
+ *
+ * When a user navigates directly to a community route (e.g. bookmark or E2E
+ * test goto()), GuestOrAuthGuard never mounts, so state.user is never
+ * populated.  This guard therefore runs its own lightweight profile fetch
+ * so the page renders instead of showing a permanent loading screen.
  */
 function AuthOnlyGuard() {
   const { session, loading } = useAuth()
-  const { state } = useApp()
+  const { state, dispatch } = useApp()
+  const [syncing, setSyncing] = useState(false)
 
-  if (loading) return <LoadingScreen />
+  useEffect(() => {
+    // Only hydrate when we have a session but no user yet (direct navigation)
+    if (!session || loading || state.user) return
+    setSyncing(true)
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data: profile }) => {
+        if (profile) {
+          dispatch({
+            type: 'SET_USER',
+            payload: {
+              id: profile.id,
+              name: profile.name,
+              goal: profile.goal,
+              experienceLevel: profile.experience_level,
+              activeProgramId: profile.active_program_id ?? undefined,
+              onboardedAt: profile.created_at,
+              theme: getTheme(),
+              avatarUrl: profile.avatar_url ?? null,
+            } satisfies User,
+          })
+        }
+      })
+      .catch(err => console.error('[AuthOnlyGuard] Profile fetch failed:', err))
+      .finally(() => setSyncing(false))
+  }, [session, loading, state.user, dispatch])
+
+  if (loading || syncing) return <LoadingScreen />
 
   if (!session) {
     return (
