@@ -3,7 +3,7 @@ import { signIn, enterAsGuest, TEST_USER } from './helpers/auth';
 
 const hasRealCredentials =
   !!process.env.E2E_TEST_EMAIL &&
-  process.env.E2E_TEST_EMAIL !== TEST_USER.email;
+  process.env.E2E_TEST_EMAIL !== 'e2e-test@omnexus.test';
 
 // ─── Guest upgrade wall (no credentials needed) ───────────────────────────────
 

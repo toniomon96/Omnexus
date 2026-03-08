@@ -5,7 +5,7 @@ import { signIn, signOut, TEST_USER } from './helpers/auth';
 const hasRealCredentials =
   !!process.env.E2E_TEST_EMAIL &&
   process.env.E2E_TEST_EMAIL !== 'e2e-test@your-domain.com' &&
-  process.env.E2E_TEST_EMAIL !== TEST_USER.email;
+  process.env.E2E_TEST_EMAIL !== 'e2e-test@omnexus.test';
 
 test.describe('Authentication', () => {
   test('shows login page at /login', async ({ page }) => {
