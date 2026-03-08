@@ -40,10 +40,10 @@ export function ActiveWorkoutPage() {
   } | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
 
-  // Redirect if no active session
+  // Redirect if no active session and no post-completion modal to show
   useEffect(() => {
-    if (!session) navigate('/');
-  }, [session, navigate]);
+    if (!session && !completedData) navigate('/');
+  }, [session, completedData, navigate]);
 
   // Elapsed timer
   useEffect(() => {
@@ -55,7 +55,27 @@ export function ActiveWorkoutPage() {
     return () => clearInterval(id);
   }, [session]);
 
-  if (!session) return null;
+  // After workout completes: session is cleared but we still need to render the modal
+  if (!session && !completedData) return null;
+  if (!session) {
+    return (
+      <>
+        {showCelebration && completedData && completedData.prs.length > 0 && (
+          <PRCelebration
+            prs={completedData.prs}
+            onDismiss={() => setShowCelebration(false)}
+          />
+        )}
+        {completedData && !showCelebration && (
+          <WorkoutCompleteModal
+            open={!!completedData}
+            session={completedData.session}
+            prs={completedData.prs}
+          />
+        )}
+      </>
+    );
+  }
 
   const program = [...programs, ...getCustomPrograms()].find((p) => p.id === session.programId);
   const trainingDay = program?.schedule[session.trainingDayIndex];

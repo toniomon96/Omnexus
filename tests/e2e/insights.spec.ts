@@ -21,10 +21,11 @@ test.describe('Insights — guest', () => {
     await page.goto('/insights');
     // Wait for page heading before asserting content
     await page.getByRole('heading', { name: /ai-powered insights/i }).waitFor({ timeout: 5_000 }).catch(() => {});
-    // Guest with no history sees "Log some workouts first" message or the button
-    const hasButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 6_000 }).catch(() => false);
-    const hasEmpty = await page.getByText(/log some workouts first/i).isVisible({ timeout: 6_000 }).catch(() => false);
-    expect(hasButton || hasEmpty).toBe(true);
+    // Guest with no history sees empty-state copy + "Start a workout" button, or the Analyze button if history exists
+    const hasAnalyzeButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasStartButton = await page.getByRole('button', { name: /start a workout/i }).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasEmptyText = await page.getByText(/insights appear after you complete workouts/i).isVisible({ timeout: 3_000 }).catch(() => false);
+    expect(hasAnalyzeButton || hasStartButton || hasEmptyText).toBe(true);
   });
 
   test('shows quick follow-up questions', async ({ page }) => {
