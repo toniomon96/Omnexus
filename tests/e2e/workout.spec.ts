@@ -205,7 +205,7 @@ test.describe('Workout history', () => {
 
     await test.step('verify page renders (empty state or sessions)', async () => {
       await expect(
-        page.getByText(/no workouts|start your first|workout history/i)
+        page.getByText(/no workouts|start your first|workout history/i).first()
           .or(page.locator('[data-testid="session-card"]').first()),
       ).toBeVisible({ timeout: 5_000 });
     });
