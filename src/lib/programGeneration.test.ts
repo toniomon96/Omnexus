@@ -14,7 +14,7 @@ vi.stubGlobal('localStorage', lsMock);
 vi.stubGlobal('crypto', { randomUUID: vi.fn().mockReturnValue('test-program-id') });
 
 // ── Module mocks (hoisted so they run before imports) ────────────────────────
-const mockUpsertCustomProgram = vi.hoisted(() => vi.fn<[], Promise<void>>());
+const mockUpsertCustomProgram = vi.hoisted(() => vi.fn());
 vi.mock('./db', () => ({
   upsertCustomProgram: mockUpsertCustomProgram,
 }));
@@ -44,6 +44,7 @@ const mockProfile: UserTrainingProfile = {
   sessionDurationMinutes: 60,
   equipment: ['barbell', 'dumbbell'],
   injuries: [],
+  aiSummary: '',
 };
 
 const mockProgramPayload = {
