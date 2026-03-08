@@ -1,6 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import {
+  findStripeCustomerByEmail,
+  findStripeSubscription,
+  getStripeConfig,
+  getSubscriptionPeriodEnd,
+  validateStripeCustomer,
+} from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -35,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const [{ data: sub }, { data: usage }] = await Promise.all([
+    const [{ data: sub }, { data: usage }, { data: profile }] = await Promise.all([
       supabaseAdmin
         .from('subscriptions')
         .select('status, current_period_end, cancel_at_period_end')
@@ -48,14 +55,71 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle(),
+      supabaseAdmin
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .maybeSingle(),
     ]);
 
-    const isPremium = !!sub;
+    let activeSub = sub;
+
+    if (!activeSub) {
+      const stripeConfig = getStripeConfig();
+      if (stripeConfig.stripe) {
+        let customerId = profile?.stripe_customer_id ?? '';
+
+        if (customerId) {
+          const isValidCustomer = await validateStripeCustomer(stripeConfig.stripe, customerId);
+          if (!isValidCustomer) {
+            customerId = '';
+          }
+        }
+
+        if (!customerId && user.email) {
+          customerId = (await findStripeCustomerByEmail(stripeConfig.stripe, user.email, user.id)) ?? '';
+          if (customerId) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({ stripe_customer_id: customerId })
+              .eq('id', user.id);
+          }
+        }
+
+        if (customerId) {
+          const stripeSubscription = await findStripeSubscription(stripeConfig.stripe, customerId);
+          if (stripeSubscription) {
+            const reconciled = {
+              status: stripeSubscription.status,
+              current_period_end: getSubscriptionPeriodEnd(stripeSubscription),
+              cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+            };
+
+            await supabaseAdmin.from('subscriptions').upsert(
+              {
+                user_id: user.id,
+                stripe_subscription_id: stripeSubscription.id,
+                stripe_customer_id: customerId,
+                status: stripeSubscription.status,
+                current_period_end: reconciled.current_period_end,
+                cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'user_id' },
+            );
+
+            activeSub = reconciled;
+          }
+        }
+      }
+    }
+
+    const isPremium = !!activeSub;
 
     return res.status(200).json({
       tier: isPremium ? 'premium' : 'free',
-      periodEnd: sub?.current_period_end ?? null,
-      cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
+      periodEnd: activeSub?.current_period_end ?? null,
+      cancelAtPeriodEnd: activeSub?.cancel_at_period_end ?? false,
       askCount: usage?.ask_count ?? 0,
       askLimit: isPremium ? PREMIUM_LIMIT : FREE_ASK_LIMIT,
       programGenCount: usage?.program_gen_count ?? 0,

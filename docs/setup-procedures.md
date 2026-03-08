@@ -272,7 +272,7 @@ Enables the subscription paywall, usage limits, and the `/subscription` page.
    - Copy your **Secret key** (`sk_test_...` for test mode)
 4. Go to **Developers** → **Webhooks** → **Add endpoint**:
    - URL: `https://your-app.vercel.app/api/webhook-stripe`
-   - Events to listen for: `customer.subscription.created`, `customer.subscription.updated`,
+  - Events to listen for: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
      `customer.subscription.deleted`, `invoice.payment_failed`
    - Copy the **Signing secret** (`whsec_...`)
 

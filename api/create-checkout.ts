@@ -2,7 +2,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
-import { getStripeConfig } from './_stripe.js';
+import {
+  findStripeCustomerByEmail,
+  findStripeSubscription,
+  getStripeConfig,
+  getSubscriptionPeriodEnd,
+  isStripeMissingResourceError,
+  validateStripeCustomer,
+} from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -39,6 +46,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const { data: existingSubscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('stripe_subscription_id, status')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .maybeSingle();
+
+    if (existingSubscription) {
+      return res.status(409).json({ error: 'Premium is already active for this account', alreadyPremium: true });
+    }
+
     // Get or create Stripe customer
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -48,11 +66,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let customerId: string = profile?.stripe_customer_id ?? '';
 
-    if (!customerId) {
-      // BUG-05: Check for an existing Stripe customer before creating to avoid orphans.
-      const existing = await stripeConfig.stripe.customers.list({ email: user.email, limit: 1 });
-      if (existing.data.length > 0) {
-        customerId = existing.data[0].id;
+    async function persistCustomerId(nextCustomerId: string | null) {
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ stripe_customer_id: nextCustomerId })
+        .eq('id', user.id);
+      if (updateError) {
+        console.error('[/api/create-checkout] Failed to save stripe_customer_id:', updateError);
+      }
+    }
+
+    async function resolveCustomerId(forceRefresh = false): Promise<string> {
+      if (!forceRefresh && customerId) return customerId;
+
+      const existingCustomerId = await findStripeCustomerByEmail(
+        stripeConfig.stripe,
+        user.email ?? '',
+        user.id,
+      );
+
+      if (existingCustomerId) {
+        customerId = existingCustomerId;
       } else {
         const customer = await stripeConfig.stripe.customers.create({
           email: user.email,
@@ -61,28 +95,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         customerId = customer.id;
       }
 
-      // Persist the customer ID — log on failure but don't abort; the
-      // checkout.session.completed webhook will also attempt to save it.
-      const { error: updateError } = await supabaseAdmin
-        .from('profiles')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', user.id);
-      if (updateError) {
-        console.error('[/api/create-checkout] Failed to save stripe_customer_id:', updateError);
+      await persistCustomerId(customerId);
+      return customerId;
+    }
+
+    if (customerId) {
+      const isValidCustomer = await validateStripeCustomer(stripeConfig.stripe, customerId);
+      if (!isValidCustomer) {
+        await persistCustomerId(null);
+        customerId = '';
       }
     }
 
-    const session = await stripeConfig.stripe.checkout.sessions.create({
-      customer: customerId,
-      // BUG-01: client_reference_id lets the webhook find the user by ID even if
-      // stripe_customer_id hasn't been persisted to profiles yet (race condition).
-      client_reference_id: user.id,
-      line_items: [{ price: stripeConfig.priceId, quantity: 1 }],
-      mode: 'subscription',
-      success_url: `${stripeConfig.appUrl}/subscription?success=true`,
-      cancel_url: `${stripeConfig.appUrl}/subscription`,
-      allow_promotion_codes: true,
-    });
+    if (!customerId) {
+      await resolveCustomerId();
+    }
+
+    const stripeSubscription = await findStripeSubscription(stripeConfig.stripe, customerId);
+    if (stripeSubscription) {
+      await supabaseAdmin.from('subscriptions').upsert(
+        {
+          user_id: user.id,
+          stripe_subscription_id: stripeSubscription.id,
+          stripe_customer_id: customerId,
+          status: stripeSubscription.status,
+          current_period_end: getSubscriptionPeriodEnd(stripeSubscription),
+          cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      );
+
+      return res.status(409).json({ error: 'Premium is already active for this account', alreadyPremium: true });
+    }
+
+    let session;
+    try {
+      session = await stripeConfig.stripe.checkout.sessions.create({
+        customer: customerId,
+        // BUG-01: client_reference_id lets the webhook find the user by ID even if
+        // stripe_customer_id hasn't been persisted to profiles yet (race condition).
+        client_reference_id: user.id,
+        line_items: [{ price: stripeConfig.priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${stripeConfig.appUrl}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${stripeConfig.appUrl}/subscription`,
+        allow_promotion_codes: true,
+      });
+    } catch (err) {
+      const customerParam = err && typeof err === 'object' && 'param' in err
+        ? (err as { param?: string }).param
+        : undefined;
+      if (!isStripeMissingResourceError(err) || customerParam !== 'customer') {
+        throw err;
+      }
+
+      console.warn('[/api/create-checkout] Stored stripe_customer_id was stale. Recovering customer and retrying checkout session.');
+      await persistCustomerId(null);
+      customerId = '';
+      const recoveredCustomerId = await resolveCustomerId(true);
+
+      session = await stripeConfig.stripe.checkout.sessions.create({
+        customer: recoveredCustomerId,
+        client_reference_id: user.id,
+        line_items: [{ price: stripeConfig.priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${stripeConfig.appUrl}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${stripeConfig.appUrl}/subscription`,
+        allow_promotion_codes: true,
+      });
+    }
 
     return res.status(200).json({ sessionUrl: session.url });
   } catch (err) {

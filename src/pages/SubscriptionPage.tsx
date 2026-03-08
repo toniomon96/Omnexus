@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -26,12 +26,72 @@ const FEATURES: { label: string; free: boolean; premium: boolean }[] = [
 export function SubscriptionPage() {
   const [searchParams] = useSearchParams();
   const successParam = searchParams.get('success');
+  const checkoutSessionId = searchParams.get('session_id');
 
   const { session } = useAuth();
   const { status, loading, refresh } = useSubscription();
   const { toast } = useToast();
   const [upgrading, setUpgrading] = useState(false);
   const [managing, setManaging] = useState(false);
+  const [verifyingCheckout, setVerifyingCheckout] = useState(false);
+  const [checkoutVerified, setCheckoutVerified] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  const isPremium = status?.tier === 'premium';
+
+  useEffect(() => {
+    if (successParam !== 'true' || !session) return;
+    const accessToken = session.access_token;
+    if (isPremium) {
+      setCheckoutVerified(true);
+      setVerificationError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function verifyCheckout() {
+      setVerifyingCheckout(true);
+      setVerificationError(null);
+
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        try {
+          const url = checkoutSessionId
+            ? `${apiBase}/api/checkout-status?session_id=${encodeURIComponent(checkoutSessionId)}`
+            : `${apiBase}/api/subscription-status`;
+          const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const data = await res.json().catch(() => ({})) as { tier?: string; error?: string };
+
+          if (cancelled) return;
+
+          if (res.ok && data.tier === 'premium') {
+            setCheckoutVerified(true);
+            setVerificationError(null);
+            refresh();
+            setVerifyingCheckout(false);
+            return;
+          }
+        } catch {
+          if (cancelled) return;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+
+      if (!cancelled) {
+        setVerificationError('Your payment succeeded, but Premium is still being finalized. Tap below to check again.');
+        setVerifyingCheckout(false);
+      }
+    }
+
+    void verifyCheckout();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [successParam, checkoutSessionId, session, isPremium, refresh]);
 
   async function handleUpgrade() {
     if (!session) return;
@@ -46,6 +106,11 @@ export function SubscriptionPage() {
         body: JSON.stringify({}),
       });
       const data = await res.json();
+      if (res.status === 409 && data.alreadyPremium) {
+        refresh();
+        toast('Premium is already active for this account.', 'success');
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? 'Checkout failed');
       if (data.sessionUrl) window.location.href = data.sessionUrl;
     } catch (err) {
@@ -73,7 +138,15 @@ export function SubscriptionPage() {
     }
   }
 
-  const isPremium = status?.tier === 'premium';
+  function handleCheckAgain() {
+    setCheckoutVerified(false);
+    setVerificationError(null);
+    refresh();
+  }
+
+  const effectivePremium = isPremium || checkoutVerified;
+  const showVerifiedSuccess = successParam === 'true' && effectivePremium;
+  const blockUpgrade = verifyingCheckout || successParam === 'true';
 
   return (
     <AppShell>
@@ -81,7 +154,7 @@ export function SubscriptionPage() {
       <div className="px-4 pb-8 mt-2 space-y-4">
 
         {/* Success banner */}
-        {successParam === 'true' && (
+        {showVerifiedSuccess && (
           <div className="rounded-2xl bg-green-500/10 border border-green-500/30 p-4 flex items-center gap-3">
             <Star size={20} className="text-green-500 shrink-0" />
             <div>
@@ -93,6 +166,40 @@ export function SubscriptionPage() {
               </p>
             </div>
           </div>
+        )}
+
+        {/* Pending verification banner */}
+        {successParam === 'true' && !showVerifiedSuccess && verifyingCheckout && (
+          <div className="rounded-2xl bg-brand-500/10 border border-brand-500/30 p-4 flex items-center gap-3">
+            <Loader2 size={20} className="text-brand-500 shrink-0 animate-spin" />
+            <div>
+              <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
+                Finalizing your Premium upgrade
+              </p>
+              <p className="text-xs text-brand-600/70 dark:text-brand-400/70">
+                Your payment went through. We’re syncing your subscription now.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Verification error */}
+        {verificationError && !showVerifiedSuccess && (
+          <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+                  Premium activation pending
+                </p>
+                <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1">
+                  {verificationError}
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={handleCheckAgain}>
+                Check again
+              </Button>
+            </div>
+          </Card>
         )}
 
         {/* Current status */}
@@ -111,7 +218,7 @@ export function SubscriptionPage() {
                   Current Plan
                 </p>
                 <div className="flex items-center gap-2">
-                  {isPremium ? (
+                  {effectivePremium ? (
                     <>
                       <Zap size={16} className="text-brand-500" fill="currentColor" />
                       <span className="text-base font-bold text-slate-900 dark:text-white">
@@ -124,7 +231,7 @@ export function SubscriptionPage() {
                     </span>
                   )}
                 </div>
-                {isPremium && status?.periodEnd && (
+                {effectivePremium && status?.periodEnd && (
                   <p className="text-xs text-slate-400 mt-0.5">
                     {status.cancelAtPeriodEnd
                       ? `Cancels ${new Date(status.periodEnd).toLocaleDateString()}`
@@ -132,7 +239,7 @@ export function SubscriptionPage() {
                   </p>
                 )}
               </div>
-              {isPremium && (
+              {effectivePremium && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -144,7 +251,7 @@ export function SubscriptionPage() {
               )}
             </div>
 
-            {!isPremium && status && (
+            {!effectivePremium && status && (
               <div className="mt-3 flex gap-4 text-xs text-slate-500">
                 <span>
                   AI Q&A: <strong className="text-slate-700 dark:text-slate-300">
@@ -195,7 +302,7 @@ export function SubscriptionPage() {
         </Card>
 
         {/* Upgrade CTA */}
-        {!isPremium && (
+        {!effectivePremium && !blockUpgrade && (
           <Button
             fullWidth
             onClick={handleUpgrade}
@@ -215,7 +322,13 @@ export function SubscriptionPage() {
           </Button>
         )}
 
-        {isPremium && (
+        {!effectivePremium && blockUpgrade && !showVerifiedSuccess && (
+          <Button fullWidth variant="ghost" onClick={handleCheckAgain} disabled={verifyingCheckout} size="sm">
+            {verifyingCheckout ? 'Checking subscription…' : 'Check Premium status again'}
+          </Button>
+        )}
+
+        {effectivePremium && (
           <Button fullWidth variant="ghost" onClick={refresh} size="sm">
             Refresh status
           </Button>
