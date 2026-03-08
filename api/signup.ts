@@ -132,6 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'signup',
     email: email.trim().toLowerCase(),
+    password,
     options: {
       redirectTo: safeRedirectTo ?? `${process.env.VITE_SITE_URL ?? ''}/auth/callback`,
     },

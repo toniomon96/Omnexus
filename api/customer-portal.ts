@@ -1,20 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
+import { getStripeConfig } from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
     ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     : null;
-
-// BUG-06: Use APP_URL (server-side env var), not VITE_APP_URL.
-const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, ALLOWED_ORIGIN);
@@ -40,8 +33,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
-  if (!stripe) {
-    return res.status(500).json({ error: 'Payment service not configured' });
+  const stripeConfig = getStripeConfig({ requireAppUrl: true });
+  if (stripeConfig.error || !stripeConfig.stripe) {
+    console.error('[/api/customer-portal] Stripe config error:', stripeConfig.error);
+    return res.status(500).json({ error: stripeConfig.error ?? 'Payment service not configured' });
   }
 
   try {
@@ -55,9 +50,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'No subscription found' });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await stripeConfig.stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${APP_URL}/subscription`,
+      return_url: `${stripeConfig.appUrl}/subscription`,
     });
 
     return res.status(200).json({ portalUrl: session.url });
