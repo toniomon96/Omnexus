@@ -14,6 +14,65 @@ export type StripeConfigResult = {
   error?: string;
 };
 
+export function isStripeMissingResourceError(err: unknown): boolean {
+  return !!err
+    && typeof err === 'object'
+    && 'type' in err
+    && 'code' in err
+    && (err as { type?: string; code?: string }).type === 'StripeInvalidRequestError'
+    && (err as { type?: string; code?: string }).code === 'resource_missing';
+}
+
+export async function validateStripeCustomer(
+  stripe: Stripe,
+  customerId: string,
+): Promise<boolean> {
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    return !('deleted' in customer && customer.deleted);
+  } catch (err) {
+    if (isStripeMissingResourceError(err)) return false;
+    throw err;
+  }
+}
+
+export async function findStripeCustomerByEmail(
+  stripe: Stripe,
+  email: string,
+  userId?: string,
+): Promise<string | null> {
+  const existing = await stripe.customers.list({ email, limit: 10 });
+  const candidates = existing.data.filter((customer) => !('deleted' in customer && customer.deleted));
+
+  if (userId) {
+    const exact = candidates.find((customer) => customer.metadata?.userId === userId);
+    if (exact) return exact.id;
+  }
+
+  return candidates[0]?.id ?? null;
+}
+
+export function getSubscriptionPeriodEnd(subscription: Stripe.Subscription): string | null {
+  const itemPeriodEnds = subscription.items.data
+    .map((item) => item.current_period_end)
+    .filter((value): value is number => typeof value === 'number');
+
+  if (itemPeriodEnds.length === 0) return null;
+
+  return new Date(Math.max(...itemPeriodEnds) * 1000).toISOString();
+}
+
+export async function findStripeSubscription(
+  stripe: Stripe,
+  customerId: string,
+): Promise<Stripe.Subscription | null> {
+  const active = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 1 });
+  if (active.data[0]) return active.data[0];
+
+  const trialing = await stripe.subscriptions.list({ customer: customerId, status: 'trialing', limit: 1 });
+  return trialing.data[0] ?? null;
+}
+
 function isProductionDeployment(): boolean {
   return process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
 }

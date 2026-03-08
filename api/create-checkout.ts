@@ -2,7 +2,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
-import { getStripeConfig } from './_stripe.js';
+import {
+  findStripeCustomerByEmail,
+  findStripeSubscription,
+  getStripeConfig,
+  getSubscriptionPeriodEnd,
+  validateStripeCustomer,
+} from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -59,11 +65,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let customerId: string = profile?.stripe_customer_id ?? '';
 
+    if (customerId) {
+      const isValidCustomer = await validateStripeCustomer(stripeConfig.stripe, customerId);
+      if (!isValidCustomer) {
+        customerId = '';
+      }
+    }
+
     if (!customerId) {
-      // BUG-05: Check for an existing Stripe customer before creating to avoid orphans.
-      const existing = await stripeConfig.stripe.customers.list({ email: user.email, limit: 1 });
-      if (existing.data.length > 0) {
-        customerId = existing.data[0].id;
+      const existingCustomerId = await findStripeCustomerByEmail(
+        stripeConfig.stripe,
+        user.email ?? '',
+        user.id,
+      );
+
+      if (existingCustomerId) {
+        customerId = existingCustomerId;
       } else {
         const customer = await stripeConfig.stripe.customers.create({
           email: user.email,
@@ -81,6 +98,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (updateError) {
         console.error('[/api/create-checkout] Failed to save stripe_customer_id:', updateError);
       }
+    }
+
+    const stripeSubscription = await findStripeSubscription(stripeConfig.stripe, customerId);
+    if (stripeSubscription) {
+      await supabaseAdmin.from('subscriptions').upsert(
+        {
+          user_id: user.id,
+          stripe_subscription_id: stripeSubscription.id,
+          stripe_customer_id: customerId,
+          status: stripeSubscription.status,
+          current_period_end: getSubscriptionPeriodEnd(stripeSubscription),
+          cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      );
+
+      return res.status(409).json({ error: 'Premium is already active for this account', alreadyPremium: true });
     }
 
     const session = await stripeConfig.stripe.checkout.sessions.create({

@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
-import { getStripeConfig } from './_stripe.js';
+import { findStripeCustomerByEmail, getStripeConfig, validateStripeCustomer } from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -46,12 +46,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('id', user.id)
       .single();
 
-    if (!profile?.stripe_customer_id) {
+    let customerId = profile?.stripe_customer_id ?? '';
+
+    if (customerId) {
+      const isValidCustomer = await validateStripeCustomer(stripeConfig.stripe, customerId);
+      if (!isValidCustomer) {
+        customerId = '';
+      }
+    }
+
+    if (!customerId && user.email) {
+      customerId = (await findStripeCustomerByEmail(stripeConfig.stripe, user.email, user.id)) ?? '';
+      if (customerId) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ stripe_customer_id: customerId })
+          .eq('id', user.id);
+      }
+    }
+
+    if (!customerId) {
       return res.status(404).json({ error: 'No subscription found' });
     }
 
     const session = await stripeConfig.stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: customerId,
       return_url: `${stripeConfig.appUrl}/subscription`,
     });
 
