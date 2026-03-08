@@ -48,14 +48,22 @@ test.describe('Authentication', () => {
     );
   });
 
-  test('signs in and lands on dashboard', async ({ page }) => {
+  test('signs in and lands in the app', async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     test.info().annotations.push({ type: 'feature', description: 'Auth' });
     test.info().annotations.push({ type: 'severity', description: 'critical' });
 
-    await test.step('sign in with valid credentials', () => signIn(page));
+    const destination = await test.step('sign in with valid credentials', () => signIn(page));
 
-    await test.step('verify dashboard is shown', async () => {
+    await test.step('verify the post-login destination is shown', async () => {
+      if (destination === 'onboarding') {
+        await expect(page).toHaveURL(/\/onboarding$/);
+        await expect(page.getByRole('heading', { name: /what's your name\?/i })).toBeVisible({
+          timeout: 10_000,
+        });
+        return;
+      }
+
       await expect(page).toHaveURL('/');
       await expect(
         page.getByText(/good (morning|afternoon|evening)|today's workout|your program/i),
@@ -67,7 +75,9 @@ test.describe('Authentication', () => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     test.info().annotations.push({ type: 'feature', description: 'Auth' });
 
-    await test.step('sign in', () => signIn(page));
+    const destination = await test.step('sign in', () => signIn(page));
+
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before sign-out flow can be exercised');
 
     await test.step('navigate to profile and sign out', async () => {
       await page.goto('/profile');

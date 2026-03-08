@@ -42,7 +42,8 @@ test.describe('Community — guest upgrade wall', () => {
 test.describe('Feed — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/feed');
     // Wait for AuthOnlyGuard hydration (profile fetch + render)
     await page.waitForFunction(
@@ -70,7 +71,8 @@ test.describe('Feed — authenticated', () => {
 test.describe('Friends — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/friends');
     await page.waitForFunction(
       () => !document.querySelector('.animate-spin'),
@@ -94,7 +96,8 @@ test.describe('Friends — authenticated', () => {
 test.describe('Leaderboard — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/leaderboard');
     await page.waitForFunction(
       () => !document.querySelector('.animate-spin'),
