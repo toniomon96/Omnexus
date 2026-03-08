@@ -10,7 +10,6 @@ import type { UserTrainingProfile, Program } from '../types';
 import { saveCustomProgram } from '../utils/localStorage';
 import { upsertCustomProgram } from './db';
 import { apiBase } from './api';
-import { supabase } from './supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,6 +79,23 @@ function notify(state: GenerationState) {
   _listeners.forEach(l => l(state));
 }
 
+async function getGenerationHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  try {
+    const { supabase } = await import('./supabase');
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  } catch {
+    // In tests or non-auth contexts, generation can still proceed without a token.
+  }
+
+  return headers;
+}
+
 // ─── Core generation logic ────────────────────────────────────────────────────
 
 /**
@@ -111,11 +127,9 @@ export async function startGeneration(
   notify(state);
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (session?.access_token) {
-      headers.Authorization = `Bearer ${session.access_token}`;
-    }
+    const headers = countAgainstQuota
+      ? await getGenerationHeaders()
+      : { 'Content-Type': 'application/json' };
 
     const res = await fetch(`${apiBase}/api/generate-program`, {
       method: 'POST',
