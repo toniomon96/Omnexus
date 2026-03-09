@@ -97,6 +97,15 @@ function GuestOrAuthGuard() {
   }, [location.pathname, showTutorial])
 
   useEffect(() => {
+    if (session || authLoading || state.user) return
+
+    const guest = getGuestProfile()
+    if (guest) {
+      dispatch({ type: 'SET_USER', payload: guest })
+    }
+  }, [session, authLoading, state.user, dispatch])
+
+  useEffect(() => {
     // Signed-out authenticated user — clear state
     if (!session && !authLoading && state.user && !state.user.isGuest) {
       dispatch({ type: 'CLEAR_USER' })
@@ -197,14 +206,11 @@ function GuestOrAuthGuard() {
   if (!session) {
     const guest = getGuestProfile()
     if (guest) {
-      if (!state.user) {
-        dispatch({ type: 'SET_USER', payload: guest })
-      }
       return (
         <>
           <GuestBanner />
           <div className="pt-9">
-            <Suspense fallback={<LoadingScreen />}>
+            <Suspense key={location.pathname} fallback={<LoadingScreen />}>
               <Outlet />
             </Suspense>
           </div>
@@ -217,7 +223,7 @@ function GuestOrAuthGuard() {
   if (!state.user) return <LoadingScreen />
   return (
     <>
-      <Suspense fallback={<LoadingScreen />}>
+      <Suspense key={location.pathname} fallback={<LoadingScreen />}>
         <Outlet />
       </Suspense>
       {showTutorial && location.pathname === '/' && (
@@ -239,6 +245,7 @@ function GuestOrAuthGuard() {
 function AuthOnlyGuard() {
   const { session, loading } = useAuth()
   const { state, dispatch } = useApp()
+  const location = useLocation()
   const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
 
@@ -304,7 +311,7 @@ function AuthOnlyGuard() {
 
   if (!state.user) return <LoadingScreen />
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense key={location.pathname} fallback={<LoadingScreen />}>
       <Outlet />
     </Suspense>
   )
@@ -353,29 +360,29 @@ export const router = createBrowserRouter([
         // Accessible to guests and authenticated users
         element: <GuestOrAuthGuard />,
         children: [
-          { path: '/', element: <DashboardPage /> },
-          { path: '/profile', element: <ProfilePage /> },
-          { path: '/programs', element: <ProgramsPage /> },
-          { path: '/programs/ai/new', element: <AiProgramGenerationPage /> },
-          { path: '/programs/builder', element: <ProgramBuilderPage /> },
-          { path: '/programs/:programId', element: <ProgramDetailPage /> },
-          { path: '/library', element: <ExerciseLibraryPage /> },
-          { path: '/library/:exerciseId', element: <ExerciseDetailPage /> },
-          { path: '/workout/active', element: <ActiveWorkoutPage /> },
-          { path: '/history', element: <HistoryPage /> },
-          { path: '/learn', element: <LearnPage /> },
-          { path: '/learn/:courseId', element: <CourseDetailPage /> },
-          { path: '/learn/:courseId/:moduleId', element: <LessonPage /> },
-          { path: '/insights', element: <InsightsPage /> },
-          { path: '/ask', element: <AskPage /> },
-          { path: '/nutrition', element: <NutritionPage /> },
-          { path: '/measurements', element: <MeasurementsPage /> },
-          { path: '/workout/quick', element: <QuickLogPage /> },
-          { path: '/tools/plate-calculator', element: <PlateCalculatorPage /> },
-          { path: '/briefing', element: <PreWorkoutBriefingPage /> },
-          { path: '/subscription', element: <SubscriptionPage /> },
-          { path: '/train', element: <TrainPage /> },
-          { path: '/help', element: <HelpPage /> },
+          { index: true, element: <DashboardPage /> },
+          { path: 'profile', element: <ProfilePage /> },
+          { path: 'programs', element: <ProgramsPage /> },
+          { path: 'programs/ai/new', element: <AiProgramGenerationPage /> },
+          { path: 'programs/builder', element: <ProgramBuilderPage /> },
+          { path: 'programs/:programId', element: <ProgramDetailPage /> },
+          { path: 'library', element: <ExerciseLibraryPage /> },
+          { path: 'library/:exerciseId', element: <ExerciseDetailPage /> },
+          { path: 'workout/active', element: <ActiveWorkoutPage /> },
+          { path: 'history', element: <HistoryPage /> },
+          { path: 'learn', element: <LearnPage /> },
+          { path: 'learn/:courseId', element: <CourseDetailPage /> },
+          { path: 'learn/:courseId/:moduleId', element: <LessonPage /> },
+          { path: 'insights', element: <InsightsPage /> },
+          { path: 'ask', element: <AskPage /> },
+          { path: 'nutrition', element: <NutritionPage /> },
+          { path: 'measurements', element: <MeasurementsPage /> },
+          { path: 'workout/quick', element: <QuickLogPage /> },
+          { path: 'tools/plate-calculator', element: <PlateCalculatorPage /> },
+          { path: 'briefing', element: <PreWorkoutBriefingPage /> },
+          { path: 'subscription', element: <SubscriptionPage /> },
+          { path: 'train', element: <TrainPage /> },
+          { path: 'help', element: <HelpPage /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },
@@ -385,11 +392,11 @@ export const router = createBrowserRouter([
         children: [
           // /community is the hub; /feed, /leaderboard, /challenges, /friends are sub-pages
           // All are AuthOnly so guests see a prompt to create an account
-          { path: '/community', element: <CommunityPage /> },
-          { path: '/feed', element: <ActivityFeedPage /> },
-          { path: '/friends', element: <FriendsPage /> },
-          { path: '/leaderboard', element: <LeaderboardPage /> },
-          { path: '/challenges', element: <ChallengesPage /> },
+          { path: 'community', element: <CommunityPage /> },
+          { path: 'feed', element: <ActivityFeedPage /> },
+          { path: 'friends', element: <FriendsPage /> },
+          { path: 'leaderboard', element: <LeaderboardPage /> },
+          { path: 'challenges', element: <ChallengesPage /> },
         ],
       },
     ],

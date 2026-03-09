@@ -15,28 +15,28 @@ test.describe('Bottom navigation', () => {
 
   test('Home tab navigates to /', async ({ page }) => {
     await page.goto('/learn');
-    await page.getByRole('link', { name: /^home$/i }).click();
+    await page.getByRole('button', { name: /^home$/i }).click();
     await expect(page).toHaveURL('/');
   });
 
   test('Train tab navigates to /train', async ({ page }) => {
-    await page.getByRole('link', { name: /^train$/i }).click();
+    await page.getByRole('button', { name: /^train$/i }).click();
     await expect(page).toHaveURL('/train');
   });
 
   test('Community tab navigates to /community', async ({ page }) => {
-    await page.getByRole('link', { name: /^community$/i }).click();
+    await page.getByRole('button', { name: /^community$/i }).click();
     await expect(page).toHaveURL('/community');
   });
 
   test('Learn tab navigates to /learn', async ({ page }) => {
-    await page.getByRole('link', { name: /^learn$/i }).click();
+    await page.getByRole('button', { name: /^learn$/i }).click();
     await expect(page).toHaveURL('/learn');
     await expect(page.getByPlaceholder(/search topics, exercises, lessons/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('Insights tab navigates to /insights', async ({ page }) => {
-    await page.getByRole('link', { name: /^insights$/i }).click();
+    await page.getByRole('button', { name: /^insights$/i }).click();
     await expect(page).toHaveURL('/insights');
   });
 
