@@ -3,9 +3,13 @@ import { Zap, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
-import { getAiChallenges } from '../../lib/db';
 import { generatePersonalChallenge } from '../../services/adaptService';
 import type { AiChallenge } from '../../types';
+
+async function loadAiChallenges(userId: string) {
+  const { getAiChallenges } = await import('../../lib/db');
+  return getAiChallenges(userId);
+}
 
 interface PersonalChallengeCardProps {
   userId: string;
@@ -32,7 +36,7 @@ export function PersonalChallengeCard({
     let cancelled = false;
     async function load() {
       try {
-        const all = await getAiChallenges(userId);
+        const all = await loadAiChallenges(userId);
         const personal = all.find((c) => c.type === 'personal');
         if (!cancelled) setChallenge(personal ?? null);
       } catch {
