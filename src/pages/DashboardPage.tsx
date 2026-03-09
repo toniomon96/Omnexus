@@ -112,6 +112,8 @@ export function DashboardPage() {
   const week = program ? getProgramWeekCursor(program.id) : 1;
 
   const sessionDates = state.history.sessions.map(s => s.startedAt);
+  const completedSessions = state.history.sessions.filter((s) => s.completedAt);
+  const hasCompletedSessions = completedSessions.length > 0;
   const streak = calculateStreak(sessionDates);
   const weekStart = getWeekStart();
   const completedThisWeek = state.history.sessions.filter(s => s.startedAt >= weekStart).length;
@@ -258,12 +260,20 @@ export function DashboardPage() {
 
         {/* ── No program — prompt to get started ───────────────────── */}
         {!activeSession && !program && genStatus !== 'generating' && genStatus !== 'error' && (
-          <Card className="text-center py-6">
-            <Dumbbell size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-              Set up a training program to unlock your first guided session here
+          <Card className="py-6 text-center">
+            <Dumbbell size={28} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
+              Pick your training setup
             </p>
-            <Button onClick={() => navigate('/train')}>Get Started</Button>
+            <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+              Choose a program for guided sessions, or jump into Quick Log if you want to train right now.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button onClick={() => navigate('/programs')}>Browse Programs</Button>
+              <Button variant="secondary" onClick={() => navigate('/workout/quick')}>
+                Quick Log
+              </Button>
+            </div>
           </Card>
         )}
 
@@ -308,8 +318,10 @@ export function DashboardPage() {
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">AI Insights</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {completedThisWeek > 0
-                    ? `${completedThisWeek} workout${completedThisWeek !== 1 ? 's' : ''} this week — tap for your analysis`
-                    : 'Log workouts to unlock personalized AI recommendations'}
+                    ? `${completedThisWeek} workout${completedThisWeek !== 1 ? 's' : ''} this week — check your latest analysis`
+                    : hasCompletedSessions
+                    ? 'Review your training trends and ask follow-up questions'
+                    : 'Log your first workout to unlock personalized analysis'}
                 </p>
               </div>
               <span className="text-xs font-semibold text-brand-500 shrink-0">View →</span>
@@ -318,7 +330,7 @@ export function DashboardPage() {
         </button>
 
         {/* ── Recovery score ────────────────────────────────────────── */}
-        <RecoveryScoreCard sessions={state.history.sessions} />
+        {hasCompletedSessions && <RecoveryScoreCard sessions={state.history.sessions} />}
 
         {/* ── Muscle heat map ───────────────────────────────────────── */}
         <MuscleHeatMap sessions={state.history.sessions} />

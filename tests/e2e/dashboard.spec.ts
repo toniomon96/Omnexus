@@ -67,6 +67,29 @@ test.describe('Dashboard — guest', () => {
     await enterAsGuest(page);
   });
 
+  test('no-program dashboard state routes to programs and quick log', async ({ page }) => {
+    await page.evaluate(() => {
+      const raw = localStorage.getItem('fit_user');
+      if (!raw) return;
+      const user = JSON.parse(raw);
+      user.activeProgramId = '';
+      localStorage.setItem('fit_user', JSON.stringify(user));
+      localStorage.setItem('omnexus_guest', JSON.stringify(user));
+      localStorage.removeItem('fit_active_session');
+    });
+
+    await page.goto('/');
+
+    await expect(page.getByText(/pick your training setup/i)).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole('button', { name: /browse programs/i }).click();
+    await expect(page).toHaveURL('/programs');
+
+    await page.goto('/');
+    await page.getByRole('button', { name: /quick log/i }).click();
+    await expect(page).toHaveURL('/workout/quick');
+  });
+
   test('shows greeting on dashboard', async ({ page }) => {
     await page.goto('/');
     await expect(
