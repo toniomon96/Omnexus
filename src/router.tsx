@@ -7,10 +7,11 @@ import * as db from './lib/db'
 import { runMigrationIfNeeded } from './lib/dataMigration'
 import { CookieConsent } from './components/ui/CookieConsent'
 import { GuestBanner } from './components/ui/GuestBanner'
-import { AppTutorial, hasTutorialBeenSeen } from './components/onboarding/AppTutorial'
+import { AppTutorial } from './components/onboarding/AppTutorial'
 import { resumeIfNeeded, getGenerationState } from './lib/programGeneration'
 import { RouterErrorBoundary } from './components/ui/RouterErrorBoundary'
 import { ensureProfileUser } from './lib/profileRecovery'
+import { shouldAutoShowTutorial } from './lib/tutorial'
 
 // Module-level set — survives component unmount/remount cycles.
 // Prevents repeated 406 profile queries for users who have a Supabase session
@@ -167,7 +168,7 @@ function GuestOrAuthGuard() {
         resumeIfNeeded(user.id).catch(() => {})
 
         // Show tutorial once on first login after account creation
-        if (!hasTutorialBeenSeen()) {
+        if (shouldAutoShowTutorial(user)) {
           setShowTutorial(true)
         }
 

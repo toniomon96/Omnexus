@@ -261,7 +261,7 @@ export function DashboardPage() {
           <Card className="text-center py-6">
             <Dumbbell size={28} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-              Set up a training program to see today's workout here
+              Set up a training program to unlock your first guided session here
             </p>
             <Button onClick={() => navigate('/train')}>Get Started</Button>
           </Card>

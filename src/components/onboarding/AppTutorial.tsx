@@ -1,15 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, X, Home, Dumbbell, BookOpen, Sparkles, History } from 'lucide-react';
-
-const LS_KEY = 'omnexus_tutorial_seen';
-
-export function hasTutorialBeenSeen(): boolean {
-  return localStorage.getItem(LS_KEY) === 'true';
-}
-
-export function markTutorialSeen(): void {
-  localStorage.setItem(LS_KEY, 'true');
-}
+import { markTutorialSeen } from '../../lib/tutorial';
 
 // ─── Slide definitions ────────────────────────────────────────────────────────
 
@@ -18,7 +9,7 @@ const SLIDES = [
     icon: <Home size={32} className="text-brand-400" />,
     color: 'bg-brand-500/15 border-brand-500/30',
     title: 'Your Dashboard',
-    body: "Your home base. See today's workout, your streak, AI insights, and recovery score at a glance.",
+    body: 'Your home base. Track your next session, streak, AI insights, and recovery score at a glance.',
     tab: 'Home tab',
   },
   {

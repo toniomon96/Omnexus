@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import type { ExperienceLevel, Goal, User } from '../types';
 import { apiBase } from './api';
 import { getProfileById } from './db';
+import { markTutorialSeen } from './tutorial';
 import { getGuestProfile, getTheme } from '../utils/localStorage';
 
 function fallbackName(session: Session) {
@@ -65,6 +66,9 @@ async function createFallbackProfile(session: Session) {
     const body = await response.json().catch(() => ({})) as { error?: string };
     throw new Error(body.error ?? `Profile recovery failed with status ${response.status}`);
   }
+
+  // Recovered accounts are legacy/broken-account repairs, not true first-run onboarding.
+  markTutorialSeen();
 }
 
 export async function ensureProfileUser(session: Session): Promise<User | null> {

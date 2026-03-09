@@ -263,6 +263,7 @@ export function ChallengesPage() {
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Type</label>
               <div className="relative">
                 <select
+                  aria-label="Challenge type"
                   value={form.type}
                   onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as Challenge['type'] }))}
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none pr-8"
@@ -307,7 +308,8 @@ export function ChallengesPage() {
               <button
                 type="button"
                 role="switch"
-                aria-checked={form.isCooperative}
+                aria-label="Team mode"
+                aria-checked={form.isCooperative ? 'true' : 'false'}
                 onClick={() => setForm((f) => ({ ...f, isCooperative: !f.isCooperative }))}
                 className={[
                   'relative w-10 h-5 rounded-full transition-colors shrink-0',
