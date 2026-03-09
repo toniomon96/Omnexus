@@ -312,6 +312,8 @@ export function ProfilePage() {
               type="file"
               accept="image/*"
               className="hidden"
+              aria-label="Upload profile picture"
+              title="Upload profile picture"
               onChange={handleAvatarChange}
             />
           </div>
@@ -394,13 +396,16 @@ export function ProfilePage() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label htmlFor="profile-goal" className="block text-sm font-medium text-slate-300 mb-1.5">
                 Goal
               </label>
               <div className="relative">
                 <select
+                  id="profile-goal"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value as Goal)}
+                  aria-label="Goal"
+                  title="Goal"
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
                 >
                   {(Object.keys(GOAL_LABELS) as Goal[]).map((g) => (
@@ -417,13 +422,16 @@ export function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label htmlFor="profile-experience-level" className="block text-sm font-medium text-slate-300 mb-1.5">
                 Experience Level
               </label>
               <div className="relative">
                 <select
+                  id="profile-experience-level"
                   value={level}
                   onChange={(e) => setLevel(e.target.value as ExperienceLevel)}
+                  aria-label="Experience Level"
+                  title="Experience Level"
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
                 >
                   {(Object.keys(LEVEL_LABELS) as ExperienceLevel[]).map((l) => (

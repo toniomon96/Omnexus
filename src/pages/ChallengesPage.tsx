@@ -307,9 +307,8 @@ export function ChallengesPage() {
               </div>
               <button
                 type="button"
-                role="switch"
-                aria-label="Team mode"
-                aria-checked={form.isCooperative ? 'true' : 'false'}
+                aria-label={form.isCooperative ? 'Disable team mode' : 'Enable team mode'}
+                title={form.isCooperative ? 'Disable team mode' : 'Enable team mode'}
                 onClick={() => setForm((f) => ({ ...f, isCooperative: !f.isCooperative }))}
                 className={[
                   'relative w-10 h-5 rounded-full transition-colors shrink-0',
