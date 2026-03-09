@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useApp } from './store/AppContext'
@@ -84,10 +84,17 @@ function LoadingScreen() {
 function GuestOrAuthGuard() {
   const { session, loading: authLoading } = useAuth()
   const { state, dispatch } = useApp()
+  const location = useLocation()
   const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   const hydratedRef = useRef(false)
+
+  useEffect(() => {
+    if (location.pathname !== '/' && showTutorial) {
+      setShowTutorial(false)
+    }
+  }, [location.pathname, showTutorial])
 
   useEffect(() => {
     // Signed-out authenticated user — clear state
@@ -213,7 +220,9 @@ function GuestOrAuthGuard() {
       <Suspense fallback={<LoadingScreen />}>
         <Outlet />
       </Suspense>
-      {showTutorial && <AppTutorial onDismiss={() => setShowTutorial(false)} />}
+      {showTutorial && location.pathname === '/' && (
+        <AppTutorial onDismiss={() => setShowTutorial(false)} />
+      )}
     </>
   )
 }
