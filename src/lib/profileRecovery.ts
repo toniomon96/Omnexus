@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import type { ExperienceLevel, Goal, User } from '../types';
 import { apiBase } from './api';
-import { getProfileById } from './db';
+import { getProfileById } from './dbHydration';
 import { markTutorialSeen } from './tutorial';
 import { getGuestProfile, getTheme } from '../utils/localStorage';
 

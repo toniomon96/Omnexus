@@ -8,7 +8,7 @@
 
 import type { UserTrainingProfile, Program } from '../types';
 import { saveCustomProgram } from '../utils/localStorage';
-import { upsertCustomProgram } from './db';
+import { upsertCustomProgram } from './dbHydration';
 import { apiBase } from './api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

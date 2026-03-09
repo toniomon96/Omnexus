@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useApp } from './store/AppContext'
 import { setUser, setCustomPrograms, getCustomPrograms, getGuestProfile } from './utils/localStorage'
-import * as db from './lib/db'
+import { fetchCustomPrograms, fetchHistory, fetchLearningProgress } from './lib/dbHydration'
 import { runMigrationIfNeeded } from './lib/dataMigration'
 import { CookieConsent } from './components/ui/CookieConsent'
 import { GuestBanner } from './components/ui/GuestBanner'
@@ -146,9 +146,9 @@ function GuestOrAuthGuard() {
         await runMigrationIfNeeded(user.id)
 
         const [history, learningProgress, customPrograms] = await Promise.all([
-          db.fetchHistory(user.id),
-          db.fetchLearningProgress(user.id),
-          db.fetchCustomPrograms(user.id),
+          fetchHistory(user.id),
+          fetchLearningProgress(user.id),
+          fetchCustomPrograms(user.id),
         ])
 
         dispatch({ type: 'SET_HISTORY', payload: history })
