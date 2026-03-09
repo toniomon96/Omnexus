@@ -1,6 +1,13 @@
 import { test, expect } from './helpers/fixtures';
 import { enterAsGuest } from './helpers/auth';
 
+async function clickTopBarBackAndWait(page: Parameters<typeof test>[0]['page'], destination: string) {
+  await Promise.all([
+    page.waitForURL(destination),
+    page.locator('[data-testid="topbar-back"]').click(),
+  ]);
+}
+
 test.describe('Bottom navigation', () => {
   test.beforeEach(async ({ page }) => {
     await enterAsGuest(page);
@@ -48,7 +55,7 @@ test.describe('TopBar back button', () => {
     await page.goto('/programs');
     await page.locator('[data-testid="program-card"]').first().click();
     await page.waitForURL(/\/programs\/.+/);
-    await page.getByRole('button', { name: /back/i }).click();
+    await clickTopBarBackAndWait(page, '/programs');
     await expect(page).toHaveURL('/programs');
   });
 
@@ -56,7 +63,7 @@ test.describe('TopBar back button', () => {
     await page.goto('/library');
     await page.locator('[data-testid="exercise-card"]').first().click();
     await page.waitForURL(/\/library\/.+/);
-    await page.getByRole('button', { name: /back/i }).click();
+    await clickTopBarBackAndWait(page, '/library');
     await expect(page).toHaveURL('/library');
   });
 });
