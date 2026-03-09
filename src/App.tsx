@@ -1,5 +1,5 @@
 import { AppProvider } from './store/AppContext'
-import { RouterProvider } from 'react-router/dom'
+import { RouterProvider } from 'react-router-dom'
 import { router } from './router'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { AuthProvider } from './contexts/AuthContext'
