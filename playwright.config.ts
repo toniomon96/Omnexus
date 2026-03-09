@@ -4,10 +4,6 @@ const LOCAL_URL = 'http://localhost:4173';
 
 /** Return the env URL only when it looks like a valid http(s) origin. */
 function resolvedBaseURL(): string {
-  if (process.env.CI && process.env.ALLOW_REMOTE_E2E_BASE_URL !== 'true') {
-    return LOCAL_URL;
-  }
-
   const raw = process.env.E2E_BASE_URL?.trim();
   if (raw) {
     try {
@@ -70,7 +66,8 @@ export default defineConfig({
   // This avoids issues with vercel dev's rewrite rules intercepting Vite's
   // internal module routes (/@vite/client, /@react-refresh, etc.).
   // `npm run test:e2e` builds the app first, then this server serves dist/.
-  // Remote deployments are opt-in via ALLOW_REMOTE_E2E_BASE_URL=true.
+  // If E2E_BASE_URL points to a remote deployment (CI Vercel preview), no
+  // local server is started.
   webServer: isRemote ? undefined : {
     command: 'npx vite preview',
     url: LOCAL_URL,
