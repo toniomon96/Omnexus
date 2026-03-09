@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import { supabase } from '../lib/supabase';
-import {
-  getChallenges,
-  joinChallenge,
-  createChallenge,
-  getAiChallenges,
-  getFriendships,
-  getPendingInvitations,
-  respondChallengeInvitation,
-} from '../lib/db';
 import type { Challenge, AiChallenge, FriendshipWithProfile, ChallengeInvitation } from '../types';
 import { PersonalChallengeCard } from '../components/challenges/PersonalChallengeCard';
 import { AppShell } from '../components/layout/AppShell';
@@ -40,6 +30,62 @@ const nextMonth = () => {
   return d.toISOString().split('T')[0];
 };
 
+async function loadChallengesData(userId: string) {
+  const {
+    getChallenges,
+    getAiChallenges,
+    getFriendships,
+    getPendingInvitations,
+  } = await import('../lib/db');
+
+  return Promise.all([
+    getChallenges(userId),
+    userId ? getAiChallenges(userId) : Promise.resolve([]),
+    userId ? getFriendships(userId) : Promise.resolve([]),
+    userId ? getPendingInvitations(userId) : Promise.resolve([]),
+  ]);
+}
+
+async function joinChallengeInDb(id: string, userId: string) {
+  const { joinChallenge } = await import('../lib/db');
+  return joinChallenge(id, userId);
+}
+
+async function createChallengeInDb(challenge: {
+  name: string;
+  description?: string;
+  type: Challenge['type'];
+  targetValue?: number;
+  startDate: string;
+  endDate: string;
+  isCooperative: boolean;
+}, userId: string) {
+  const { createChallenge } = await import('../lib/db');
+  return createChallenge(challenge, userId);
+}
+
+async function respondToChallengeInvitation(invitationId: string, status: 'accepted' | 'declined') {
+  const { respondChallengeInvitation } = await import('../lib/db');
+  return respondChallengeInvitation(invitationId, status);
+}
+
+async function createChallengesRealtimeChannel(userId: string, onRefresh: () => void) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase
+    .channel('challenges_rt')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'challenge_participants' },
+      () => { onRefresh(); },
+    )
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'challenge_invitations', filter: `to_user_id=eq.${userId}` },
+      () => { onRefresh(); },
+    )
+    .subscribe();
+}
+
 export function ChallengesPage() {
   const { state } = useApp();
   const { toast } = useToast();
@@ -62,15 +108,10 @@ export function ChallengesPage() {
     endDate: nextMonth(),
     isCooperative: false,
   });
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<{ unsubscribe: () => Promise<unknown> | void } | null>(null);
 
   const load = useCallback(async () => {
-    const [data, aiData, friendships, invitations] = await Promise.all([
-      getChallenges(userId),
-      userId ? getAiChallenges(userId) : Promise.resolve([]),
-      userId ? getFriendships(userId) : Promise.resolve([]),
-      userId ? getPendingInvitations(userId) : Promise.resolve([]),
-    ]);
+    const [data, aiData, friendships, invitations] = await loadChallengesData(userId);
     setChallenges(data);
     setAcceptedFriends(friendships.filter((f) => f.status === 'accepted'));
     setPendingInvitations(invitations);
@@ -83,29 +124,21 @@ export function ChallengesPage() {
   }, [userId]);
 
   useEffect(() => {
-    load();
+    void load();
 
-    channelRef.current = supabase
-      .channel('challenges_rt')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'challenge_participants' },
-        () => { load(); },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'challenge_invitations', filter: `to_user_id=eq.${userId}` },
-        () => { load(); },
-      )
-      .subscribe();
+    void createChallengesRealtimeChannel(userId, () => {
+      void load();
+    }).then((channel) => {
+      channelRef.current = channel;
+    });
 
     return () => {
-      channelRef.current?.unsubscribe();
+      void channelRef.current?.unsubscribe();
     };
   }, [load, userId]);
 
   async function handleJoin(id: string) {
-    await joinChallenge(id, userId);
+    await joinChallengeInDb(id, userId);
     const c = challenges.find((ch) => ch.id === id);
     if (c) {
       trackChallengeJoined({ challengeId: id, challengeType: c.type, isCooperative: c.isCooperative, isViaInvitation: false });
@@ -121,7 +154,7 @@ export function ChallengesPage() {
     if (!form.name.trim()) return;
     setCreating(true);
     try {
-      await createChallenge(
+      await createChallengeInDb(
         {
           name: form.name.trim(),
           description: form.description.trim() || undefined,
@@ -144,8 +177,8 @@ export function ChallengesPage() {
 
   async function handleAcceptInvitation(invitationId: string, challengeId: string) {
     try {
-      await respondChallengeInvitation(invitationId, 'accepted');
-      await joinChallenge(challengeId, userId);
+      await respondToChallengeInvitation(invitationId, 'accepted');
+      await joinChallengeInDb(challengeId, userId);
       trackInvitationResponded({ response: 'accepted' });
       const c = challenges.find((ch) => ch.id === challengeId);
       if (c) trackChallengeJoined({ challengeId, challengeType: c.type, isCooperative: c.isCooperative, isViaInvitation: true });
@@ -159,7 +192,7 @@ export function ChallengesPage() {
 
   async function handleDeclineInvitation(invitationId: string) {
     try {
-      await respondChallengeInvitation(invitationId, 'declined');
+      await respondToChallengeInvitation(invitationId, 'declined');
       trackInvitationResponded({ response: 'declined' });
       setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
     } catch {
@@ -309,7 +342,7 @@ export function ChallengesPage() {
                 type="button"
                 role="switch"
                 aria-label="Team mode"
-                aria-checked={form.isCooperative}
+                aria-checked={form.isCooperative ? 'true' : 'false'}
                 onClick={() => setForm((f) => ({ ...f, isCooperative: !f.isCooperative }))}
                 className={[
                   'relative w-10 h-5 rounded-full transition-colors shrink-0',
