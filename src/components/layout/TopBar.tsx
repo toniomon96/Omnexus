@@ -21,16 +21,6 @@ export function TopBar({ title, showBack, backTo, right, showProfile }: TopBarPr
   // Show profile + theme toggle by default on non-detail pages (no back button, no custom right slot)
   const displayProfile = showProfile ?? (!showBack && !right);
 
-  function handleBackToTarget(target: string) {
-    navigate(target, { replace: true });
-
-    window.setTimeout(() => {
-      if (window.location.pathname !== target) {
-        window.location.assign(target);
-      }
-    }, 0);
-  }
-
   function handleBack() {
     navigate(-1);
   }
@@ -41,10 +31,6 @@ export function TopBar({ title, showBack, backTo, right, showProfile }: TopBarPr
         {showBack && (backTo ? (
           <a
             href={backTo}
-            onClick={(event) => {
-              event.preventDefault();
-              handleBackToTarget(backTo);
-            }}
             data-testid="topbar-back"
             className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
             aria-label="Back"
