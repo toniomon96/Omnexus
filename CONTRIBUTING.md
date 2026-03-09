@@ -20,13 +20,20 @@ vercel dev        # starts frontend + serverless functions on :3000
 
 ## Branching Strategy
 
-The `main` branch is **protected** — no direct pushes. All changes go through a PR.
+Use a promotion flow of `local -> dev -> preview -> prod`.
+
+- `dev` is the shared integration branch.
+- `main` is production only.
+- Direct pushes to `dev` and `main` should be blocked; all changes go through PRs.
+- Feature and bug work should land in `dev` first.
+- Production releases should happen through a `dev -> main` PR after preview validation.
 
 ### Branch naming
 
 | Prefix | Use for |
 |---|---|
-| `feat/` | New features |
+| `feature/` | New features |
+| `bug/` | User-facing defects or regressions |
 | `fix/` | Bug fixes |
 | `chore/` | Dependencies, config, scripts |
 | `docs/` | Documentation only |
@@ -34,7 +41,8 @@ The `main` branch is **protected** — no direct pushes. All changes go through 
 
 Examples:
 ```bash
-git checkout -b feat/form-coach-mediapipe
+git checkout -b feature/form-coach-mediapipe
+git checkout -b bug/learn-tab-regression
 git checkout -b fix/offline-sync-conflict
 git checkout -b chore/bump-capacitor-v9
 git checkout -b docs/update-roadmap
@@ -53,20 +61,32 @@ test: add E2E spec for nutrition quick log
 
 ### PR workflow
 
-1. Create your branch from `main`
+1. Create your branch from `dev` for normal feature or bug work
 2. Make your changes; commit often with descriptive messages
-3. Run all checks locally (see below) — CI will reject failures
-4. Push your branch and open a PR against `main`
-5. Address review feedback; the branch merges when CI is green + approved
+3. Run the local gate: `npm run verify:local`
+4. Open a PR into `dev`; CI runs the dev smoke gate
+5. After enough changes accumulate, open a `dev -> main` release PR
+6. Review the Vercel preview deployment and require the preview release gate to pass
+7. Merge into `main` only after preview signoff and required approvals
 
 ```bash
-git push -u origin feat/your-feature
-gh pr create --base main --fill
+git checkout dev
+git pull
+git checkout -b feature/your-feature
+git push -u origin feature/your-feature
+gh pr create --base dev --fill
 ```
+
+### Release promotion
+
+1. `feature/*`, `bug/*`, `fix/*`, `chore/*`, `docs/*` branches merge into `dev`
+2. `dev` auto-deploys to the shared DEV environment
+3. A `dev -> main` PR creates the Preview release candidate and runs the full preview gate
+4. `main` deploys to Prod only after the preview PR is approved and green
 
 ### Hotfixes
 
-Branch from `main`, fix, PR back to `main` with fast-track review:
+Branch from `main`, fix, PR back to `main` with fast-track review, then back-merge into `dev`:
 ```bash
 git checkout -b hotfix/fix-broken-api main
 # ... fix ...
@@ -78,15 +98,25 @@ gh pr create --base main --label hotfix
 
 ## Making Changes
 
-1. Create a branch: `git checkout -b feat/your-feature`
+1. Create a branch: `git checkout -b feature/your-feature`
 2. Make your changes
 3. Run the checks:
    ```bash
-   npx tsc --noEmit    # TypeScript — must pass with 0 errors
-   npx eslint src      # ESLint — must pass with 0 warnings
-   npm test            # Vitest — all 115 tests must pass
+   npm run verify:local      # Local gate before opening any PR
+   npm run verify:dev        # Expected for PRs targeting dev
+   npm run verify:preview    # Expected for release PRs targeting main
    ```
-4. Open a pull request against `main`
+4. Open a pull request against `dev` unless you are promoting a release or shipping a hotfix
+
+### Required platform settings
+
+- Protect `dev` and `main` in GitHub
+- Require PRs before merging
+- Require the `Quality Gate` and `Dev Smoke Gate` checks on `dev`
+- Require the `Quality Gate` and `Preview Release Gate` checks on `main`
+- Restrict production deployments in Vercel to the `main` branch
+- Assign the `dev` branch to a dedicated DEV domain in Vercel
+- Review every Preview deployment before merging to `main`
 
 ---
 

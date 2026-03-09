@@ -221,6 +221,17 @@ fitness-app/
 vercel deploy --prod
 ```
 
+## Environments
+
+Omnexus should move through `local -> dev -> preview -> prod`.
+
+- Local: run `vercel dev` and `npm run verify:local` while building on a feature or bug branch.
+- Dev: merge feature and bug branches into `dev`; CI runs `npm run verify:dev` and Vercel should publish the shared DEV environment.
+- Preview: open a `dev -> main` PR; Vercel preview plus `npm run verify:preview` become the release candidate gate.
+- Prod: merge to `main` only after preview validation and approvals; Vercel production should only track `main`.
+
+See `docs/RELEASE_STRATEGY.md` for the full branching, CI, Vercel, and release checklist.
+
 ### Required Vercel environment variables
 
 | Variable | Used by |
@@ -258,6 +269,7 @@ In Supabase Dashboard → Authentication → URL Configuration:
 
 | Doc | Description |
 |---|---|
+| `docs/RELEASE_STRATEGY.md` | Branching, VCS, testing, and environment promotion strategy |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, data models, Supabase schema |
 | [docs/API.md](docs/API.md) | All serverless endpoint reference |
 | [docs/MOBILE.md](docs/MOBILE.md) | Capacitor iOS + Android build guide |
