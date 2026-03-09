@@ -83,7 +83,7 @@ export function PreWorkoutBriefingPage() {
       return;
     }
     startWorkout(program, nextWorkout.dayIndex);
-    navigate('/workout/active');
+    window.location.assign('/workout/active');
   }
 
   return (

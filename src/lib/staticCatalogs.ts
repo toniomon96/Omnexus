@@ -6,6 +6,13 @@ export interface NextLessonSummary {
   lesson: { id: string; title: string; estimatedMinutes: number };
 }
 
+export interface ExerciseSummary {
+  id: string;
+  name: string;
+  primaryMuscles: Exercise['primaryMuscles'];
+  secondaryMuscles: Exercise['secondaryMuscles'];
+}
+
 let exercisesPromise: Promise<Exercise[]> | null = null;
 let coursesPromise: Promise<Course[]> | null = null;
 
@@ -37,6 +44,27 @@ export async function getExerciseNameMap(ids: string[]): Promise<Record<string, 
   });
 
   return names;
+}
+
+export async function getExerciseSummaryMap(ids: string[]): Promise<Record<string, ExerciseSummary>> {
+  if (ids.length === 0) return {};
+
+  const exercises = await loadExercises();
+  const wanted = new Set(ids);
+  const summaries: Record<string, ExerciseSummary> = {};
+
+  exercises.forEach((exercise) => {
+    if (wanted.has(exercise.id)) {
+      summaries[exercise.id] = {
+        id: exercise.id,
+        name: exercise.name,
+        primaryMuscles: exercise.primaryMuscles,
+        secondaryMuscles: exercise.secondaryMuscles,
+      };
+    }
+  });
+
+  return summaries;
 }
 
 export async function findNextLessonSummary(

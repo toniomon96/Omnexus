@@ -11,8 +11,8 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LogCard } from '../components/history/LogCard';
 import { VolumeChart } from '../components/history/VolumeChart';
 import { HeatmapCalendar } from '../components/history/HeatmapCalendar';
+import { getExerciseNameMap } from '../lib/staticCatalogs';
 import { getWeeklyVolumeByMuscle } from '../utils/volumeUtils';
-import { getExerciseById } from '../data/exercises';
 import { Clock, List, Calendar, Play } from 'lucide-react';
 
 const SessionList = memo(function SessionList({ sessions }: { sessions: WorkoutSession[] }) {
@@ -36,6 +36,31 @@ export function HistoryPage() {
     (t, s) => t + s.totalVolumeKg,
     0,
   );
+  const [prExerciseNames, setPrExerciseNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const ids = Array.from(
+      new Set(state.history.personalRecords.slice(0, 5).map((record) => record.exerciseId)),
+    );
+
+    if (ids.length === 0) {
+      setPrExerciseNames({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getExerciseNameMap(ids).then((names) => {
+      if (!cancelled) {
+        setPrExerciseNames(names);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.history.personalRecords]);
 
   return (
     <AppShell>
@@ -98,14 +123,13 @@ export function HistoryPage() {
                 </h2>
                 <div className="space-y-2">
                   {state.history.personalRecords.slice(0, 5).map((pr) => {
-                    const ex = getExerciseById(pr.exerciseId);
                     return (
                       <div
                         key={pr.exerciseId}
                         className="flex items-center justify-between text-sm"
                       >
                         <span className="text-slate-700 dark:text-slate-300 truncate">
-                          {ex?.name ?? pr.exerciseId}
+                          {prExerciseNames[pr.exerciseId] ?? pr.exerciseId}
                         </span>
                         <span className="font-bold text-yellow-600 dark:text-yellow-400 ml-2 shrink-0">
                           {pr.weight}kg × {pr.reps}
