@@ -12,9 +12,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  branch-name:
+    name: Branch Name Gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Validate PR branch name
+        shell: bash
+        run: |
+          HEAD_REF="${{ github.head_ref }}"
+          BASE_REF="${{ github.base_ref }}"
+
+          if [[ "$BASE_REF" == "dev" ]]; then
+            if [[ ! "$HEAD_REF" =~ ^(feature|bug|fix|chore|docs)/.+$ ]]; then
+              echo "PRs into dev must come from feature/*, bug/*, fix/*, chore/*, or docs/* branches."
+              exit 1
+            fi
+          fi
+
+          if [[ "$BASE_REF" == "main" ]]; then
+            if [[ ! "$HEAD_REF" =~ ^(dev|hotfix/.+)$ ]]; then
+              echo "PRs into main must come from dev or hotfix/* branches."
+              exit 1
+            fi
+          fi
+
   quality:
     name: Quality Gate
     runs-on: ubuntu-latest
+    needs: branch-name
+    if: always() && (needs.branch-name.result == 'success' || needs.branch-name.result == 'skipped')
 
     steps:
       - uses: actions/checkout@v4

@@ -42,10 +42,12 @@ git checkout -b bug/stale-bottom-nav-content
 
 The GitHub Actions workflow enforces:
 
+- `pull_request` branch naming rules before any other gate
 - `pull_request` into `dev`: `Quality Gate` and `Dev Smoke Gate`
 - `push` to `dev`: `Quality Gate` and `Dev Smoke Gate`
 - `pull_request` into `main`: `Quality Gate` and `Preview Release Gate`
 - `push` to `main`: `Quality Gate` and `Dev Smoke Gate`
+- manual `Release Verification` runs for preview or production targets
 
 Recommended GitHub branch protection:
 
