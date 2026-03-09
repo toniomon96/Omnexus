@@ -49,7 +49,7 @@ export function InsightsPage() {
     setError(null);
 
     try {
-      const request = buildInsightRequest(sessions, user);
+      const request = await buildInsightRequest(sessions, user);
       if (!request) {
         setError(
           'No completed workouts found in the last 4 weeks. Log a few sessions and come back!',
