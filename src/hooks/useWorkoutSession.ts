@@ -12,9 +12,7 @@ import {
 } from '../utils/localStorage';
 import { calculateTotalVolume, detectPersonalRecords } from '../utils/volumeUtils';
 import { advanceProgramCursor } from '../utils/programUtils';
-import { upsertSession, upsertPersonalRecords, getBlockMissions, updateMissionProgress } from '../lib/db';
 import { trackWorkoutCompleted } from '../lib/analytics';
-import { supabase } from '../lib/supabase';
 
 // ─── Block mission progress helper ────────────────────────────────────────────
 
@@ -25,6 +23,7 @@ async function updateBlockMissions(
   prs: { exerciseId: string }[],
 ): Promise<void> {
   try {
+    const { getBlockMissions, updateMissionProgress } = await import('../lib/db');
     const missions = await getBlockMissions(userId, programId);
     if (missions.length === 0) return;
 
@@ -261,22 +260,24 @@ export function useWorkoutSession() {
         const userId = state.user.id;
         const activeProgramId = state.user.activeProgramId;
 
-        Promise.all([
-          upsertSession(completed, userId),
-          upsertPersonalRecords(prs, userId),
-        ]).catch((err) => {
+        import('../lib/db').then(({ upsertSession, upsertPersonalRecords }) =>
+          Promise.all([
+            upsertSession(completed, userId),
+            upsertPersonalRecords(prs, userId),
+          ]),
+        ).catch((err) => {
           console.error('[useWorkoutSession] Supabase sync failed:', err);
           toast('Workout saved locally, but cloud sync failed. It will retry on next login.', 'error');
         });
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        import('../lib/supabase').then(({ supabase }) => supabase.auth.getSession()).then(({ data: { session } }) => {
           if (session) {
             fetch(`${apiBase}/api/notify-friends`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${session.access_token}` },
             }).catch(() => {});
           }
-        });
+        }).catch(() => {});
 
         // Update block mission progress (fire-and-forget)
         if (activeProgramId) {

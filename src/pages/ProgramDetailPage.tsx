@@ -9,14 +9,26 @@ import { DaySchedule } from '../components/programs/DaySchedule';
 import { BlockMissionsCard } from '../components/programs/BlockMissionsCard';
 import { GoalBadge, LevelBadge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import type { Program } from '../types';
 import { programs } from '../data/programs';
 import { setUser, resetProgramCursors, getCustomPrograms, setCustomPrograms } from '../utils/localStorage';
 import { generateMissions } from '../services/adaptService';
-import { supabase } from '../lib/supabase';
-import { upsertCustomProgram } from '../lib/db';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { applyAiProgramLifecycle } from '../utils/programLifecycle';
 import { Calendar, Clock, CheckCircle2, Sparkles, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
+
+async function syncCustomProgram(program: Program, userId: string) {
+  const { upsertCustomProgram } = await import('../lib/db');
+  return upsertCustomProgram(program, userId);
+}
+
+async function syncActiveProgramId(userId: string, programId: string) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase
+    .from('profiles')
+    .update({ active_program_id: programId })
+    .eq('id', userId);
+}
 
 export function ProgramDetailPage() {
   const { programId } = useParams<{ programId: string }>();
@@ -56,7 +68,7 @@ export function ProgramDetailPage() {
       .filter((candidate) => candidate.isAiGenerated)
       .forEach((candidate) => {
         if (authUser) {
-          void upsertCustomProgram(candidate, authUser.id).catch(() => {});
+          void syncCustomProgram(candidate, authUser.id).catch(() => {});
         }
       });
 
@@ -67,10 +79,7 @@ export function ProgramDetailPage() {
 
     // Sync activeProgramId to Supabase so it persists across devices/sessions
     if (authUser) {
-      supabase
-        .from('profiles')
-        .update({ active_program_id: program.id })
-        .eq('id', authUser.id)
+      syncActiveProgramId(authUser.id, program.id)
         .then(({ error }) => {
           if (error) console.warn('[ProgramDetailPage] Failed to sync activeProgramId:', error.message);
         });

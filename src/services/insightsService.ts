@@ -1,12 +1,12 @@
 import type { WorkoutSession, User } from '../types';
 import type { InsightRequest } from './claudeService';
-import { exercises as exerciseLibrary } from '../data/exercises';
+import { getExerciseNameMap } from '../lib/staticCatalogs';
 
 /** Builds a compact, plain-text workout summary for the Claude prompt. */
-export function buildInsightRequest(
+export async function buildInsightRequest(
   sessions: WorkoutSession[],
   user: User,
-): InsightRequest | null {
+): Promise<InsightRequest | null> {
   // Limit to last 28 days, most recent first, max 20 sessions
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 28);
@@ -20,10 +20,10 @@ export function buildInsightRequest(
 
   if (recent.length === 0) return null;
 
-  // Build an ID → name lookup from the static exercise library
-  const nameOf = Object.fromEntries(
-    exerciseLibrary.map((e) => [e.id, e.name]),
+  const exerciseIds = Array.from(
+    new Set(recent.flatMap((session) => session.exercises.map((exercise) => exercise.exerciseId))),
   );
+  const nameOf = await getExerciseNameMap(exerciseIds);
 
   const totalVolume = recent.reduce((sum, s) => sum + s.totalVolumeKg, 0);
   const avgVolume = Math.round(totalVolume / recent.length);

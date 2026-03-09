@@ -3,10 +3,14 @@ import { Target, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
-import { getBlockMissions } from '../../lib/db';
 import { generateMissions } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
 import type { BlockMission } from '../../types';
+
+async function loadBlockMissions(userId: string, programId: string) {
+  const { getBlockMissions } = await import('../../lib/db');
+  return getBlockMissions(userId, programId);
+}
 
 interface BlockMissionsCardProps {
   programId: string;
@@ -43,7 +47,7 @@ export function BlockMissionsCard({ programId, programName, daysPerWeek, duratio
     let cancelled = false;
     async function load() {
       try {
-        const data = await getBlockMissions(userId, programId);
+        const data = await loadBlockMissions(userId, programId);
         if (!cancelled) setMissions(data);
       } catch {
         // Non-fatal

@@ -9,12 +9,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { useProgramGeneration } from '../hooks/useProgramGeneration';
-import { fetchTrainingProfile } from '../lib/db';
 import { clearGenerationState, startGeneration } from '../lib/programGeneration';
 import { getCustomPrograms } from '../utils/localStorage';
 import type { Program, UserTrainingProfile } from '../types';
 import { Loader2, Sparkles, Calendar, Clock3, Target, Layers, AlertCircle } from 'lucide-react';
 import { programs as builtInPrograms } from '../data/programs';
+
+async function loadTrainingProfile(userId: string) {
+  const { fetchTrainingProfile } = await import('../lib/db');
+  return fetchTrainingProfile(userId);
+}
 
 function inferProfile(userGoal: Program['goal'], experienceLevel: Program['experienceLevel'], activeProgram: Program | null): UserTrainingProfile {
   return {
@@ -61,7 +65,7 @@ export function AiProgramGenerationPage() {
       setLoadingProfile(true);
       setError(null);
       try {
-        const stored = await fetchTrainingProfile(currentUser.id);
+        const stored = await loadTrainingProfile(currentUser.id);
         if (cancelled) return;
         setProfile(stored ?? inferProfile(currentUser.goal, currentUser.experienceLevel, activeProgram));
       } catch (err) {

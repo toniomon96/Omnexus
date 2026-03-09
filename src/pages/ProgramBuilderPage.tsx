@@ -8,7 +8,6 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { exercises as exerciseList } from '../data/exercises';
 import { saveCustomProgram } from '../utils/localStorage';
-import { upsertCustomProgram } from '../lib/db';
 import { useApp } from '../store/AppContext';
 import type {
   Goal,
@@ -19,6 +18,11 @@ import type {
   ProgramExercise,
 } from '../types';
 import { Plus, Trash2, ChevronDown, ChevronUp, Search, Check } from 'lucide-react';
+
+async function syncCustomProgram(program: Program, userId: string) {
+  const { upsertCustomProgram } = await import('../lib/db');
+  return upsertCustomProgram(program, userId);
+}
 
 // ─── Step 1 — Program meta ────────────────────────────────────────────────────
 
@@ -347,7 +351,7 @@ export function ProgramBuilderPage() {
     saveCustomProgram(program);
     // Sync to Supabase (fire-and-forget)
     if (state.user) {
-      upsertCustomProgram(program, state.user.id).catch((err) =>
+      syncCustomProgram(program, state.user.id).catch((err) =>
         console.error('[ProgramBuilder] Supabase sync failed:', err),
       );
     }

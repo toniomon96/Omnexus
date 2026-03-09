@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import type { TrainingDay, Program } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -13,12 +12,11 @@ interface NextWorkoutCardProps {
 }
 
 export function NextWorkoutCard({ program, day, dayIndex }: NextWorkoutCardProps) {
-  const navigate = useNavigate();
   const { startWorkout } = useWorkoutSession();
 
   function handleStart() {
     startWorkout(program, dayIndex);
-    navigate('/workout/active');
+    window.location.assign('/workout/active');
   }
 
   return (

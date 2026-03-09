@@ -27,12 +27,37 @@ import {
 } from 'lucide-react';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { useProgramGeneration } from '../hooks/useProgramGeneration';
-import { clearGenerationState, getGenerationState, startGeneration } from '../lib/programGeneration';
-import { supabase } from '../lib/supabase';
+import { clearGenerationState, getGenerationState } from '../lib/programGeneration';
 import { formatDuration } from '../utils/dateUtils';
 import { applyAiProgramLifecycle } from '../utils/programLifecycle';
 import { setCustomPrograms } from '../utils/localStorage';
-import { upsertCustomProgram } from '../lib/db';
+
+async function syncAiProgramActivation(programId: string, userId: string, nextPrograms: typeof programs) {
+  const [{ upsertCustomProgram }, { supabase }] = await Promise.all([
+    import('../lib/db'),
+    import('../lib/supabase'),
+  ]);
+
+  nextPrograms
+    .filter((program) => program.isAiGenerated)
+    .forEach((program) => {
+      void upsertCustomProgram(program, userId).catch(() => {});
+    });
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ active_program_id: programId })
+    .eq('id', userId);
+
+  if (error) {
+    console.warn('[Dashboard] Failed to sync activeProgramId:', error.message);
+  }
+}
+
+async function restartProgramGeneration(userId: string, profile: NonNullable<ReturnType<typeof getGenerationState>>['profile']) {
+  const { startGeneration } = await import('../lib/programGeneration');
+  return startGeneration(userId, profile);
+}
 
 export function DashboardPage() {
   const { state, dispatch } = useApp();
@@ -62,19 +87,7 @@ export function DashboardPage() {
     const nextPrograms = applyAiProgramLifecycle(allPrograms, generatedProgramId, user.activeProgramId)
       .filter((p) => p.isCustom);
     setCustomPrograms(nextPrograms);
-    nextPrograms
-      .filter((program) => program.isAiGenerated)
-      .forEach((program) => {
-        void upsertCustomProgram(program, user.id).catch(() => {});
-      });
-
-    supabase
-      .from('profiles')
-      .update({ active_program_id: generatedProgramId })
-      .eq('id', user.id)
-      .then(({ error }) => {
-        if (error) console.warn('[Dashboard] Failed to sync activeProgramId:', error.message);
-      });
+    void syncAiProgramActivation(generatedProgramId, user.id, nextPrograms);
 
     const t = setTimeout(() => clearGenerationState(), 8000);
     return () => clearTimeout(t);
@@ -100,7 +113,7 @@ export function DashboardPage() {
     }
 
     console.warn('[Dashboard] Ready generation state had no matching program. Restarting generation recovery.');
-    void startGeneration(user.id, stored.profile).catch((err) => {
+    void restartProgramGeneration(user.id, stored.profile).catch((err) => {
       console.error('[Dashboard] Program recovery failed:', err);
       repairedMissingProgramRef.current = false;
     });
@@ -131,7 +144,7 @@ export function DashboardPage() {
     if (!user) return;
     const stored = getGenerationState();
     if (!stored) return;
-    void startGeneration(user.id, stored.profile);
+    void restartProgramGeneration(user.id, stored.profile);
   }
 
   return (

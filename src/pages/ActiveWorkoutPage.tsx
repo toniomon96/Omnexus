@@ -12,14 +12,14 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { useRestTimer } from '../hooks/useRestTimer';
 import { programs } from '../data/programs';
-import { getCustomPrograms } from '../utils/localStorage';
+import { getActiveSession, getCustomPrograms } from '../utils/localStorage';
 import { formatDuration } from '../utils/dateUtils';
 import type { WorkoutSession, PersonalRecord } from '../types';
 import { Plus, X, StopCircle } from 'lucide-react';
 
 export function ActiveWorkoutPage() {
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const {
     session,
     updateSet,
@@ -39,25 +39,32 @@ export function ActiveWorkoutPage() {
     prs: PersonalRecord[];
   } | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const persistedSession = session ?? getActiveSession();
+
+  useEffect(() => {
+    if (!session && persistedSession && !state.activeSession) {
+      dispatch({ type: 'SET_ACTIVE_SESSION', payload: persistedSession });
+    }
+  }, [dispatch, persistedSession, session, state.activeSession]);
 
   // Redirect if no active session and no post-completion modal to show
   useEffect(() => {
-    if (!session && !completedData) navigate('/');
-  }, [session, completedData, navigate]);
+    if (!persistedSession && !completedData) navigate('/');
+  }, [persistedSession, completedData, navigate]);
 
   // Elapsed timer
   useEffect(() => {
-    if (!session) return;
-    const start = new Date(session.startedAt).getTime();
+    if (!persistedSession) return;
+    const start = new Date(persistedSession.startedAt).getTime();
     const id = setInterval(() => {
       setElapsed(Math.floor((Date.now() - start) / 1000));
     }, 1000);
     return () => clearInterval(id);
-  }, [session]);
+  }, [persistedSession]);
 
   // After workout completes: session is cleared but we still need to render the modal
-  if (!session && !completedData) return null;
-  if (!session) {
+  if (!persistedSession && !completedData) return null;
+  if (!persistedSession) {
     return (
       <>
         {showCelebration && completedData && completedData.prs.length > 0 && (
@@ -77,8 +84,8 @@ export function ActiveWorkoutPage() {
     );
   }
 
-  const program = [...programs, ...getCustomPrograms()].find((p) => p.id === session.programId);
-  const trainingDay = program?.schedule[session.trainingDayIndex];
+  const program = [...programs, ...getCustomPrograms()].find((p) => p.id === persistedSession.programId);
+  const trainingDay = program?.schedule[persistedSession.trainingDayIndex];
 
   function handleComplete() {
     const result = completeWorkout(program ?? null);
@@ -142,7 +149,7 @@ export function ActiveWorkoutPage() {
         </div>
 
         <div className="px-4 pb-32 space-y-4 mt-4">
-          {session.exercises.map((loggedEx, ei) => {
+          {persistedSession.exercises.map((loggedEx, ei) => {
             const dayEx = trainingDay?.exercises[ei];
             const restSecs = dayEx?.scheme.restSeconds ?? 90;
             const prevSets = getPrevSets(loggedEx.exerciseId, loggedEx.sets.length);

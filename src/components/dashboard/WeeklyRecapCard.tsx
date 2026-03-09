@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { WorkoutSession } from '../../types';
 import { getWeekStart } from '../../utils/dateUtils';
-import { getExerciseById } from '../../data/exercises';
+import { getExerciseNameMap } from '../../lib/staticCatalogs';
 import { generateWeeklyCard } from '../../utils/shareCard';
 import { ShareCardModal } from '../ui/ShareCardModal';
 import { TrendingUp, TrendingDown, Minus, Dumbbell, Share2 } from 'lucide-react';
@@ -21,6 +21,7 @@ function getLastWeekStart(): string {
 export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
   const { state } = useApp();
   const [showShare, setShowShare] = useState(false);
+  const [topExerciseName, setTopExerciseName] = useState<string | null>(null);
 
   const thisWeekStart = getWeekStart();
   const lastWeekStart = getLastWeekStart();
@@ -47,6 +48,27 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
     }),
   );
   const topExerciseId = Object.entries(muscleCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!topExerciseId) {
+      setTopExerciseName(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getExerciseNameMap([topExerciseId]).then((names) => {
+      if (!cancelled) {
+        setTopExerciseName(names[topExerciseId] ?? null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [topExerciseId]);
 
   if (thisWeek.length === 0 && lastWeek.length === 0) return null;
 
@@ -140,7 +162,7 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
             <p className="text-[11px] text-slate-400">
               Most sets:{' '}
               <span className="text-slate-900 dark:text-white font-medium">
-                {getExerciseById(topExerciseId)?.name ?? topExerciseId.replace(/-/g, ' ')}
+                {topExerciseName ?? topExerciseId.replace(/-/g, ' ')}
               </span>
             </p>
           </div>

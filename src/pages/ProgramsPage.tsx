@@ -9,8 +9,12 @@ import { ProgramCard } from '../components/programs/ProgramCard';
 import { Card } from '../components/ui/Card';
 import { programs as builtInPrograms } from '../data/programs';
 import { getCustomPrograms, deleteCustomProgram } from '../utils/localStorage';
-import { deleteCustomProgramDb } from '../lib/db';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
+
+async function deleteCustomProgramFromDb(id: string) {
+  const { deleteCustomProgramDb } = await import('../lib/db');
+  return deleteCustomProgramDb(id);
+}
 
 const GOAL_TABS: { value: Goal | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -57,7 +61,7 @@ export function ProgramsPage() {
     setDeleteConfirm(null);
     toast('Program deleted', 'success');
     // Sync to Supabase (fire-and-forget)
-    deleteCustomProgramDb(id).catch(() =>
+    deleteCustomProgramFromDb(id).catch(() =>
       toast('Sync failed — check connection', 'error'),
     );
   }

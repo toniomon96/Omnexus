@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import type { WorkoutSession, LoggedSet } from '../../types';
 import { programs } from '../../data/programs';
-import { getExerciseById } from '../../data/exercises';
 import { getCustomPrograms, updateSession } from '../../utils/localStorage';
 import { formatDate, formatDuration } from '../../utils/dateUtils';
 import { Card } from '../ui/Card';
 import { ChevronDown, ChevronUp, Timer, Zap, Trophy, Gauge, Pencil, Check, X } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
-import { upsertSession } from '../../lib/db';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LogCardProps {
   session: WorkoutSession;
+  exerciseNames: Record<string, string>;
 }
 
-export function LogCard({ session }: LogCardProps) {
+export function LogCard({ session, exerciseNames }: LogCardProps) {
   const { dispatch } = useApp();
   const { session: authSession } = useAuth();
   const [expanded, setExpanded] = useState(false);
@@ -85,7 +84,7 @@ export function LogCard({ session }: LogCardProps) {
     updateSession(updated);
     dispatch({ type: 'UPDATE_SESSION', payload: updated });
     if (authSession?.user?.id) {
-      upsertSession(updated, authSession.user.id).catch(() => {});
+      import('../../lib/db').then(({ upsertSession }) => upsertSession(updated, authSession.user.id)).catch(() => {});
     }
     setEditing(false);
     setDrafts({});
@@ -171,7 +170,6 @@ export function LogCard({ session }: LogCardProps) {
 
           <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
             {session.exercises.map((logEx) => {
-              const ex = getExerciseById(logEx.exerciseId);
               const completedSets = logEx.sets
                 .map((s, i) => ({ set: s, index: i }))
                 .filter(({ set }) => set.completed);
@@ -179,7 +177,7 @@ export function LogCard({ session }: LogCardProps) {
               return (
                 <div key={logEx.exerciseId} className="px-4 py-2.5">
                   <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    {ex?.name ?? logEx.exerciseId}
+                    {exerciseNames[logEx.exerciseId] ?? logEx.exerciseId}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {completedSets.map(({ set: s, index: i }) => {

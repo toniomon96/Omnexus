@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import * as db from '../lib/db';
 import type { NutritionLog, NutritionGoals, MealPlan, Meal } from '../types';
 import { calculateStreak } from '../utils/dateUtils';
 import { getMealPlan } from '../services/claudeService';
@@ -65,6 +64,36 @@ function formatDisplayDate(dateStr: string): string {
     month: 'short',
     day: 'numeric',
   });
+}
+
+async function loadNutritionData(userId: string, date: string) {
+  const db = await import('../lib/db');
+  const sevenDaysAgo = shiftDate(todayStr(), -7);
+  const sixtyDaysAgo = shiftDate(todayStr(), -60);
+
+  return Promise.all([
+    db.fetchNutritionLogs(userId, date),
+    db.fetchRecentNutritionLogs(userId, sevenDaysAgo),
+    db.fetchNutritionLogDates(userId, sixtyDaysAgo),
+  ]);
+}
+
+async function addNutritionLogToDb(log: {
+  userId: string;
+  loggedAt: string;
+  mealName?: string;
+  calories?: number;
+  proteinG?: number;
+  carbsG?: number;
+  fatG?: number;
+}) {
+  const db = await import('../lib/db');
+  return db.addNutritionLog(log);
+}
+
+async function deleteNutritionLogFromDb(id: string, userId: string) {
+  const db = await import('../lib/db');
+  return db.deleteNutritionLog(id, userId);
 }
 
 // ─── Calorie ring ─────────────────────────────────────────────────────────────
@@ -201,13 +230,7 @@ export function NutritionPage() {
     if (!user || isGuest || !session) return;
     setLoading(true);
     try {
-      const sevenDaysAgo = shiftDate(todayStr(), -7);
-      const sixtyDaysAgo = shiftDate(todayStr(), -60);
-      const [logs, recentLogs, logDates] = await Promise.all([
-        db.fetchNutritionLogs(user.id, date),
-        db.fetchRecentNutritionLogs(user.id, sevenDaysAgo),
-        db.fetchNutritionLogDates(user.id, sixtyDaysAgo),
-      ]);
+      const [logs, recentLogs, logDates] = await loadNutritionData(user.id, date);
       setEntries(logs);
 
       // Derive quick-add meals: distinct named entries with at least one macro, most recent first, cap 4
@@ -244,7 +267,7 @@ export function NutritionPage() {
   async function quickLog(meal: NutritionLog) {
     if (!user || isGuest || !session) return;
     try {
-      const log = await db.addNutritionLog({
+      const log = await addNutritionLogToDb({
         userId: user.id,
         loggedAt: date,
         mealName: meal.mealName,
@@ -272,7 +295,7 @@ export function NutritionPage() {
 
     setAdding(true);
     try {
-      const log = await db.addNutritionLog({
+      const log = await addNutritionLogToDb({
         userId: user.id,
         loggedAt: date,
         mealName: form.mealName.trim() || undefined,
@@ -297,7 +320,7 @@ export function NutritionPage() {
   async function handleDelete(id: string) {
     if (!user?.id) return;
     try {
-      await db.deleteNutritionLog(id, user.id);
+      await deleteNutritionLogFromDb(id, user.id);
       setEntries((prev) => prev.filter((e) => e.id !== id));
       toast('Entry removed', 'success');
     } catch {
@@ -328,7 +351,7 @@ export function NutritionPage() {
   async function handleLogMeal(meal: Meal) {
     if (!user || isGuest || !session) return;
     try {
-      const log = await db.addNutritionLog({
+      const log = await addNutritionLogToDb({
         userId: user.id,
         loggedAt: date,
         mealName: `${meal.mealTime}: ${meal.name}`,
