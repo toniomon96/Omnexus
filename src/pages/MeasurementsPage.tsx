@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Trash2, Plus } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import * as db from '../lib/db';
 import type { Measurement, MeasurementMetric, MeasurementUnit } from '../types';
 import {
   getMeasurements as getStoredMeasurements,
@@ -41,6 +40,27 @@ const UNIT_MAP: Record<MeasurementMetric, MeasurementUnit> = {
   thighs:      'cm',
 };
 
+async function loadMeasurementsFromDb(userId: string, metric: MeasurementMetric) {
+  const db = await import('../lib/db');
+  return db.fetchMeasurements(userId, metric);
+}
+
+async function addMeasurementToDb(measurement: {
+  userId: string;
+  metric: MeasurementMetric;
+  value: number;
+  unit: MeasurementUnit;
+  measuredAt: string;
+}) {
+  const db = await import('../lib/db');
+  return db.addMeasurement(measurement);
+}
+
+async function deleteMeasurementFromDb(id: string, userId: string) {
+  const db = await import('../lib/db');
+  return db.deleteMeasurement(id, userId);
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MeasurementsPage() {
@@ -64,7 +84,7 @@ export function MeasurementsPage() {
     try {
       const data = isGuest
         ? getStoredMeasurements(userId, selectedMetric)
-        : await db.fetchMeasurements(userId, selectedMetric);
+        : await loadMeasurementsFromDb(userId, selectedMetric);
       setEntries(data);
     } finally {
       setLoading(false);
@@ -90,7 +110,7 @@ export function MeasurementsPage() {
             unit,
             measuredAt: date,
           })
-        : await db.addMeasurement({
+        : await addMeasurementToDb({
             userId,
             metric: selectedMetric,
             value: num,
@@ -117,7 +137,7 @@ export function MeasurementsPage() {
       if (isGuest) {
         removeStoredMeasurement(id, state.user.id);
       } else {
-        await db.deleteMeasurement(id, state.user.id);
+        await deleteMeasurementFromDb(id, state.user.id);
       }
       setEntries((prev) => prev.filter((e) => e.id !== id));
       toast('Entry deleted', 'success');
