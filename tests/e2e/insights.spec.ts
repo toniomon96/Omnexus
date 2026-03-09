@@ -51,6 +51,38 @@ test.describe('Insights — guest', () => {
     await page.goto('/insights');
     await expect(page.getByText(/latest research/i)).toBeVisible({ timeout: 5_000 });
   });
+
+  test('network failures show production-safe copy', async ({ page }) => {
+    await page.evaluate(() => {
+      const now = new Date();
+      const completedAt = now.toISOString();
+      const startedAt = new Date(now.getTime() - 45 * 60 * 1000).toISOString();
+      const history = {
+        sessions: [
+          {
+            id: 'session-1',
+            programId: 'program-1',
+            trainingDayIndex: 0,
+            startedAt,
+            completedAt,
+            exercises: [],
+            totalVolumeKg: 500,
+          },
+        ],
+        personalRecords: [],
+      };
+      localStorage.setItem('fit_history', JSON.stringify(history));
+    });
+    await page.route('**/api/insights', async (route) => {
+      await route.abort('failed');
+    });
+
+    await page.goto('/insights');
+    await page.getByRole('button', { name: /analyze my training/i }).click();
+
+    await expect(page.getByText(/could not reach the insights service right now/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/vercel dev|npm run dev/i)).toHaveCount(0);
+  });
 });
 
 // ─── Authenticated ────────────────────────────────────────────────────────────

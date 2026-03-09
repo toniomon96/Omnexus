@@ -3,6 +3,8 @@ import type {
   WorkoutHistory,
   WorkoutSession,
   PersonalRecord,
+  Measurement,
+  MeasurementMetric,
   LearningProgress,
   InsightSession,
   ArticleCache,
@@ -27,6 +29,7 @@ const KEYS = {
   WORKOUT_TEMPLATES: 'omnexus_workout_templates',
   DAILY_SNIPPET_CACHE: 'omnexus_daily_snippet',
   GUEST_PROFILE: 'omnexus_guest',
+  MEASUREMENTS: 'omnexus_measurements',
 } as const;
 
 function safeRead<T>(key: string, fallback: T): T {
@@ -284,6 +287,34 @@ export function getDailySnippetCache(): { date: string; article: HealthArticle }
 
 export function setDailySnippetCache(data: { date: string; article: HealthArticle }): void {
   safeWrite(KEYS.DAILY_SNIPPET_CACHE, data);
+}
+
+// ─── Measurements ────────────────────────────────────────────────────────────
+
+export function getMeasurements(userId: string, metric?: MeasurementMetric): Measurement[] {
+  const all = safeRead<Measurement[]>(KEYS.MEASUREMENTS, []);
+  return all.filter((entry) => entry.userId === userId && (!metric || entry.metric === metric));
+}
+
+export function saveMeasurement(
+  data: Omit<Measurement, 'id' | 'createdAt'>,
+): Measurement {
+  const all = safeRead<Measurement[]>(KEYS.MEASUREMENTS, []);
+  const entry: Measurement = {
+    ...data,
+    id: `measurement_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: new Date().toISOString(),
+  };
+  safeWrite(KEYS.MEASUREMENTS, [...all, entry]);
+  return entry;
+}
+
+export function removeMeasurement(id: string, userId: string): void {
+  const all = safeRead<Measurement[]>(KEYS.MEASUREMENTS, []);
+  safeWrite(
+    KEYS.MEASUREMENTS,
+    all.filter((entry) => !(entry.id === id && entry.userId === userId)),
+  );
 }
 
 // ─── Guest Profile ────────────────────────────────────────────────────────────

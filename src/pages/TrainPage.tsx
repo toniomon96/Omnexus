@@ -35,6 +35,8 @@ export function TrainPage() {
   const program = allPrograms.find(p => p.id === user.activeProgramId) ?? null;
   const nextWorkout = program ? getNextWorkout(program) : null;
   const recentSessions = state.history.sessions.slice(0, 3);
+  const primaryDestination = nextWorkout ? '/briefing' : '/workout/quick';
+  const primaryLabel = nextWorkout ? "Today's Workout" : 'Start Workout';
 
   return (
     <AppShell>
@@ -70,10 +72,10 @@ export function TrainPage() {
             <Button
               size="lg"
               className="h-16 flex-col gap-1 text-sm font-semibold"
-              onClick={() => navigate(nextWorkout ? '/briefing' : '/workout/active')}
+              onClick={() => navigate(primaryDestination)}
             >
               <Play size={20} />
-              {nextWorkout ? "Today's Workout" : 'Start Workout'}
+              {primaryLabel}
             </Button>
             <Button
               size="lg"

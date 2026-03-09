@@ -63,7 +63,7 @@ export function InsightsPage() {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
       if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
         setError(
-          'Cannot reach the API. Make sure you are running `vercel dev` instead of `npm run dev`.',
+          'We could not reach the insights service right now. Check your connection and try again.',
         );
       } else {
         setError(msg);

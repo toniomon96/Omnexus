@@ -191,6 +191,23 @@ test.describe('Quick log workout', () => {
       await expect(page.getByText(/workout complete/i)).toBeVisible({ timeout: 3_000 });
     });
   });
+
+  test('train page routes users without a program into quick log instead of a dead end', async ({ page }) => {
+    await page.evaluate(() => {
+      const raw = localStorage.getItem('fit_user');
+      if (!raw) return;
+      const user = JSON.parse(raw);
+      user.activeProgramId = '';
+      localStorage.setItem('fit_user', JSON.stringify(user));
+      localStorage.setItem('omnexus_guest', JSON.stringify(user));
+      localStorage.removeItem('fit_active_session');
+    });
+
+    await page.goto('/train');
+    await page.getByRole('button', { name: /^start workout$/i }).click();
+    await expect(page).toHaveURL('/workout/quick');
+    await expect(page.getByRole('heading', { name: /quick log/i })).toBeVisible({ timeout: 5_000 });
+  });
 });
 
 test.describe('Workout history', () => {
