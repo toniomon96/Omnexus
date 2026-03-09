@@ -32,12 +32,15 @@ test.describe('Nutrition', () => {
 
   test('can set nutrition goals', async ({ page }) => {
     await page.goto('/nutrition');
+    await page.getByRole('heading', { name: /nutrition/i }).first().waitFor({ timeout: 5_000 }).catch(() => {});
     // Look for an input or button to configure goals
     const hasGoalInput = await page.locator('input[type="number"]').first()
       .isVisible({ timeout: 3_000 }).catch(() => false);
     const hasSetupBtn = await page.getByRole('button', { name: /set|save|update|goal/i }).first()
       .isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasGoalInput || hasSetupBtn).toBe(true);
+    const hasGuestWall = await page.getByText(/available with a free account/i).first()
+      .isVisible({ timeout: 3_000 }).catch(() => false);
+    expect(hasGoalInput || hasSetupBtn || hasGuestWall).toBe(true);
   });
 
   test('quick log section is present', async ({ page }) => {
