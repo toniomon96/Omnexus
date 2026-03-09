@@ -1,7 +1,6 @@
 // ─── Request / Response types ─────────────────────────────────────────────────
 
 import type { AdaptationResult, BlockMission, AiChallenge } from '../types';
-import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
 
 export interface AdaptRequest {
@@ -54,13 +53,19 @@ export interface PeerInsightsResponse {
   hasEnoughPeers: boolean;
 }
 
+async function getAccessToken() {
+  const { supabase } = await import('../lib/supabase');
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 // ─── Fetch helper ─────────────────────────────────────────────────────────────
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  const accessToken = await getAccessToken();
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
   }
   const res = await fetch(`${apiBase}${path}`, {
     method: 'POST',
