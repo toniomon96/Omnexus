@@ -32,7 +32,7 @@ test.describe('Bottom navigation', () => {
   test('Learn tab navigates to /learn', async ({ page }) => {
     await page.getByRole('link', { name: /^learn$/i }).click();
     await expect(page).toHaveURL('/learn');
-    await expect(page.getByRole('heading', { name: /^learn$/i })).toBeVisible();
+    await expect(page.getByPlaceholder(/search topics, exercises, lessons/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('Insights tab navigates to /insights', async ({ page }) => {

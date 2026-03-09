@@ -8,7 +8,7 @@ test.describe('Learn', () => {
 
   test('shows learn page with courses', async ({ page }) => {
     await page.goto('/learn');
-    await expect(page.getByRole('heading', { name: /^learn$/i })).toBeVisible();
+    await expect(page.getByPlaceholder(/search topics, exercises, lessons/i)).toBeVisible({ timeout: 10_000 });
     // Should show at least one course card
     await expect(page.locator('[data-testid="course-card"]').first()).toBeVisible({ timeout: 5_000 });
   });
