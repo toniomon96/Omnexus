@@ -39,16 +39,20 @@ export function TopBar({ title, showBack, backTo, right, showProfile }: TopBarPr
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-900/95 pt-safe">
       <div className="flex h-14 items-center gap-3 px-4">
         {showBack && (backTo ? (
-          <button
-            type="button"
-            onClick={() => handleBackToTarget(backTo)}
+          <a
+            href={backTo}
+            onClick={(event) => {
+              event.preventDefault();
+              handleBackToTarget(backTo);
+            }}
             data-testid="topbar-back"
             className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
             aria-label="Back"
             title="Back"
+            role="button"
           >
             <ChevronLeft size={22} />
-          </button>
+          </a>
         ) : (
           <button
             type="button"
