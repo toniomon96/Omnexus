@@ -115,7 +115,7 @@ export function ActiveWorkoutPage() {
     <>
       <AppShell hideNav>
         {/* Fixed header */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/90 pt-safe">
           <div>
             <p className="text-xs font-medium text-slate-400">
               {trainingDay?.label ?? 'Workout'}

@@ -43,6 +43,9 @@ import {
   getCustomPrograms,
   saveCustomProgram,
   deleteCustomProgram,
+  getMeasurements,
+  saveMeasurement,
+  removeMeasurement,
   getGuestProfile,
   setGuestProfile,
   clearGuestProfile,
@@ -204,6 +207,61 @@ describe('Theme storage', () => {
   it('stores and retrieves theme', () => {
     setTheme('dark');
     expect(getTheme()).toBe('dark');
+  });
+});
+
+// ── Measurements ──
+
+describe('Measurement storage', () => {
+  it('stores and filters measurements by user and metric', () => {
+    saveMeasurement({
+      userId: 'u1',
+      metric: 'weight',
+      value: 80,
+      unit: 'kg',
+      measuredAt: '2025-03-01',
+    });
+    saveMeasurement({
+      userId: 'u1',
+      metric: 'waist',
+      value: 82,
+      unit: 'cm',
+      measuredAt: '2025-03-02',
+    });
+    saveMeasurement({
+      userId: 'u2',
+      metric: 'weight',
+      value: 90,
+      unit: 'kg',
+      measuredAt: '2025-03-03',
+    });
+
+    expect(getMeasurements('u1')).toHaveLength(2);
+    expect(getMeasurements('u1', 'weight')).toHaveLength(1);
+    expect(getMeasurements('u2', 'weight')).toHaveLength(1);
+  });
+
+  it('removes only the matching measurement for the user', () => {
+    const first = saveMeasurement({
+      userId: 'u1',
+      metric: 'weight',
+      value: 80,
+      unit: 'kg',
+      measuredAt: '2025-03-01',
+    });
+    saveMeasurement({
+      userId: 'u1',
+      metric: 'weight',
+      value: 81,
+      unit: 'kg',
+      measuredAt: '2025-03-02',
+    });
+
+    removeMeasurement(first.id, 'u1');
+
+    const remaining = getMeasurements('u1', 'weight');
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].value).toBe(81);
   });
 });
 

@@ -9,7 +9,7 @@ const TABS = [
 
 export function CommunityTabs() {
   return (
-    <div className="flex overflow-x-auto scrollbar-hide border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-14 z-20">
+    <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-20 flex overflow-x-auto border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 scrollbar-hide">
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
@@ -19,7 +19,7 @@ export function CommunityTabs() {
               'flex-shrink-0 px-5 py-3 text-sm font-medium transition-colors border-b-2',
               isActive
                 ? 'text-brand-500 border-brand-500'
-                : 'text-slate-400 border-transparent hover:text-slate-600 dark:hover:text-slate-300',
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300',
             ].join(' ')
           }
         >

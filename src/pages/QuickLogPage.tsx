@@ -168,7 +168,7 @@ export function QuickLogPage() {
 
       {/* Start button */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 px-4">
+        <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4">
           <Button onClick={handleStart} className="w-full flex items-center justify-center gap-2">
             <Zap size={16} />
             Start Workout ({selectedIds.length} exercises)

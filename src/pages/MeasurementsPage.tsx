@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Trash2, Plus } from 'lucide-react';
 import { useApp } from '../store/AppContext';
-import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import * as db from '../lib/db';
 import type { Measurement, MeasurementMetric, MeasurementUnit } from '../types';
+import {
+  getMeasurements as getStoredMeasurements,
+  saveMeasurement as saveStoredMeasurement,
+  removeMeasurement as removeStoredMeasurement,
+} from '../utils/localStorage';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
@@ -42,8 +45,6 @@ const UNIT_MAP: Record<MeasurementMetric, MeasurementUnit> = {
 
 export function MeasurementsPage() {
   const { state } = useApp();
-  const { session } = useAuth();
-  const navigate = useNavigate();
 
   const { toast } = useToast();
 
@@ -54,22 +55,20 @@ export function MeasurementsPage() {
   const [date, setDate] = useState(today());
   const [saving, setSaving] = useState(false);
 
-  // Guest redirect
-  useEffect(() => {
-    if (!session && !state.user?.isGuest) return;
-    if (state.user?.isGuest) {
-      navigate('/');
-    }
-  }, [session, state.user, navigate]);
-
   const userId = state.user?.id ?? '';
+  const isGuest = !!state.user?.isGuest;
 
   const load = async () => {
     if (!userId) return;
     setLoading(true);
-    const data = await db.fetchMeasurements(userId, selectedMetric);
-    setEntries(data);
-    setLoading(false);
+    try {
+      const data = isGuest
+        ? getStoredMeasurements(userId, selectedMetric)
+        : await db.fetchMeasurements(userId, selectedMetric);
+      setEntries(data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -83,13 +82,21 @@ export function MeasurementsPage() {
     if (isNaN(num) || num <= 0 || !userId) return;
     setSaving(true);
     try {
-      const added = await db.addMeasurement({
-        userId,
-        metric: selectedMetric,
-        value: num,
-        unit,
-        measuredAt: date,
-      });
+      const added = isGuest
+        ? saveStoredMeasurement({
+            userId,
+            metric: selectedMetric,
+            value: num,
+            unit,
+            measuredAt: date,
+          })
+        : await db.addMeasurement({
+            userId,
+            metric: selectedMetric,
+            value: num,
+            unit,
+            measuredAt: date,
+          });
       if (added) {
         setEntries((prev) =>
           [...prev, added].sort((a, b) => a.measuredAt.localeCompare(b.measuredAt)),
@@ -107,7 +114,11 @@ export function MeasurementsPage() {
   async function handleDelete(id: string) {
     if (!state.user?.id) return;
     try {
-      await db.deleteMeasurement(id, state.user.id);
+      if (isGuest) {
+        removeStoredMeasurement(id, state.user.id);
+      } else {
+        await db.deleteMeasurement(id, state.user.id);
+      }
       setEntries((prev) => prev.filter((e) => e.id !== id));
       toast('Entry deleted', 'success');
     } catch {
@@ -122,6 +133,14 @@ export function MeasurementsPage() {
       <TopBar title="Body Measurements" />
       <div className="p-4 space-y-5 pb-28">
 
+        {isGuest && (
+          <Card className="border-brand-200 bg-brand-50 dark:border-brand-800 dark:bg-brand-900/20">
+            <p className="text-sm text-brand-800 dark:text-brand-200">
+              Guest entries stay on this device. Create an account later to keep cloud-synced progress.
+            </p>
+          </Card>
+        )}
+
         {/* Metric selector */}
         <div className="flex flex-wrap gap-2">
           {METRICS.map(({ key, label }) => (
@@ -132,7 +151,7 @@ export function MeasurementsPage() {
                 'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                 selectedMetric === key
                   ? 'bg-brand-500 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700',
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700',
               ].join(' ')}
             >
               {label}
@@ -142,7 +161,7 @@ export function MeasurementsPage() {
 
         {/* Add entry */}
         <Card className="p-4 space-y-3">
-          <h2 className="font-semibold text-slate-200 text-sm">Add Entry</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-200">Add Entry</h2>
           <div className="flex gap-3">
             <div className="relative flex-1">
               <Input
@@ -176,9 +195,9 @@ export function MeasurementsPage() {
 
         {/* Trend chart */}
         <Card className="p-4">
-          <h2 className="font-semibold text-slate-200 text-sm mb-3">Trend</h2>
+          <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-200">Trend</h2>
           {loading ? (
-            <div className="h-36 flex items-center justify-center text-slate-400 text-sm">Loading…</div>
+            <div className="flex h-36 items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading…</div>
           ) : (
             <MeasurementChart data={chartData} unit={unit} />
           )}
@@ -187,17 +206,17 @@ export function MeasurementsPage() {
         {/* Entry list */}
         {entries.length > 0 && (
           <Card className="p-4">
-            <h2 className="font-semibold text-slate-200 text-sm mb-3">Entries</h2>
+            <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-200">Entries</h2>
             <div className="space-y-2">
               {[...entries].reverse().map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between py-1.5 border-b border-slate-800 last:border-0">
-                  <span className="text-slate-400 text-sm">{entry.measuredAt}</span>
-                  <span className="font-semibold text-slate-200">
+                <div key={entry.id} className="flex items-center justify-between border-b border-slate-200 py-1.5 last:border-0 dark:border-slate-800">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{entry.measuredAt}</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-200">
                     {entry.value} {entry.unit}
                   </span>
                   <button
                     onClick={() => handleDelete(entry.id)}
-                    className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                    className="p-1 text-slate-500 transition-colors hover:text-red-500 dark:hover:text-red-400"
                     aria-label="Delete entry"
                   >
                     <Trash2 size={14} />
@@ -209,7 +228,7 @@ export function MeasurementsPage() {
         )}
 
         {entries.length === 0 && !loading && (
-          <p className="text-center text-slate-500 text-sm">
+          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
             No entries yet. Add your first {METRICS.find((m) => m.key === selectedMetric)?.label.toLowerCase()} measurement.
           </p>
         )}

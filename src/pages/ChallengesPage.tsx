@@ -200,7 +200,7 @@ export function ChallengesPage() {
             </div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{sharedChallenge.title}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{sharedChallenge.description}</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               Target: {sharedChallenge.target} {sharedChallenge.unit} · Ends {sharedChallenge.endDate}
             </p>
           </div>
@@ -209,7 +209,7 @@ export function ChallengesPage() {
         {/* Pending invitations banner */}
         {pendingInvitations.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <Mail size={12} />
               Invitations ({pendingInvitations.length})
             </p>
@@ -219,8 +219,8 @@ export function ChallengesPage() {
                 className="rounded-xl border border-brand-700/40 bg-brand-900/20 p-3 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{inv.challengeName}</p>
-                  <p className="text-xs text-slate-400">From {inv.fromUserName}</p>
+                  <p className="truncate text-sm font-semibold text-white">{inv.challengeName}</p>
+                  <p className="text-xs text-slate-200">From {inv.fromUserName}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <Button size="sm" onClick={() => handleAcceptInvitation(inv.id, inv.challengeId)}>
@@ -260,7 +260,7 @@ export function ChallengesPage() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Type</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
               <div className="relative">
                 <select
                   aria-label="Challenge type"
@@ -302,14 +302,14 @@ export function ChallengesPage() {
             {/* Team mode toggle */}
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm font-medium text-slate-300">Team mode</p>
-                <p className="text-xs text-slate-500">Pool everyone's progress toward a shared goal</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-300">Team mode</p>
+                <p className="text-xs text-slate-600 dark:text-slate-500">Pool everyone's progress toward a shared goal</p>
               </div>
               <button
                 type="button"
                 role="switch"
                 aria-label="Team mode"
-                aria-checked={form.isCooperative ? 'true' : 'false'}
+                aria-checked={form.isCooperative}
                 onClick={() => setForm((f) => ({ ...f, isCooperative: !f.isCooperative }))}
                 className={[
                   'relative w-10 h-5 rounded-full transition-colors shrink-0',
@@ -345,7 +345,7 @@ export function ChallengesPage() {
         {/* Active (joined) challenges */}
         {mine.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Your Challenges
             </p>
             <div className="space-y-3">
@@ -366,7 +366,7 @@ export function ChallengesPage() {
         {/* Browse public */}
         {browse.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Browse
             </p>
             <div className="space-y-3">
@@ -387,7 +387,7 @@ export function ChallengesPage() {
         {!loading && challenges.length === 0 && !showCreate && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Trophy size={32} className="text-slate-500" />
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               No challenges yet. Be the first to create one!
             </p>
           </div>

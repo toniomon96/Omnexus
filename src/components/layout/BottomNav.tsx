@@ -21,7 +21,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/90 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/90 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/90 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/90 pb-safe shadow-[0_-8px_24px_rgba(15,23,42,0.08)] dark:shadow-none">
       <div className="flex w-full">
         {links.map(({ to, icon: Icon, label, end, forceActive }) => (
           <NavLink
@@ -31,7 +31,7 @@ export function BottomNav() {
             className={({ isActive }) => {
               const active = forceActive !== undefined ? forceActive : isActive;
               return [
-                'flex flex-1 flex-col items-center justify-center gap-0.5 py-3 text-[10px] font-medium transition-colors min-w-0',
+                'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-3.5 text-[10px] font-medium transition-colors',
                 active
                   ? 'text-brand-500'
                   : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300',

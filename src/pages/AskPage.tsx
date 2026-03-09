@@ -174,7 +174,7 @@ export function AskPage() {
       } else if (err instanceof Error) {
         const msg = err.message;
         if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-          setError('Cannot reach the API. Make sure you are running `vercel dev` instead of `npm run dev`.');
+          setError('We could not reach the AI service right now. Check your connection and try again.');
         } else {
           setError(msg);
         }
