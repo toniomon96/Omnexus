@@ -81,7 +81,7 @@ describe('security route hardening', () => {
   });
 
   it('blocks /api/ask in production when rate-limit config is missing', async () => {
-    process.env.NODE_ENV = 'production';
+    process.env.VERCEL_ENV = 'production';
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 

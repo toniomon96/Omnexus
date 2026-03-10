@@ -52,7 +52,7 @@ export async function checkRateLimit(
   req: VercelRequest,
   res: VercelResponse,
 ): Promise<boolean> {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.VERCEL_ENV === 'production';
   const hasUpstashConfig = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (isProduction && !hasUpstashConfig) {

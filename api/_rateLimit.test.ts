@@ -35,7 +35,7 @@ describe('checkRateLimit', () => {
   });
 
   it('fails closed in production when Upstash config is missing', async () => {
-    process.env.NODE_ENV = 'production';
+    process.env.VERCEL_ENV = 'production';
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
