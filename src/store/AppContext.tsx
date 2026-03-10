@@ -6,7 +6,6 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { upsertLearningProgress } from '../lib/db';
 import { identify } from '../lib/analytics';
 import type { User, WorkoutSession, WorkoutHistory, LearningProgress, QuizAttempt } from '../types';
 import {
@@ -20,6 +19,11 @@ import {
   clearUser,
   clearActiveSession,
 } from '../utils/localStorage';
+
+async function syncLearningProgress(progress: LearningProgress, userId: string) {
+  const { upsertLearningProgress } = await import('../lib/db');
+  return upsertLearningProgress(progress, userId);
+}
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -199,7 +203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!state.user || !state.learningProgress.lastActivityAt) return;
     if (learningSyncTimer.current) clearTimeout(learningSyncTimer.current);
     learningSyncTimer.current = setTimeout(() => {
-      upsertLearningProgress(state.learningProgress, state.user!.id).catch(
+      syncLearningProgress(state.learningProgress, state.user!.id).catch(
         (err) => console.error('[AppContext] Learning progress sync failed:', err),
       );
     }, 2000);

@@ -1,56 +1,56 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Mail, RefreshCw } from 'lucide-react';
-import type { UserTrainingProfile, Program, ExperienceLevel } from '../../types';
+import { ArrowLeft, Eye, EyeOff, Mail, RefreshCw, Loader2 } from 'lucide-react';
+import type { UserTrainingProfile, ExperienceLevel } from '../../types';
 import { OnboardingChat } from './OnboardingChat';
 import { ProfileSummaryCard } from './ProfileSummaryCard';
-import { WelcomeTutorial } from './WelcomeTutorial';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { setUser, resetProgramCursors, saveCustomProgram } from '../../utils/localStorage';
+import { setUser, resetProgramCursors, getHistory } from '../../utils/localStorage';
 import { apiBase } from '../../lib/api';
 import { useApp } from '../../store/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
-import { upsertTrainingProfile, upsertCustomProgram } from '../../lib/db';
+import { startGeneration } from '../../lib/programGeneration';
 
-// Step 0: Account, Step 1: Name, Step 2: AI Chat, Step 3: Profile summary, Step 4: Tutorial
-const STEPS = ['Account', 'Name', 'Discover', 'Your Plan', 'Welcome'];
-
-// ─── Async fetch helpers (defined outside component to avoid closure issues) ──
-
-async function fetchSignup(email: string, password: string, origin: string) {
-  const res = await fetch(`${apiBase}/api/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, redirectTo: `${origin}/auth/callback` }),
-  });
-  const body = await res.json().catch(() => ({})) as { userId?: string; error?: string };
-  if (!res.ok) {
-    const isExisting = res.status === 409 || /already exists|already registered/i.test(body.error ?? '');
-    throw new Error(isExisting
-      ? 'An account with this email already exists. Please sign in instead.'
-      : (body.error ?? 'Account creation failed. Please try again.'));
-  }
-  if (!body.userId) throw new Error('Account creation failed. Please try again.');
-  return { userId: body.userId, token: null as string | null };
+async function signOutAuthSession() {
+  const { supabase } = await import('../../lib/supabase');
+  return supabase.auth.signOut();
 }
 
-async function fetchGenerateProgram(profile: UserTrainingProfile): Promise<Program> {
-  const res = await fetch(`${apiBase}/api/generate-program`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile),
+async function resendSignupConfirmation(email: string) {
+  const { supabase } = await import('../../lib/supabase');
+  return supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(data.error ?? `HTTP ${res.status}`);
-  }
-  const data = await res.json() as { program: Program };
-  return data.program;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+async function upsertTrainingProfileToDb(userId: string, profile: UserTrainingProfile) {
+  const { upsertTrainingProfile } = await import('../../lib/db');
+  return upsertTrainingProfile(userId, profile);
+}
+
+async function migrateGuestHistory(userId: string): Promise<void> {
+  const history = getHistory();
+  if (history.sessions.length === 0 && history.personalRecords.length === 0) return;
+
+  const { upsertSession, upsertPersonalRecords } = await import('../../lib/db');
+  await Promise.all([
+    ...history.sessions.map((session) => upsertSession(session, userId)),
+    upsertPersonalRecords(history.personalRecords, userId),
+  ]);
+}
+
+/** Migrate any guest workout history + PRs to Supabase after account creation. Fire-and-forget. */
+function migrateGuestData(userId: string): void {
+  void migrateGuestHistory(userId).catch((err) => {
+    console.warn('[OnboardingForm] Guest data migration failed:', err);
+  });
+}
+
+// Step 0: Account, Step 1: Name, Step 2: AI Chat, Step 3: Profile summary + kick-off
+const STEPS = ['Account', 'Name', 'Discover', 'Your Plan'];
 
 export function OnboardingForm() {
   const navigate = useNavigate();
@@ -66,44 +66,35 @@ export function OnboardingForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [profile, setProfile] = useState<UserTrainingProfile | null>(null);
+
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [nameError, setNameError] = useState('');
   const [submitError, setSubmitError] = useState('');
 
-  // Generating state for ProfileSummaryCard UI
+  // Generating UI state for ProfileSummaryCard
   const [generating, setGenerating] = useState(false);
   const [generatingIdx, setGeneratingIdx] = useState(0);
   const [generateError, setGenerateError] = useState('');
 
-  // Promises stored in refs — don't trigger re-renders, survive unmount/remount
-  const signupPromiseRef = useRef<Promise<{ userId: string; token: string | null } | null>>(
-    Promise.resolve(null)
-  );
-  const generatePromiseRef = useRef<Promise<Program | null>>(
-    Promise.resolve(null)
-  );
+  // Cycle through generating messages while generation is in progress
+  useEffect(() => {
+    if (!generating) { setGeneratingIdx(0); return; }
+    const id = setInterval(() => {
+      setGeneratingIdx(i => (i + 1) % 4);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [generating]);
 
-  // Email confirmation pending — shown instead of normal steps
+  // Email confirmation pending screen
   const [emailConfirmPending, setEmailConfirmPending] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
-  // Cycle through generating messages while waiting
-  useEffect(() => {
-    if (!generating) { setGeneratingIdx(0); return; }
-    const id = setInterval(() => {
-      setGeneratingIdx((i) => (i + 1) % 4);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [generating]);
-
-  function back() {
-    setStep((s) => Math.max(s - 1, 0));
-  }
+  function back() { setStep(s => Math.max(s - 1, 0)); }
 
   async function handleGoToSignIn() {
-    await supabase.auth.signOut();
+    await signOutAuthSession();
     navigate('/login');
   }
 
@@ -131,11 +122,7 @@ export function OnboardingForm() {
     setResendLoading(true);
     setResendSuccess(false);
     try {
-      await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
+      await resendSignupConfirmation(email);
       setResendSuccess(true);
     } finally {
       setResendLoading(false);
@@ -143,131 +130,132 @@ export function OnboardingForm() {
   }
 
   /**
-   * Called when user clicks "Generate My 8-Week Program" on step 3.
+   * Called when the user clicks "Generate My Program".
    *
-   * Instead of waiting for program generation to complete, we:
-   * 1. Kick off account creation (fast) in parallel with program generation (slow)
-   * 2. Immediately advance to the Welcome Tutorial (step 4)
-   * 3. Resolve both promises when the tutorial ends
+   * New async flow — no blocking wait:
+   * 1. Create the Supabase account (fast ~1s)
+   * 2. Fire program generation in the background (non-blocking)
+   * 3. Create the profile row in Supabase (no activeProgramId yet — set when generation completes)
+   * 4. Navigate: email confirmation screen OR straight into the app
+   *
+   * The generation continues running in the background via programGeneration.ts.
+   * The dashboard will show a "building" card and activate the program when done.
    */
-  function handleGenerateClick() {
+  async function handleGenerate() {
     if (!profile) return;
     setGenerating(true);
     setGenerateError('');
+    setSubmitError('');
 
-    if (repairMode && session) {
-      // Repair mode: account already exists — just generate the program
-      signupPromiseRef.current = Promise.resolve({
-        userId: session.user.id,
-        token: session.access_token,
-      });
-    } else {
-      signupPromiseRef.current = fetchSignup(email, password, window.location.origin)
-        .catch((err: Error) => {
-          setSubmitError(err.message);
-          return null;
+    let userId: string;
+    let sessionAccessToken: string | null = null;
+
+    try {
+      if (repairMode && session) {
+        userId = session.user.id;
+        sessionAccessToken = session.access_token;
+      } else {
+        // 1. Create auth account
+        const signupRes = await fetch(`${apiBase}/api/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            redirectTo: `${window.location.origin}/auth/callback`,
+          }),
         });
-    }
+        const signupBody = await signupRes.json().catch(() => ({})) as { userId?: string; error?: string };
 
-    generatePromiseRef.current = fetchGenerateProgram(profile)
-      .catch((err: Error) => {
-        setGenerateError(err.message || 'Failed to generate program. Please try again.');
-        return null;
+        if (!signupRes.ok) {
+          const msg = signupBody.error ?? 'Account creation failed. Please try again.';
+          const isExisting = signupRes.status === 409 || /already exists|already registered/i.test(msg);
+          setSubmitError(isExisting
+            ? 'An account with this email already exists. Please sign in instead.'
+            : msg);
+          setStep(0);
+          setGenerating(false);
+          return;
+        }
+
+        if (!signupBody.userId) {
+          setSubmitError('Account creation failed. Please try again.');
+          setStep(0);
+          setGenerating(false);
+          return;
+        }
+
+        userId = signupBody.userId;
+      }
+
+      // 2. Map AI profile → legacy User fields
+      const primaryGoal = (profile.goals[0] ?? 'general-fitness') as 'hypertrophy' | 'fat-loss' | 'general-fitness';
+      const experienceLevel: ExperienceLevel = profile.trainingAgeYears === 0
+        ? 'beginner'
+        : profile.trainingAgeYears <= 2 ? 'intermediate' : 'advanced';
+
+      // 3. Fire program generation in the background — do NOT await
+      //    The generation singleton tracks progress; the dashboard will react when ready.
+      startGeneration(userId, profile).catch(err => {
+        console.error('[OnboardingForm] Background generation error:', err);
       });
 
-    // Advance to tutorial immediately — don't wait for either promise
-    setStep(4);
-  }
+      // 4. Create profile row (no activeProgramId yet — will be set on generation complete)
+      const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionAccessToken) profileHeaders['Authorization'] = `Bearer ${sessionAccessToken}`;
 
-  /**
-   * Called by WelcomeTutorial once the user is ready to enter the app.
-   * Both promises are guaranteed resolved at this point (WelcomeTutorial awaits them).
-   */
-  const handleTutorialComplete = useCallback(async (
-    program: Program,
-    userId: string,
-    token: string | null,
-  ) => {
-    if (!profile) return;
+      const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
+        method: 'POST',
+        headers: profileHeaders,
+        body: JSON.stringify({ userId, name: name.trim(), goal: primaryGoal, experienceLevel }),
+      });
 
-    const primaryGoal = (profile.goals[0] ?? 'general-fitness') as 'hypertrophy' | 'fat-loss' | 'general-fitness';
-    const experienceLevel: ExperienceLevel = profile.trainingAgeYears === 0
-      ? 'beginner'
-      : profile.trainingAgeYears <= 2
-        ? 'intermediate'
-        : 'advanced';
+      if (!profileRes.ok) {
+        const body = await profileRes.json().catch(() => ({})) as { error?: string };
+        if (!repairMode) await signOutAuthSession();
+        const serverErr = body.error ?? '';
+        setSubmitError(profileRes.status === 401
+          ? 'An account with this email already exists. Please sign in instead.'
+          : serverErr || 'Profile setup failed. Please try again.');
+        if (!repairMode) setStep(0);
+        setGenerating(false);
+        return;
+      }
 
-    // Save program locally
-    const programId = crypto.randomUUID();
-    const programWithMeta: Program = {
-      ...program,
-      id: programId,
-      isCustom: true,
-      isAiGenerated: true,
-      createdAt: new Date().toISOString(),
-    };
-    saveCustomProgram(programWithMeta);
-    upsertCustomProgram(programWithMeta, userId).catch(() => { /* synced on next login */ });
+      // 5. Store training profile (best-effort — used for generation resume on reload)
+      await upsertTrainingProfileToDb(userId, profile).catch(() => {});
 
-    // Setup Supabase profile (includes activeProgramId now that program is ready)
-    const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) profileHeaders['Authorization'] = `Bearer ${token}`;
+      // 6. No session yet (email confirmation required) → show check-inbox screen
+      if (!sessionAccessToken) {
+        setEmailConfirmPending(true);
+        setGenerating(false);
+        return;
+      }
 
-    const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
-      method: 'POST',
-      headers: profileHeaders,
-      body: JSON.stringify({
-        userId,
+      // 7. Session available → enter the app immediately
+      //    activeProgramId is null for now; dashboard will set it when generation completes
+      const user = {
+        id: userId,
         name: name.trim(),
         goal: primaryGoal,
         experienceLevel,
-        activeProgramId: programId,
-      }),
-    });
+        activeProgramId: undefined,
+        onboardedAt: new Date().toISOString(),
+        theme: 'dark' as const,
+      };
 
-    if (!profileRes.ok) {
-      const body = await profileRes.json().catch(() => ({})) as { error?: string };
-      if (!repairMode) await supabase.auth.signOut();
-      const serverErr = body.error ?? '';
-      const profileErrMsg = profileRes.status === 401
-        ? 'An account with this email already exists. Please sign in instead.'
-        : serverErr || 'Profile setup failed. Please try again.';
-      setSubmitError(profileErrMsg);
-      setStep(0);
-      return;
+      setUser(user);
+      resetProgramCursors('');
+      dispatch({ type: 'SET_USER', payload: user });
+      dispatch({ type: 'SET_THEME', payload: 'dark' });
+
+      // Migrate any guest workout data to Supabase (fire-and-forget)
+      migrateGuestData(userId);
+
+      navigate('/');
+    } finally {
+      setGenerating(false);
     }
-
-    // Email confirmation is ON — no session yet
-    if (!token) {
-      setEmailConfirmPending(true);
-      return;
-    }
-
-    // Session available — save training profile + enter app
-    await upsertTrainingProfile(userId, profile).catch(() => {
-      // Non-fatal — training_profiles table may not exist in development
-    });
-
-    const user = {
-      id: userId,
-      name: name.trim(),
-      goal: primaryGoal,
-      experienceLevel,
-      activeProgramId: programId,
-      onboardedAt: new Date().toISOString(),
-      theme: 'dark' as const,
-    };
-
-    setUser(user);
-    resetProgramCursors(programId);
-    dispatch({ type: 'SET_USER', payload: user });
-    dispatch({ type: 'SET_THEME', payload: 'dark' });
-    navigate('/');
-  }, [profile, name, repairMode, session, dispatch, navigate]);
-
-  function handleTutorialError(msg: string) {
-    setSubmitError(msg);
-    setStep(0);
   }
 
   // ─── Email confirmation pending screen ──────────────────────────────────────
@@ -285,11 +273,14 @@ export function OnboardingForm() {
             <p className="mt-3 text-slate-400 text-sm leading-relaxed">
               We sent a confirmation link to{' '}
               <span className="text-slate-200 font-medium">{email}</span>.
-              Click it to activate your account, then sign in here.
+              Click it to activate your account, then sign in.
+            </p>
+            <p className="mt-2 text-brand-400/80 text-xs">
+              Your training program will be waiting for you when you log in.
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-900/50 px-4 py-4 text-left space-y-2">
+          <div className="rounded-xl border border-slate-700/60 bg-slate-900/50 px-4 py-4 text-left space-y-2">
             <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Didn't get it?</p>
             <p className="text-slate-400 text-sm">Check your spam folder, or resend the email.</p>
             {resendSuccess && (
@@ -318,44 +309,36 @@ export function OnboardingForm() {
     );
   }
 
-  // ─── Step 4: Welcome Tutorial (full-screen, owns its own layout) ────────────
-
-  if (step === 4 && profile) {
-    return (
-      <WelcomeTutorial
-        userName={name}
-        programPromise={generatePromiseRef.current}
-        signupPromise={signupPromiseRef.current}
-        onComplete={handleTutorialComplete}
-        onError={handleTutorialError}
-      />
-    );
-  }
-
-  // ─── Normal onboarding steps (0–3) ──────────────────────────────────────────
+  // ─── Normal onboarding steps ─────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8 overflow-y-auto">
       {repairMode && (
-        <p className="mb-4 rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
-          Your account exists — just finish setting up your profile.
-        </p>
+        <div className="mb-4 space-y-3">
+          <p className="rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
+            Your account exists — just finish setting up your profile.
+          </p>
+          <Button variant="ghost" onClick={handleGoToSignIn} className="w-full text-slate-300 border border-slate-700">
+            Back to sign in
+          </Button>
+        </div>
       )}
 
       {/* Progress dots */}
       <div className="flex justify-center gap-2 mb-10">
-        {STEPS.slice(0, 4).map((s, i) => (
+        {STEPS.map((s, i) => (
           <div
             key={s}
             className={[
               'h-2 rounded-full transition-all duration-300',
-              i === step ? 'w-6 bg-brand-500' : i < step ? 'w-2 bg-brand-400' : 'w-2 bg-slate-300 dark:bg-slate-700',
+              i === step ? 'w-6 bg-brand-500' : i < step ? 'w-2 bg-brand-400' : 'w-2 bg-slate-700',
             ].join(' ')}
           />
         ))}
       </div>
 
       <div className="flex-1 flex flex-col min-h-0">
+
         {/* Step 0 — Account */}
         {step === 0 && (
           <div className="space-y-6">
@@ -373,11 +356,11 @@ export function OnboardingForm() {
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               error={emailError}
               autoFocus
               autoComplete="email"
-              onKeyDown={(e) => e.key === 'Enter' && nextFromAccount()}
+              onKeyDown={e => e.key === 'Enter' && nextFromAccount()}
             />
             <div className="relative">
               <Input
@@ -385,14 +368,14 @@ export function OnboardingForm() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="At least 6 characters"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 error={passwordError}
                 autoComplete="new-password"
-                onKeyDown={(e) => e.key === 'Enter' && nextFromAccount()}
+                onKeyDown={e => e.key === 'Enter' && nextFromAccount()}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
+                onClick={() => setShowPassword(v => !v)}
                 className="absolute right-3 bottom-3 text-slate-400 hover:text-slate-200"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -401,11 +384,7 @@ export function OnboardingForm() {
             </div>
             <p className="text-center text-sm text-slate-500">
               Already have an account?{' '}
-              <button
-                type="button"
-                onClick={handleGoToSignIn}
-                className="text-brand-400 hover:text-brand-300 font-medium"
-              >
+              <button type="button" onClick={handleGoToSignIn} className="text-brand-400 hover:text-brand-300 font-medium">
                 Sign in
               </button>
             </p>
@@ -423,10 +402,10 @@ export function OnboardingForm() {
               label="Your name"
               placeholder="e.g. Alex"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               error={nameError}
               autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && nextFromName()}
+              onKeyDown={e => e.key === 'Enter' && nextFromName()}
               className="text-lg py-3"
             />
           </div>
@@ -442,7 +421,7 @@ export function OnboardingForm() {
           <>
             <ProfileSummaryCard
               profile={profile}
-              onGenerate={handleGenerateClick}
+              onGenerate={handleGenerate}
               generating={generating}
               generatingIdx={generatingIdx}
               error={generateError}
@@ -452,11 +431,17 @@ export function OnboardingForm() {
                 {submitError}
               </p>
             )}
+            {generating && (
+              <div className="mt-4 flex items-center justify-center gap-2 text-slate-400 text-sm">
+                <Loader2 size={15} className="animate-spin" />
+                Setting up your account…
+              </div>
+            )}
           </>
         )}
       </div>
 
-      {/* Navigation — only shown on steps 0 and 1 */}
+      {/* Navigation — steps 0 and 1 only */}
       {step < 2 && (
         <div className="mt-8 flex gap-3">
           {step > 0 && (
@@ -465,11 +450,7 @@ export function OnboardingForm() {
               Back
             </Button>
           )}
-          <Button
-            onClick={step === 0 ? nextFromAccount : nextFromName}
-            fullWidth
-            size="lg"
-          >
+          <Button onClick={step === 0 ? nextFromAccount : nextFromName} fullWidth size="lg">
             Continue
           </Button>
         </div>

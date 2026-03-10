@@ -12,14 +12,14 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { useRestTimer } from '../hooks/useRestTimer';
 import { programs } from '../data/programs';
-import { getCustomPrograms } from '../utils/localStorage';
+import { getActiveSession, getCustomPrograms } from '../utils/localStorage';
 import { formatDuration } from '../utils/dateUtils';
 import type { WorkoutSession, PersonalRecord } from '../types';
 import { Plus, X, StopCircle } from 'lucide-react';
 
 export function ActiveWorkoutPage() {
   const navigate = useNavigate();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const {
     session,
     updateSet,
@@ -39,30 +39,56 @@ export function ActiveWorkoutPage() {
     prs: PersonalRecord[];
   } | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const persistedSession = session ?? getActiveSession();
 
-  // Redirect if no active session
   useEffect(() => {
-    if (!session) navigate('/');
-  }, [session, navigate]);
+    if (!session && persistedSession && !state.activeSession) {
+      dispatch({ type: 'SET_ACTIVE_SESSION', payload: persistedSession });
+    }
+  }, [dispatch, persistedSession, session, state.activeSession]);
+
+  // Redirect if no active session and no post-completion modal to show
+  useEffect(() => {
+    if (!persistedSession && !completedData) navigate('/');
+  }, [persistedSession, completedData, navigate]);
 
   // Elapsed timer
   useEffect(() => {
-    if (!session) return;
-    const start = new Date(session.startedAt).getTime();
+    if (!persistedSession) return;
+    const start = new Date(persistedSession.startedAt).getTime();
     const id = setInterval(() => {
       setElapsed(Math.floor((Date.now() - start) / 1000));
     }, 1000);
     return () => clearInterval(id);
-  }, [session]);
+  }, [persistedSession]);
 
-  if (!session) return null;
+  // After workout completes: session is cleared but we still need to render the modal
+  if (!persistedSession && !completedData) return null;
+  if (!persistedSession) {
+    return (
+      <>
+        {showCelebration && completedData && completedData.prs.length > 0 && (
+          <PRCelebration
+            prs={completedData.prs}
+            onDismiss={() => setShowCelebration(false)}
+          />
+        )}
+        {completedData && !showCelebration && (
+          <WorkoutCompleteModal
+            open={!!completedData}
+            session={completedData.session}
+            prs={completedData.prs}
+          />
+        )}
+      </>
+    );
+  }
 
-  const program = [...programs, ...getCustomPrograms()].find((p) => p.id === session.programId);
-  const trainingDay = program?.schedule[session.trainingDayIndex];
+  const program = [...programs, ...getCustomPrograms()].find((p) => p.id === persistedSession.programId);
+  const trainingDay = program?.schedule[persistedSession.trainingDayIndex];
 
   function handleComplete() {
-    if (!program) return;
-    const result = completeWorkout(program);
+    const result = completeWorkout(program ?? null);
     if (result) {
       setCompletedData(result);
       if (result.prs.length > 0) {
@@ -96,7 +122,7 @@ export function ActiveWorkoutPage() {
     <>
       <AppShell hideNav>
         {/* Fixed header */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/90 pt-safe">
           <div>
             <p className="text-xs font-medium text-slate-400">
               {trainingDay?.label ?? 'Workout'}
@@ -123,7 +149,7 @@ export function ActiveWorkoutPage() {
         </div>
 
         <div className="px-4 pb-32 space-y-4 mt-4">
-          {session.exercises.map((loggedEx, ei) => {
+          {persistedSession.exercises.map((loggedEx, ei) => {
             const dayEx = trainingDay?.exercises[ei];
             const restSecs = dayEx?.scheme.restSeconds ?? 90;
             const prevSets = getPrevSets(loggedEx.exerciseId, loggedEx.sets.length);

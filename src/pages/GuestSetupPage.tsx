@@ -35,7 +35,7 @@ export function GuestSetupPage() {
 
     const guestUser = {
       id: `guest_${crypto.randomUUID()}`,
-      name: 'You',
+      name: 'Guest',
       goal,
       experienceLevel: level,
       activeProgramId: recommended.id,
@@ -56,8 +56,8 @@ export function GuestSetupPage() {
         <div className="w-14 h-14 rounded-2xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center mb-4">
           <Dumbbell size={26} className="text-brand-400" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quick setup</h1>
-        <p className="mt-1.5 text-slate-400 text-sm text-center max-w-xs">
+        <h1 className="text-2xl font-bold text-white">Quick setup</h1>
+        <p className="mt-1.5 max-w-xs text-center text-sm text-slate-300">
           No account needed — get started in seconds.
         </p>
       </div>
@@ -78,7 +78,7 @@ export function GuestSetupPage() {
         {/* Step 0 — Goal */}
         {step === 0 && (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">What's your main goal?</h2>
+            <h2 className="mb-4 text-lg font-semibold text-white">What's your main goal?</h2>
             {GOALS.map((g) => (
               <button
                 key={g.value}
@@ -86,14 +86,14 @@ export function GuestSetupPage() {
                 className={[
                   'w-full flex items-center gap-4 rounded-2xl border-2 px-4 py-4 text-left transition-all',
                   goal === g.value
-                    ? 'border-brand-500 bg-brand-500/10'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-slate-400 dark:hover:border-slate-600',
+                    ? 'border-brand-500 bg-brand-500/15'
+                    : 'border-slate-700 bg-white/5 hover:border-slate-500',
                 ].join(' ')}
               >
                 <span className="text-3xl">{g.emoji}</span>
                 <div>
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{g.label}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{g.desc}</p>
+                  <p className="text-sm font-semibold text-white">{g.label}</p>
+                  <p className="mt-0.5 text-xs text-slate-300">{g.desc}</p>
                 </div>
                 {goal === g.value && (
                   <div className="ml-auto h-4 w-4 rounded-full bg-brand-500 flex-shrink-0" />
@@ -109,7 +109,7 @@ export function GuestSetupPage() {
         {/* Step 1 — Experience */}
         {step === 1 && (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Your experience level?</h2>
+            <h2 className="mb-4 text-lg font-semibold text-white">Your experience level?</h2>
             {LEVELS.map((l) => (
               <button
                 key={l.value}
@@ -117,13 +117,13 @@ export function GuestSetupPage() {
                 className={[
                   'w-full flex items-center gap-4 rounded-2xl border-2 px-4 py-4 text-left transition-all',
                   level === l.value
-                    ? 'border-brand-500 bg-brand-500/10'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-slate-400 dark:hover:border-slate-600',
+                    ? 'border-brand-500 bg-brand-500/15'
+                    : 'border-slate-700 bg-white/5 hover:border-slate-500',
                 ].join(' ')}
               >
                 <div>
-                  <p className="font-semibold text-slate-900 dark:text-white text-sm">{l.label}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{l.desc}</p>
+                  <p className="text-sm font-semibold text-white">{l.label}</p>
+                  <p className="mt-0.5 text-xs text-slate-300">{l.desc}</p>
                 </div>
                 {level === l.value && (
                   <div className="ml-auto h-4 w-4 rounded-full bg-brand-500 flex-shrink-0" />
@@ -142,11 +142,11 @@ export function GuestSetupPage() {
         )}
       </div>
 
-      <p className="text-center text-xs text-slate-600 mt-8">
+      <p className="mt-8 text-center text-xs text-slate-300">
         Data saved locally on this device only.{' '}
         <button
           onClick={() => navigate('/onboarding')}
-          className="text-brand-500 hover:text-brand-400 underline"
+          className="text-brand-300 underline hover:text-white"
         >
           Create an account
         </button>{' '}

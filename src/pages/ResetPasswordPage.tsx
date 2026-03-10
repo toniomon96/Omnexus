@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { KeyRound, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+
+async function updateUserPassword(password: string) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.updateUser({ password });
+}
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -27,7 +31,7 @@ export function ResetPasswordPage() {
     }
     setLoading(true);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
+      const { error: updateError } = await updateUserPassword(password);
       if (updateError) {
         setError(updateError.message);
         return;

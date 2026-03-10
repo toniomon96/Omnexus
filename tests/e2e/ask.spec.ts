@@ -55,4 +55,17 @@ test.describe('Ask AI Coach', () => {
       .first().isVisible({ timeout: 2_000 }).catch(() => false);
     expect(hasPlaceholder || hasTryAsking || hasChip).toBe(true);
   });
+
+  test('network failures show production-safe copy', async ({ page }) => {
+    await page.route('**/api/ask', async (route) => {
+      await route.abort('failed');
+    });
+
+    await page.goto('/ask');
+    await page.locator('textarea').fill('How much protein should I eat?');
+    await page.getByRole('button', { name: /ask omnexus/i }).click();
+
+    await expect(page.getByText(/could not reach the ai service right now/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/vercel dev|npm run dev/i)).toHaveCount(0);
+  });
 });

@@ -6,8 +6,13 @@ import { Button } from '../components/ui/Button';
 import { ChevronDown, ChevronUp, Bug, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
+
+async function getCurrentAccessToken() {
+  const { supabase } = await import('../lib/supabase');
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
 // ─── FAQ content — edit freely ─────────────────────────────────────────────────
 
@@ -63,10 +68,10 @@ export function HelpPage() {
 
     setSubmitting(true);
     try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (currentSession?.access_token) {
-        headers['Authorization'] = `Bearer ${currentSession.access_token}`;
+      const accessToken = await getCurrentAccessToken();
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
       }
 
       const res = await fetch(`${apiBase}/api/report-bug`, {
@@ -101,7 +106,7 @@ export function HelpPage() {
                 <button
                   className="w-full flex items-center justify-between gap-3 text-left"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  aria-expanded={openFaq === i}
+                  aria-expanded={openFaq === i ? 'true' : 'false'}
                 >
                   <p className="text-sm font-medium text-slate-900 dark:text-white pr-2">
                     {faq.q}

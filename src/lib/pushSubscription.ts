@@ -1,5 +1,11 @@
-import { supabase } from './supabase';
 import { isNative } from './capacitor';
+
+let supabasePromise: Promise<(typeof import('./supabase'))['supabase']> | null = null;
+
+async function getSupabase() {
+  supabasePromise ??= import('./supabase').then((module) => module.supabase);
+  return supabasePromise;
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -47,6 +53,7 @@ async function getOrRegisterSW(): Promise<ServiceWorkerRegistration | null> {
 
 export async function subscribeToPush(userId: string): Promise<boolean> {
   try {
+    const supabase = await getSupabase();
     const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
     if (!vapidKey) {
       console.error('[Push] VITE_VAPID_PUBLIC_KEY not configured');
@@ -89,6 +96,7 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
 
 export async function unsubscribeFromPush(userId: string): Promise<void> {
   try {
+    const supabase = await getSupabase();
     if (!('serviceWorker' in navigator)) return;
     const reg = await navigator.serviceWorker.getRegistration('/sw.js');
     if (!reg) return;

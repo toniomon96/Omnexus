@@ -15,7 +15,7 @@ import { askOmnexus } from '../services/claudeService';
 import { getContentRecommendations } from '../services/learningService';
 import { useLearningProgress } from '../hooks/useLearningProgress';
 import { courses } from '../data/courses';
-import { CheckCircle2, TrendingUp, Sparkles, Loader2, BookOpen, ArrowRight, Play } from 'lucide-react';
+import { CheckCircle2, TrendingUp, Sparkles, Loader2, BookOpen, ArrowRight, Play, MessageCircle } from 'lucide-react';
 import { YouTubeEmbed } from '../components/ui/YouTubeEmbed';
 import type { ContentRecommendation } from '../types';
 
@@ -272,6 +272,26 @@ export function ExerciseDetailPage() {
           </Card>
         )}
 
+        {/* Ask AI about this exercise */}
+        <button
+          type="button"
+          onClick={() => navigate('/ask', {
+            state: { prefill: `Tell me everything I need to know about the ${exercise.name}: form tips, common mistakes, programming, and how to progress.` },
+          })}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
+        >
+          <div className="w-8 h-8 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0">
+            <MessageCircle size={15} className="text-brand-500" />
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Ask Omnexus</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              Get AI coaching for {exercise.name}
+            </p>
+          </div>
+          <ArrowRight size={15} className="text-slate-400 shrink-0" />
+        </button>
+
         {/* Related Learning */}
         {(relatedLoading || (relatedLessons && relatedLessons.length > 0)) && (
           <Card>
@@ -290,6 +310,7 @@ export function ExerciseDetailPage() {
                 {(relatedLessons ?? []).map((rec) => (
                   <li key={rec.id}>
                     <button
+                      type="button"
                       onClick={() => handleLessonClick(rec)}
                       className="w-full text-left flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors"
                     >

@@ -1,7 +1,23 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+
+async function getAuthSession() {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.getSession();
+}
+
+async function subscribeToAuthStateChange(
+  onChange: (event: string, session: Session | null) => void,
+) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.onAuthStateChange(onChange);
+}
+
+async function signOutAuthSession() {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.signOut();
+}
 
 interface AuthContextValue {
   session: Session | null;
@@ -17,22 +33,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let active = true;
+    let unsubscribe = () => {};
+
+    void getAuthSession().then(({ data: { session } }) => {
+      if (!active) return;
       setSession(session);
       setLoading(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    void subscribeToAuthStateChange((_event, session) => {
+      if (!active) return;
       setSession(session);
+      setLoading(false);
+    }).then(({ data: { subscription } }) => {
+      if (!active) {
+        subscription.unsubscribe();
+        return;
+      }
+      unsubscribe = () => {
+        subscription.unsubscribe();
+      };
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await signOutAuthSession();
   }
 
   return (

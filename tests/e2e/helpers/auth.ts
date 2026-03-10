@@ -10,14 +10,38 @@ export const TEST_USER = {
   name: 'Test User',
 };
 
-/** Sign in via the login page and wait for the dashboard to load. */
+function normalizePathname(rawUrl: string) {
+  const pathname = new URL(rawUrl).pathname.replace(/\/+$/, '');
+  return pathname || '/';
+}
+
+export function isOnboardingUrl(rawUrl: string) {
+  return normalizePathname(rawUrl) === '/onboarding';
+}
+
+/** Sign in via the login page and wait for the dashboard to fully load. */
 export async function signIn(page: Page, email = TEST_USER.email, password = TEST_USER.password) {
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
   await page.locator('#password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  // Wait for dashboard to confirm successful login
-  await page.waitForURL('/');
+  await page.waitForURL((url) => {
+    const pathname = url.pathname.replace(/\/+$/, '') || '/';
+    return pathname === '/' || pathname === '/onboarding';
+  });
+
+  if (isOnboardingUrl(page.url())) {
+    return 'onboarding' as const;
+  }
+
+  // Wait for app hydration to complete — the loading spinner disappears once
+  // GuestOrAuthGuard has fetched the profile and populated state.user.
+  await page.waitForFunction(
+    () => !document.querySelector('.animate-spin'),
+    { timeout: 20_000 },
+  ).catch(() => { /* spinner may already be gone */ });
+
+  return 'dashboard' as const;
 }
 
 /** Clear localStorage and Supabase session to start fresh. */

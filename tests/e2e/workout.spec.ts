@@ -156,6 +156,62 @@ test.describe('Workout complete modal', () => {
   });
 });
 
+test.describe('Quick log workout', () => {
+  test.beforeEach(async ({ page }) => {
+    await enterAsGuest(page);
+    await page.evaluate(() => localStorage.removeItem('fit_active_session'));
+  });
+
+  test('quick-log workout can be started and finished', async ({ page }) => {
+    test.info().annotations.push({ type: 'feature', description: 'Quick Log' });
+    test.info().annotations.push({ type: 'severity', description: 'critical' });
+    test.info().annotations.push({ type: 'description', description: 'Regression: quick-log "Finish" button was a no-op because program lookup returned undefined' });
+
+    await test.step('navigate to quick log page', () => page.goto('/workout/quick'));
+
+    await test.step('select at least one exercise', async () => {
+      const firstExercise = page.locator('button').filter({ hasText: /press|squat|deadlift|curl/i }).first();
+      await expect(firstExercise).toBeVisible({ timeout: 5_000 });
+      await firstExercise.click();
+    });
+
+    await test.step('start the workout', async () => {
+      await page.getByRole('button', { name: /start workout/i }).click();
+      await page.waitForURL(/\/workout\/active/);
+    });
+
+    await test.step('finish the workout', async () => {
+      const finishBtn = page.getByRole('button', { name: /finish/i });
+      await expect(finishBtn).toBeVisible({ timeout: 5_000 });
+      await finishBtn.click();
+    });
+
+    await test.step('completion modal appears — workout was saved', async () => {
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/workout complete/i)).toBeVisible({ timeout: 3_000 });
+    });
+  });
+
+  test('train page routes users without a program into quick log instead of a dead end', async ({ page }) => {
+    await page.evaluate(() => {
+      const raw = localStorage.getItem('fit_user');
+      if (!raw) return;
+      const user = JSON.parse(raw);
+      user.activeProgramId = '';
+      localStorage.setItem('fit_user', JSON.stringify(user));
+      localStorage.setItem('omnexus_guest', JSON.stringify(user));
+      localStorage.removeItem('fit_active_session');
+    });
+
+    await page.goto('/train');
+    await expect(page.getByText(/no program selected/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /browse programs/i })).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('button', { name: /^quick log$/i }).first().click();
+    await expect(page).toHaveURL('/workout/quick');
+    await expect(page.getByRole('heading', { name: /quick log/i })).toBeVisible({ timeout: 5_000 });
+  });
+});
+
 test.describe('Workout history', () => {
   test.beforeEach(async ({ page }) => {
     await enterAsGuest(page);
@@ -168,7 +224,7 @@ test.describe('Workout history', () => {
 
     await test.step('verify page renders (empty state or sessions)', async () => {
       await expect(
-        page.getByText(/no workouts|start your first|workout history/i)
+        page.getByText(/no workouts|start your first|workout history/i).first()
           .or(page.locator('[data-testid="session-card"]').first()),
       ).toBeVisible({ timeout: 5_000 });
     });

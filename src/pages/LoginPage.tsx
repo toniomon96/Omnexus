@@ -1,12 +1,32 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { ensureProfileUser } from '../lib/profileRecovery';
 import { useApp } from '../store/AppContext';
-import { setUser, getTheme } from '../utils/localStorage';
-import type { User } from '../types';
+import { setUser } from '../utils/localStorage';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+
+async function signInWithEmailPassword(email: string, password: string) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.signInWithPassword({ email, password });
+}
+
+async function resendConfirmationEmail(email: string) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+  });
+}
+
+async function sendPasswordReset(email: string) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/callback`,
+  });
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -37,8 +57,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error: signInError } =
-        await supabase.auth.signInWithPassword({ email, password });
+      const { data, error: signInError } = await signInWithEmailPassword(email, password);
 
       if (signInError) {
         // Detect "email not confirmed" — offer to resend the confirmation link
@@ -56,28 +75,13 @@ export function LoginPage() {
       }
 
       // Fetch profile from Supabase to hydrate local state
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
+      const user = await ensureProfileUser(data.session);
 
-      if (profileError || !profile) {
+      if (!user) {
         // Profile missing — redirect to onboarding to complete setup
         navigate('/onboarding', { replace: true });
         return;
       }
-
-      const user: User = {
-        id: profile.id,
-        name: profile.name,
-        goal: profile.goal,
-        experienceLevel: profile.experience_level,
-        activeProgramId: profile.active_program_id ?? undefined,
-        onboardedAt: profile.created_at,
-        theme: getTheme(),
-        avatarUrl: profile.avatar_url ?? null,
-      };
 
       setUser(user);
       dispatch({ type: 'SET_USER', payload: user });
@@ -91,11 +95,7 @@ export function LoginPage() {
     setResendLoading(true);
     setResendSuccess(false);
     try {
-      await supabase.auth.resend({
-        type: 'signup',
-        email: unconfirmedEmail,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
+      await resendConfirmationEmail(unconfirmedEmail);
       setResendSuccess(true);
     } finally {
       setResendLoading(false);
@@ -107,9 +107,7 @@ export function LoginPage() {
     setForgotError('');
     setForgotLoading(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      });
+      const { error: resetError } = await sendPasswordReset(forgotEmail);
       if (resetError) {
         setForgotError(resetError.message);
       } else {

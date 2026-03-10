@@ -37,8 +37,13 @@ export interface InsightResponse {
 
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 
-import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
+
+async function getAccessToken() {
+  const { supabase } = await import('../lib/supabase');
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
 // BUG-23: Typed error that carries the HTTP status code so callers can distinguish
 // 403 (upgrade required) from other errors without fragile string matching.
@@ -50,10 +55,10 @@ export class ApiError extends Error {
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  const accessToken = await getAccessToken();
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
   }
   const res = await fetch(`${apiBase}${path}`, {
     method: 'POST',

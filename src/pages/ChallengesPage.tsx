@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import { supabase } from '../lib/supabase';
-import {
-  getChallenges,
-  joinChallenge,
-  createChallenge,
-  getAiChallenges,
-  getFriendships,
-  getPendingInvitations,
-  respondChallengeInvitation,
-} from '../lib/db';
 import type { Challenge, AiChallenge, FriendshipWithProfile, ChallengeInvitation } from '../types';
 import { PersonalChallengeCard } from '../components/challenges/PersonalChallengeCard';
 import { AppShell } from '../components/layout/AppShell';
@@ -40,6 +30,62 @@ const nextMonth = () => {
   return d.toISOString().split('T')[0];
 };
 
+async function loadChallengesData(userId: string) {
+  const {
+    getChallenges,
+    getAiChallenges,
+    getFriendships,
+    getPendingInvitations,
+  } = await import('../lib/db');
+
+  return Promise.all([
+    getChallenges(userId),
+    userId ? getAiChallenges(userId) : Promise.resolve([]),
+    userId ? getFriendships(userId) : Promise.resolve([]),
+    userId ? getPendingInvitations(userId) : Promise.resolve([]),
+  ]);
+}
+
+async function joinChallengeInDb(id: string, userId: string) {
+  const { joinChallenge } = await import('../lib/db');
+  return joinChallenge(id, userId);
+}
+
+async function createChallengeInDb(challenge: {
+  name: string;
+  description?: string;
+  type: Challenge['type'];
+  targetValue?: number;
+  startDate: string;
+  endDate: string;
+  isCooperative: boolean;
+}, userId: string) {
+  const { createChallenge } = await import('../lib/db');
+  return createChallenge(challenge, userId);
+}
+
+async function respondToChallengeInvitation(invitationId: string, status: 'accepted' | 'declined') {
+  const { respondChallengeInvitation } = await import('../lib/db');
+  return respondChallengeInvitation(invitationId, status);
+}
+
+async function createChallengesRealtimeChannel(userId: string, onRefresh: () => void) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase
+    .channel('challenges_rt')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'challenge_participants' },
+      () => { onRefresh(); },
+    )
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'challenge_invitations', filter: `to_user_id=eq.${userId}` },
+      () => { onRefresh(); },
+    )
+    .subscribe();
+}
+
 export function ChallengesPage() {
   const { state } = useApp();
   const { toast } = useToast();
@@ -62,15 +108,10 @@ export function ChallengesPage() {
     endDate: nextMonth(),
     isCooperative: false,
   });
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<{ unsubscribe: () => Promise<unknown> | void } | null>(null);
 
   const load = useCallback(async () => {
-    const [data, aiData, friendships, invitations] = await Promise.all([
-      getChallenges(userId),
-      userId ? getAiChallenges(userId) : Promise.resolve([]),
-      userId ? getFriendships(userId) : Promise.resolve([]),
-      userId ? getPendingInvitations(userId) : Promise.resolve([]),
-    ]);
+    const [data, aiData, friendships, invitations] = await loadChallengesData(userId);
     setChallenges(data);
     setAcceptedFriends(friendships.filter((f) => f.status === 'accepted'));
     setPendingInvitations(invitations);
@@ -83,29 +124,21 @@ export function ChallengesPage() {
   }, [userId]);
 
   useEffect(() => {
-    load();
+    void load();
 
-    channelRef.current = supabase
-      .channel('challenges_rt')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'challenge_participants' },
-        () => { load(); },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'challenge_invitations', filter: `to_user_id=eq.${userId}` },
-        () => { load(); },
-      )
-      .subscribe();
+    void createChallengesRealtimeChannel(userId, () => {
+      void load();
+    }).then((channel) => {
+      channelRef.current = channel;
+    });
 
     return () => {
-      channelRef.current?.unsubscribe();
+      void channelRef.current?.unsubscribe();
     };
   }, [load, userId]);
 
   async function handleJoin(id: string) {
-    await joinChallenge(id, userId);
+    await joinChallengeInDb(id, userId);
     const c = challenges.find((ch) => ch.id === id);
     if (c) {
       trackChallengeJoined({ challengeId: id, challengeType: c.type, isCooperative: c.isCooperative, isViaInvitation: false });
@@ -121,7 +154,7 @@ export function ChallengesPage() {
     if (!form.name.trim()) return;
     setCreating(true);
     try {
-      await createChallenge(
+      await createChallengeInDb(
         {
           name: form.name.trim(),
           description: form.description.trim() || undefined,
@@ -144,8 +177,8 @@ export function ChallengesPage() {
 
   async function handleAcceptInvitation(invitationId: string, challengeId: string) {
     try {
-      await respondChallengeInvitation(invitationId, 'accepted');
-      await joinChallenge(challengeId, userId);
+      await respondToChallengeInvitation(invitationId, 'accepted');
+      await joinChallengeInDb(challengeId, userId);
       trackInvitationResponded({ response: 'accepted' });
       const c = challenges.find((ch) => ch.id === challengeId);
       if (c) trackChallengeJoined({ challengeId, challengeType: c.type, isCooperative: c.isCooperative, isViaInvitation: true });
@@ -159,7 +192,7 @@ export function ChallengesPage() {
 
   async function handleDeclineInvitation(invitationId: string) {
     try {
-      await respondChallengeInvitation(invitationId, 'declined');
+      await respondToChallengeInvitation(invitationId, 'declined');
       trackInvitationResponded({ response: 'declined' });
       setPendingInvitations((prev) => prev.filter((i) => i.id !== invitationId));
     } catch {
@@ -200,7 +233,7 @@ export function ChallengesPage() {
             </div>
             <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{sharedChallenge.title}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{sharedChallenge.description}</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               Target: {sharedChallenge.target} {sharedChallenge.unit} · Ends {sharedChallenge.endDate}
             </p>
           </div>
@@ -209,7 +242,7 @@ export function ChallengesPage() {
         {/* Pending invitations banner */}
         {pendingInvitations.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <Mail size={12} />
               Invitations ({pendingInvitations.length})
             </p>
@@ -219,8 +252,8 @@ export function ChallengesPage() {
                 className="rounded-xl border border-brand-700/40 bg-brand-900/20 p-3 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{inv.challengeName}</p>
-                  <p className="text-xs text-slate-400">From {inv.fromUserName}</p>
+                  <p className="truncate text-sm font-semibold text-white">{inv.challengeName}</p>
+                  <p className="text-xs text-slate-200">From {inv.fromUserName}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <Button size="sm" onClick={() => handleAcceptInvitation(inv.id, inv.challengeId)}>
@@ -260,9 +293,10 @@ export function ChallengesPage() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Type</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
               <div className="relative">
                 <select
+                  aria-label="Challenge type"
                   value={form.type}
                   onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as Challenge['type'] }))}
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none pr-8"
@@ -301,19 +335,21 @@ export function ChallengesPage() {
             {/* Team mode toggle */}
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm font-medium text-slate-300">Team mode</p>
-                <p className="text-xs text-slate-500">Pool everyone's progress toward a shared goal</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-300">Team mode</p>
+                <p className="text-xs text-slate-600 dark:text-slate-500">Pool everyone's progress toward a shared goal</p>
               </div>
               <button
                 type="button"
                 role="switch"
-                aria-checked={form.isCooperative}
+                aria-label="Team mode"
+                aria-checked={form.isCooperative ? 'true' : 'false'}
                 onClick={() => setForm((f) => ({ ...f, isCooperative: !f.isCooperative }))}
                 className={[
                   'relative w-10 h-5 rounded-full transition-colors shrink-0',
                   form.isCooperative ? 'bg-purple-500' : 'bg-slate-600',
                 ].join(' ')}
               >
+                <span className="sr-only">Team mode</span>
                 <span
                   className={[
                     'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
@@ -342,7 +378,7 @@ export function ChallengesPage() {
         {/* Active (joined) challenges */}
         {mine.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Your Challenges
             </p>
             <div className="space-y-3">
@@ -363,7 +399,7 @@ export function ChallengesPage() {
         {/* Browse public */}
         {browse.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Browse
             </p>
             <div className="space-y-3">
@@ -384,7 +420,7 @@ export function ChallengesPage() {
         {!loading && challenges.length === 0 && !showCreate && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Trophy size={32} className="text-slate-500" />
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               No challenges yet. Be the first to create one!
             </p>
           </div>

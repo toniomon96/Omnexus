@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
+import { Button } from '../components/ui/Button';
 import { GraduationCap, Sparkles, Search, BookOpen, Dumbbell, Loader2, Zap } from 'lucide-react';
 import { courses } from '../data/courses';
 import { CourseCard } from '../components/learn/CourseCard';
@@ -155,7 +156,17 @@ export function LearnPage() {
             </p>
 
             {searchResults.length === 0 && !hasContentGap && (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No results found.</p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  No matching lessons yet
+                </p>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Try a broader topic, a specific exercise name, or explore the recommended courses below.
+                </p>
+                <Button variant="secondary" size="sm" className="mt-3" onClick={() => setSearchQuery('')}>
+                  Clear search
+                </Button>
+              </div>
             )}
 
             {searchResults.length > 0 && (
@@ -196,15 +207,15 @@ export function LearnPage() {
             {hasContentGap && searchQuery.trim() && (
               <div className="mt-3 rounded-xl border border-dashed border-brand-400 dark:border-brand-600 bg-brand-50 dark:bg-brand-900/20 p-4">
                 <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
-                  No existing content fully covers <span className="font-medium">"{searchQuery.trim()}"</span>.
-                  Generate a personalised AI lesson on this topic?
+                  We do not have a built-in lesson for <span className="font-medium">"{searchQuery.trim()}"</span> yet.
+                  Generate a personalized AI micro-lesson on this topic?
                 </p>
                 <button
                   onClick={() => setShowMicroLesson(true)}
                   className="flex items-center gap-2 rounded-lg bg-brand-500 text-white text-sm font-semibold px-4 py-2 hover:bg-brand-600 transition-colors"
                 >
                   <Zap size={14} />
-                  Generate lesson
+                  Generate AI lesson
                 </button>
               </div>
             )}

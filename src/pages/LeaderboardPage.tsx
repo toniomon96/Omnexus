@@ -1,12 +1,16 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useApp } from '../store/AppContext';
-import { getWeeklyLeaderboard } from '../lib/db';
 import type { LeaderboardEntry } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { CommunityTabs } from '../components/community/CommunityTabs';
 import { LeaderboardRow } from '../components/community/LeaderboardRow';
 import { Trophy } from 'lucide-react';
+
+async function loadWeeklyLeaderboard(userId: string) {
+  const { getWeeklyLeaderboard } = await import('../lib/db');
+  return getWeeklyLeaderboard(userId);
+}
 
 function getWeekRange() {
   const now = new Date();
@@ -37,7 +41,7 @@ export function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getWeeklyLeaderboard(userId).then((data) => {
+    loadWeeklyLeaderboard(userId).then((data) => {
       setEntries(data);
       setLoading(false);
     });

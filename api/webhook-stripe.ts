@@ -1,19 +1,30 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
+import Stripe from 'stripe';
+import { getStripeConfig } from './_stripe.js';
 
 const supabaseAdmin =
   process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
     ? createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     : null;
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? '';
-
 export const config = { api: { bodyParser: false } };
+
+function getSubscriptionPeriodEnd(subscription: Stripe.Subscription): string | null {
+  const itemPeriodEnds = subscription.items.data
+    .map((item) => item.current_period_end)
+    .filter((value): value is number => typeof value === 'number');
+
+  if (itemPeriodEnds.length === 0) return null;
+
+  return new Date(Math.max(...itemPeriodEnds) * 1000).toISOString();
+}
+
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const subscriptionRef = invoice.parent?.subscription_details?.subscription;
+  if (!subscriptionRef) return null;
+  return typeof subscriptionRef === 'string' ? subscriptionRef : subscriptionRef.id;
+}
 
 async function getRawBody(req: VercelRequest): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -27,9 +38,10 @@ async function getRawBody(req: VercelRequest): Promise<Buffer> {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (!stripe || !WEBHOOK_SECRET) {
-    console.warn('[webhook-stripe] Stripe not configured — ignoring webhook');
-    return res.status(200).json({ received: true });
+  const stripeConfig = getStripeConfig({ requireWebhookSecret: true });
+  if (stripeConfig.error || !stripeConfig.stripe || !stripeConfig.webhookSecret) {
+    console.error('[webhook-stripe] Stripe config error:', stripeConfig.error);
+    return res.status(500).json({ error: stripeConfig.error ?? 'Stripe not configured' });
   }
 
   if (!supabaseAdmin) {
@@ -41,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const rawBody = await getRawBody(req);
     const sig = req.headers['stripe-signature'] as string;
-    event = stripe.webhooks.constructEvent(rawBody, sig, WEBHOOK_SECRET);
+    event = stripeConfig.stripe.webhooks.constructEvent(rawBody, sig, stripeConfig.webhookSecret);
   } catch (err) {
     console.error('[webhook-stripe] Signature verification failed:', err);
     return res.status(400).json({ error: 'Webhook signature invalid' });
@@ -74,8 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Provision the subscription row immediately from the session data.
         if (typeof session.subscription === 'string') {
-          const sub = await stripe.subscriptions.retrieve(session.subscription);
-          const periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+          const sub = await stripeConfig.stripe.subscriptions.retrieve(session.subscription);
+          const periodEnd = getSubscriptionPeriodEnd(sub);
           await supabaseAdmin.from('subscriptions').upsert(
             {
               user_id: userId,
@@ -109,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           break;
         }
 
-        const periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+        const periodEnd = getSubscriptionPeriodEnd(sub);
 
         await supabaseAdmin.from('subscriptions').upsert(
           {
@@ -137,9 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const subId = typeof invoice.subscription === 'string'
-          ? invoice.subscription
-          : invoice.subscription?.id;
+        const subId = getInvoiceSubscriptionId(invoice);
         if (subId) {
           await supabaseAdmin
             .from('subscriptions')

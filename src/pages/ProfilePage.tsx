@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { apiBase } from '../lib/api';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +8,6 @@ import { useToast } from '../contexts/ToastContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { setUser, clearAppStorage } from '../utils/localStorage';
 import type { Goal, ExperienceLevel } from '../types';
-import { updateAvatarUrl } from '../lib/db';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
@@ -34,6 +32,43 @@ const LEVEL_LABELS: Record<ExperienceLevel, string> = {
   intermediate: 'Intermediate',
   advanced: 'Advanced',
 };
+
+async function updateProfileInDb(userId: string, name: string, goal: Goal, level: ExperienceLevel) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase
+    .from('profiles')
+    .update({ name, goal, experience_level: level })
+    .eq('id', userId);
+}
+
+async function uploadAvatarAndPersist(userId: string, file: File, path: string) {
+  const [{ supabase }, { updateAvatarUrl }] = await Promise.all([
+    import('../lib/supabase'),
+    import('../lib/db'),
+  ]);
+
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { upsert: true });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  await updateAvatarUrl(userId, data.publicUrl);
+  return data.publicUrl;
+}
+
+async function updatePasswordInAuth(password: string) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.updateUser({ password });
+}
+
+async function getSessionAccessToken() {
+  const { supabase } = await import('../lib/supabase');
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
 export function ProfilePage() {
   const { state, dispatch } = useApp();
@@ -100,10 +135,7 @@ export function ProfilePage() {
       } satisfies typeof currentUser;
 
       if (!isGuest) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ name: name.trim(), goal, experience_level: level })
-          .eq('id', currentUser.id);
+        const { error } = await updateProfileInDb(currentUser.id, name.trim(), goal, level);
         if (error) {
           toast(error.message, 'error');
           return;
@@ -137,13 +169,8 @@ export function ProfilePage() {
       // Normalize HEIC/HEIF (from iPhone camera) to jpg for broad browser support.
       const ext = rawExt === 'heic' || rawExt === 'heif' || !rawExt ? 'jpg' : rawExt;
       const path = `${currentUser.id}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw new Error(uploadError.message);
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      await updateAvatarUrl(currentUser.id, data.publicUrl);
-      const updated = { ...currentUser, avatarUrl: data.publicUrl };
+      const avatarUrl = await uploadAvatarAndPersist(currentUser.id, file, path);
+      const updated = { ...currentUser, avatarUrl };
       setUser(updated);
       dispatch({ type: 'SET_USER', payload: updated });
       toast('Profile picture updated', 'success');
@@ -183,7 +210,7 @@ export function ProfilePage() {
     }
     setChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await updatePasswordInAuth(newPassword);
       if (error) {
         setPasswordError(error.message);
       } else {
@@ -221,13 +248,11 @@ export function ProfilePage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
+      const accessToken = await getSessionAccessToken();
+      if (!accessToken) return;
 
       const res = await fetch(`${apiBase}/api/export-data`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (!res.ok) {
@@ -252,14 +277,12 @@ export function ProfilePage() {
   async function handleDeleteAccount() {
     setDeleting(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
+      const accessToken = await getSessionAccessToken();
+      if (!accessToken) return;
 
       const res = await fetch(`${apiBase}/api/delete-account`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (!res.ok) {
@@ -312,6 +335,8 @@ export function ProfilePage() {
               type="file"
               accept="image/*"
               className="hidden"
+              aria-label="Upload profile picture"
+              title="Upload profile picture"
               onChange={handleAvatarChange}
             />
           </div>
@@ -394,13 +419,16 @@ export function ProfilePage() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label htmlFor="profile-goal" className="block text-sm font-medium text-slate-300 mb-1.5">
                 Goal
               </label>
               <div className="relative">
                 <select
+                  id="profile-goal"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value as Goal)}
+                  aria-label="Goal"
+                  title="Goal"
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
                 >
                   {(Object.keys(GOAL_LABELS) as Goal[]).map((g) => (
@@ -417,13 +445,16 @@ export function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label htmlFor="profile-experience-level" className="block text-sm font-medium text-slate-300 mb-1.5">
                 Experience Level
               </label>
               <div className="relative">
                 <select
+                  id="profile-experience-level"
                   value={level}
                   onChange={(e) => setLevel(e.target.value as ExperienceLevel)}
+                  aria-label="Experience Level"
+                  title="Experience Level"
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
                 >
                   {(Object.keys(LEVEL_LABELS) as ExperienceLevel[]).map((l) => (

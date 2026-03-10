@@ -1,5 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
 import type { WorkoutSession } from '../../types';
-import { getExerciseById } from '../../data/exercises';
+import { getExerciseSummaryMap, type ExerciseSummary } from '../../lib/staticCatalogs';
 import { getWeekStart } from '../../utils/dateUtils';
 import { useApp } from '../../store/AppContext';
 
@@ -102,12 +103,39 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
   const isDark = state.theme === 'dark';
   const weekStart = getWeekStart();
   const thisWeek = sessions.filter((s) => s.startedAt >= weekStart);
+  const [exerciseSummaries, setExerciseSummaries] = useState<Record<string, ExerciseSummary>>({});
+
+  const exerciseIds = useMemo(
+    () => Array.from(new Set(thisWeek.flatMap((session) => session.exercises.map((exercise) => exercise.exerciseId)))),
+    [thisWeek],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (exerciseIds.length === 0) {
+      setExerciseSummaries({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void getExerciseSummaryMap(exerciseIds).then((summaries) => {
+      if (!cancelled) {
+        setExerciseSummaries(summaries);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [exerciseIds]);
 
   // Count sets per muscle group this week
   const counts: Partial<Record<MuscleGroup, number>> = {};
   thisWeek.forEach((session) => {
     session.exercises.forEach((le) => {
-      const ex = getExerciseById(le.exerciseId);
+      const ex = exerciseSummaries[le.exerciseId];
       if (!ex) return;
       const completedSets = le.sets.filter((s) => s.completed).length;
       [...ex.primaryMuscles, ...ex.secondaryMuscles].forEach((m) => {

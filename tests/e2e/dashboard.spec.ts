@@ -1,9 +1,93 @@
 import { test, expect } from './helpers/fixtures';
 import { enterAsGuest } from './helpers/auth';
 
+// Regression test: "No program found" bug when generation completes before hydration
+// Seeds localStorage with a completed generation state + matching program, then
+// verifies the View link on the dashboard actually loads the program detail page.
+test('dashboard "View" link loads program detail after generation completes', async ({ page }) => {
+  const PROGRAM_ID = 'e2e-generated-program';
+
+  await page.addInitScript((id: string) => {
+    const guest = {
+      id: 'guest_e2e',
+      name: 'You',
+      goal: 'hypertrophy',
+      experienceLevel: 'intermediate',
+      activeProgramId: id,
+      onboardedAt: new Date().toISOString(),
+      theme: 'dark',
+      isGuest: true,
+    };
+    const program = {
+      id,
+      name: 'AI E2E Test Program',
+      goal: 'hypertrophy',
+      experienceLevel: 'intermediate',
+      description: 'Regression test for post-generation program visibility.',
+      daysPerWeek: 4,
+      estimatedDurationWeeks: 8,
+      schedule: [],
+      tags: [],
+      isCustom: true,
+      isAiGenerated: true,
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem('omnexus_guest', JSON.stringify(guest));
+    localStorage.setItem('fit_user', JSON.stringify(guest));
+    localStorage.setItem('omnexus_custom_programs', JSON.stringify([program]));
+    localStorage.setItem('omnexus_program_generation', JSON.stringify({
+      status: 'ready',
+      userId: guest.id,
+      programId: id,
+      profile: {},
+      startedAt: new Date().toISOString(),
+      activateOnReady: true,
+      countAgainstQuota: false,
+    }));
+  }, PROGRAM_ID);
+
+  await page.goto('/');
+
+  // The "program ready" banner should be visible
+  await expect(
+    page.getByText(/program is ready|personalized program/i),
+  ).toBeVisible({ timeout: 5_000 });
+
+  // Clicking "View →" must navigate to the program detail page
+  await page.getByRole('link', { name: /view/i }).click();
+  await page.waitForURL(/\/programs\/.+/);
+
+  // The program detail page must render the program name — NOT "Program not found"
+  await expect(page.getByText('AI E2E Test Program')).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText(/not found/i)).not.toBeVisible();
+});
+
 test.describe('Dashboard — guest', () => {
   test.beforeEach(async ({ page }) => {
     await enterAsGuest(page);
+  });
+
+  test('no-program dashboard state routes to programs and quick log', async ({ page }) => {
+    await page.evaluate(() => {
+      const raw = localStorage.getItem('fit_user');
+      if (!raw) return;
+      const user = JSON.parse(raw);
+      user.activeProgramId = '';
+      localStorage.setItem('fit_user', JSON.stringify(user));
+      localStorage.setItem('omnexus_guest', JSON.stringify(user));
+      localStorage.removeItem('fit_active_session');
+    });
+
+    await page.goto('/');
+
+    await expect(page.getByText(/pick your training setup/i)).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole('button', { name: /browse programs/i }).click();
+    await expect(page).toHaveURL('/programs');
+
+    await page.goto('/');
+    await page.getByRole('button', { name: /quick log/i }).click();
+    await expect(page).toHaveURL('/workout/quick');
   });
 
   test('shows greeting on dashboard', async ({ page }) => {

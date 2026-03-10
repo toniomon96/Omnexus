@@ -8,7 +8,7 @@ import { NextSessionTab } from './NextSessionTab';
 import { formatDuration } from '../../utils/dateUtils';
 import { getExerciseById } from '../../data/exercises';
 import { generatePRCard } from '../../utils/shareCard';
-import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History } from 'lucide-react';
+import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History, MessageCircle } from 'lucide-react';
 import { triggerHapticNotification } from '../../lib/capacitor';
 import { getAdaptation } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
@@ -165,6 +165,7 @@ export function WorkoutCompleteModal({
           {(['summary', 'next'] as Tab[]).map((tab) => (
             <button
               key={tab}
+              type="button"
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-xs font-semibold transition-colors ${
                 activeTab === tab
@@ -275,6 +276,19 @@ export function WorkoutCompleteModal({
                 <ChevronRight size={16} />
               </button>
             )}
+
+            {/* Ask AI about this workout */}
+            <button
+              type="button"
+              onClick={() => navigate('/ask', {
+                state: { prefill: `I just finished a workout with ${totalSets} sets and ${session.totalVolumeKg.toFixed(0)}kg total volume. How did I do and what should I focus on next session?` },
+              })}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-sm text-slate-600 dark:text-slate-400 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
+            >
+              <MessageCircle size={14} className="text-brand-500 shrink-0" />
+              <span>Ask Omnexus about this workout</span>
+              <ChevronRight size={14} className="ml-auto text-slate-400 shrink-0" />
+            </button>
 
             <div className="flex gap-2">
               <Button onClick={() => navigate('/')} fullWidth size="lg">

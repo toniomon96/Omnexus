@@ -1,10 +1,13 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { ProgramContextBar } from '../components/dashboard/ProgramContextBar';
 import { programs } from '../data/programs';
+import { getExerciseNameMap } from '../lib/staticCatalogs';
 import { getCustomPrograms } from '../utils/localStorage';
 import { getNextWorkout } from '../utils/programUtils';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
@@ -17,7 +20,6 @@ import {
   Clock,
   ChevronRight,
   AlertCircle,
-  Plus,
   History,
 } from 'lucide-react';
 
@@ -25,6 +27,7 @@ export function TrainPage() {
   const { state } = useApp();
   const navigate = useNavigate();
   const { session: activeSession } = useWorkoutSession();
+  const [exerciseNames, setExerciseNames] = useState<Record<string, string>>({});
 
   const user = state.user;
   if (!user) return null;
@@ -34,10 +37,37 @@ export function TrainPage() {
   const nextWorkout = program ? getNextWorkout(program) : null;
   const recentSessions = state.history.sessions.slice(0, 3);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!nextWorkout) {
+      setExerciseNames({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const ids = nextWorkout.day.exercises.slice(0, 5).map((exercise) => exercise.exerciseId);
+    void getExerciseNameMap(ids).then((names) => {
+      if (!cancelled) {
+        setExerciseNames(names);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nextWorkout]);
+
   return (
     <AppShell>
       <TopBar title="Train" />
       <div className="px-4 pb-6 pt-4 space-y-4">
+
+        {/* Program context */}
+        {program && (
+          <ProgramContextBar program={program} />
+        )}
 
         {/* Resume active workout banner */}
         {activeSession && (
@@ -57,46 +87,30 @@ export function TrainPage() {
           </Card>
         )}
 
-        {/* Primary CTAs */}
-        {!activeSession && (
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              size="lg"
-              className="h-16 flex-col gap-1 text-sm font-semibold"
-              onClick={() => navigate(nextWorkout ? '/briefing' : '/workout/active')}
-            >
-              <Play size={20} />
-              {nextWorkout ? "Today's Workout" : 'Start Workout'}
-            </Button>
-            <Button
-              size="lg"
-              variant="secondary"
-              className="h-16 flex-col gap-1 text-sm font-semibold"
-              onClick={() => navigate('/workout/quick')}
-            >
-              <Zap size={20} />
-              Quick Log
-            </Button>
-          </div>
-        )}
-
-        {/* Today's workout preview */}
+        {/* Today's workout */}
         {nextWorkout && !activeSession && (
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Today</h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-700/60">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Today's Workout
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                    {nextWorkout.day.label}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
+              </div>
             </div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              {nextWorkout.day.label}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-4 px-4 py-4">
+              <div className="flex flex-wrap gap-1.5">
               {nextWorkout.day.exercises.slice(0, 5).map(ex => (
                 <span
                   key={ex.exerciseId}
                   className="text-xs px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300 capitalize"
                 >
-                  {ex.exerciseId.replace(/-/g, ' ')}
+                  {exerciseNames[ex.exerciseId] ?? ex.exerciseId.replace(/-/g, ' ')}
                 </span>
               ))}
               {nextWorkout.day.exercises.length > 5 && (
@@ -105,39 +119,61 @@ export function TrainPage() {
                 </span>
               )}
             </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button onClick={() => navigate('/briefing')}>
+                  <Play size={15} />
+                  Start workout
+                </Button>
+                <Button variant="secondary" onClick={() => navigate('/workout/quick')}>
+                  <Zap size={15} />
+                  Quick Log
+                </Button>
+              </div>
+            </div>
           </Card>
         )}
 
         {/* No program — prompt to set one up */}
-        {!program && (
-          <Card className="text-center py-8">
-            <Dumbbell size={32} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-            <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-              No program yet
+        {!program && !activeSession && (
+          <Card className="py-8 text-center">
+            <Dumbbell size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+            <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
+              No program selected
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Pick a program to get today's workout automatically
+            <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+              Start a quick workout now, or choose a program for guided day-by-day training.
             </p>
-            <Button onClick={() => navigate('/programs')}>Browse Programs</Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button onClick={() => navigate('/workout/quick')}>
+                <Zap size={15} />
+                Quick Log
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/programs')}>
+                Browse Programs
+              </Button>
+            </div>
           </Card>
         )}
 
-        {/* Quick-access tools */}
+        {/* Tools */}
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Quick Access</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Tools</h3>
+          <div className="grid grid-cols-2 gap-3">
             {[
-              { to: '/programs',               icon: Plus,       label: 'Programs'   },
-              { to: '/library',                icon: BookOpen,   label: 'Exercises'  },
-              { to: '/tools/plate-calculator', icon: Calculator, label: 'Plates'     },
-            ].map(({ to, icon: Icon, label }) => (
+              { to: '/library',                icon: BookOpen,   label: 'Exercise Library', desc: 'Browse movement details' },
+              { to: '/tools/plate-calculator', icon: Calculator, label: 'Plate Calculator', desc: 'Load the bar faster' },
+            ].map(({ to, icon: Icon, label, desc }) => (
               <button
                 key={to}
+                type="button"
                 onClick={() => navigate(to)}
-                className="flex flex-col items-center gap-2 p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl hover:bg-brand-500/10 hover:text-brand-500 transition-colors text-slate-600 dark:text-slate-300"
+                className="rounded-2xl bg-slate-100 p-4 text-left text-slate-700 transition-colors hover:bg-brand-500/10 hover:text-brand-500 dark:bg-slate-800 dark:text-slate-300"
               >
-                <Icon size={20} strokeWidth={1.8} />
-                <span className="text-xs font-medium">{label}</span>
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 dark:bg-slate-900/70 dark:text-slate-300">
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{desc}</p>
               </button>
             ))}
           </div>
@@ -149,6 +185,7 @@ export function TrainPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Recent Workouts</h3>
               <button
+                type="button"
                 onClick={() => navigate('/history')}
                 className="flex items-center gap-1 text-xs text-brand-500 font-medium"
               >
@@ -185,7 +222,7 @@ export function TrainPage() {
           <div className="text-center py-6">
             <History size={28} className="mx-auto text-slate-300 dark:text-slate-700 mb-2" />
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              No workouts logged yet — start one above!
+              Your completed workouts will show up here once you finish your first session.
             </p>
           </div>
         )}

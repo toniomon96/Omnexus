@@ -77,6 +77,44 @@ export function AskPage() {
   const [currentCitations, setCurrentCitations] = useState<Citation[]>([]);
 
   const answerRef = useRef<HTMLDivElement>(null);
+  const CONVO_KEY = 'omnexus_ask_conversation';
+
+  // Restore persisted conversation on mount (only when no prefill is driving a new context)
+  useEffect(() => {
+    if (prefill) return; // prefill starts a fresh context
+    try {
+      const raw = sessionStorage.getItem(CONVO_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        currentAnswer: string;
+        currentQuestion: string;
+        conversationHistory: ConversationMessage[];
+        followUps: string[];
+        currentCitations: Citation[];
+      };
+      if (saved.currentAnswer) {
+        setCurrentAnswer(saved.currentAnswer);
+        setCurrentQuestion(saved.currentQuestion);
+        setConversationHistory(saved.conversationHistory ?? []);
+        setFollowUps(saved.followUps ?? []);
+        setCurrentCitations(saved.currentCitations ?? []);
+      }
+    } catch { /* ignore */ }
+  }, []); // intentionally run once on mount to restore persisted conversation
+
+  // Persist conversation to sessionStorage whenever it updates
+  useEffect(() => {
+    if (!currentAnswer) return;
+    try {
+      sessionStorage.setItem(CONVO_KEY, JSON.stringify({
+        currentAnswer,
+        currentQuestion,
+        conversationHistory,
+        followUps,
+        currentCitations,
+      }));
+    } catch { /* ignore */ }
+  }, [currentAnswer, currentQuestion, conversationHistory, followUps, currentCitations]);
 
   useEffect(() => {
     if (currentAnswer && answerRef.current) {
@@ -136,7 +174,7 @@ export function AskPage() {
       } else if (err instanceof Error) {
         const msg = err.message;
         if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-          setError('Cannot reach the API. Make sure you are running `vercel dev` instead of `npm run dev`.');
+          setError('We could not reach the AI service right now. Check your connection and try again.');
         } else {
           setError(msg);
         }
@@ -167,6 +205,7 @@ export function AskPage() {
     setFollowUps([]);
     setCurrentCitations([]);
     setUpgradeRequired(false);
+    try { sessionStorage.removeItem(CONVO_KEY); } catch { /* ignore */ }
   }
 
   return (
@@ -234,6 +273,7 @@ export function AskPage() {
               {SUGGESTED.map((q) => (
                 <button
                   key={q}
+                  type="button"
                   onClick={() => setQuestion(q)}
                   className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
                 >
@@ -320,7 +360,7 @@ export function AskPage() {
             {conversationHistory.length >= 4 && !loading && (
               <p className="text-[10px] text-slate-500 text-center mt-1">
                 Context limited to last 4 exchanges ·{' '}
-                <button onClick={resetConversation} className="underline hover:text-slate-400 transition-colors">
+                <button type="button" onClick={resetConversation} className="underline hover:text-slate-400 transition-colors">
                   Start fresh
                 </button>
               </p>
@@ -334,6 +374,7 @@ export function AskPage() {
                   {followUps.map((chip) => (
                     <button
                       key={chip}
+                      type="button"
                       onClick={() => handleFollowUp(chip)}
                       className="px-3 py-1.5 rounded-full text-xs bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20 transition-colors"
                     >
@@ -371,6 +412,7 @@ export function AskPage() {
                 return (
                   <Card key={session.id} padding="sm">
                     <button
+                      type="button"
                       className="w-full text-left flex items-start justify-between gap-2"
                       onClick={() =>
                         setExpandedId(isExpanded ? null : session.id)
@@ -411,6 +453,7 @@ export function AskPage() {
 
         {/* Link to insights */}
         <button
+          type="button"
           onClick={() => navigate('/insights')}
           className="w-full text-center text-xs text-brand-500 hover:underline"
         >

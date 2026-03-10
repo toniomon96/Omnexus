@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import { supabase } from '../lib/supabase';
-import { getFriendFeed, getSessionReactions, addReaction, removeReaction } from '../lib/db';
 import type { FeedSession, FeedReaction, ReactionEmoji } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -10,6 +8,44 @@ import { CommunityTabs } from '../components/community/CommunityTabs';
 import { ActivityItem } from '../components/community/ActivityItem';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Users } from 'lucide-react';
+
+async function loadFriendFeed(userId: string) {
+  const { getFriendFeed } = await import('../lib/db');
+  return getFriendFeed(userId);
+}
+
+async function loadSessionReactions(sessionIds: string[]) {
+  const { getSessionReactions } = await import('../lib/db');
+  return getSessionReactions(sessionIds);
+}
+
+async function addSessionReaction(sessionId: string, userId: string, emoji: ReactionEmoji) {
+  const { addReaction } = await import('../lib/db');
+  return addReaction(sessionId, userId, emoji);
+}
+
+async function removeSessionReaction(sessionId: string, userId: string) {
+  const { removeReaction } = await import('../lib/db');
+  return removeReaction(sessionId, userId);
+}
+
+async function createFeedRealtimeChannel(userId: string, onSessionInserted: () => void) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase
+    .channel('feed_realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'workout_sessions',
+      },
+      () => {
+        if (userId) onSessionInserted();
+      },
+    )
+    .subscribe();
+}
 
 export function ActivityFeedPage() {
   const { state } = useApp();
@@ -20,7 +56,7 @@ export function ActivityFeedPage() {
   const [reactions, setReactions] = useState<FeedReaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedError, setFeedError] = useState<string | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelRef = useRef<{ unsubscribe: () => Promise<unknown> | void } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,12 +65,14 @@ export function ActivityFeedPage() {
       setLoading(true);
       setFeedError(null);
       try {
-        const data = await getFriendFeed(userId);
+        const data = await loadFriendFeed(userId);
         if (!cancelled) {
           setFeed(data);
           if (data.length > 0) {
-            const rxns = await getSessionReactions(data.map((s) => s.sessionId));
+            const rxns = await loadSessionReactions(data.map((s) => s.sessionId));
             if (!cancelled) setReactions(rxns);
+          } else {
+            setReactions([]);
           }
         }
       } catch {
@@ -44,30 +82,21 @@ export function ActivityFeedPage() {
       }
     }
 
-    load();
+    void load();
 
-    // Realtime: prepend new sessions from any user who is a friend
-    channelRef.current = supabase
-      .channel('feed_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'workout_sessions',
-        },
-        (_payload) => {
-          // Reload the feed so we get the friend's name too
-          getFriendFeed(userId).then((data) => {
-            if (!cancelled) setFeed(data);
-          });
-        },
-      )
-      .subscribe();
+    void createFeedRealtimeChannel(userId, () => {
+      void load();
+    }).then((channel) => {
+      if (cancelled) {
+        void channel.unsubscribe();
+        return;
+      }
+      channelRef.current = channel;
+    });
 
     return () => {
       cancelled = true;
-      channelRef.current?.unsubscribe();
+      void channelRef.current?.unsubscribe();
     };
   }, [userId]);
 
@@ -80,7 +109,7 @@ export function ActivityFeedPage() {
       { id: `${sessionId}-${userId}`, sessionId, userId, emoji, createdAt: new Date().toISOString() },
     ]);
     try {
-      await addReaction(sessionId, userId, emoji);
+      await addSessionReaction(sessionId, userId, emoji);
     } catch {
       setReactions(snapshot);
       toast('Could not add reaction — try again', 'error');
@@ -92,7 +121,7 @@ export function ActivityFeedPage() {
     const snapshot = reactions;
     setReactions((prev) => prev.filter((r) => !(r.sessionId === sessionId && r.userId === userId)));
     try {
-      await removeReaction(sessionId, userId);
+      await removeSessionReaction(sessionId, userId);
     } catch {
       setReactions(snapshot);
       toast('Could not remove reaction — try again', 'error');

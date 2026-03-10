@@ -1,9 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../store/AppContext';
 import type { Program, TrainingDay } from '../../types';
-import { courses } from '../../data/courses';
-import { getExerciseById } from '../../data/exercises';
 import { useWorkoutSession } from '../../hooks/useWorkoutSession';
+import { findNextLessonSummary, getExerciseNameMap, type NextLessonSummary } from '../../lib/staticCatalogs';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Play, BookOpen, ChevronRight, Calendar } from 'lucide-react';
@@ -14,27 +14,50 @@ interface TodayCardProps {
   dayIndex: number;
 }
 
-function findNextLesson(completedLessons: string[], completedCourses: string[]) {
-  for (const course of courses) {
-    if (completedCourses.includes(course.id)) continue;
-    for (const module of course.modules) {
-      for (const lesson of module.lessons) {
-        if (!completedLessons.includes(lesson.id)) {
-          return { course, module, lesson };
-        }
-      }
-    }
-  }
-  return null;
-}
-
 export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
   const { state } = useApp();
   const { startWorkout } = useWorkoutSession();
   const navigate = useNavigate();
 
   const lp = state.learningProgress;
-  const nextLesson = findNextLesson(lp.completedLessons, lp.completedCourses);
+  const [nextLesson, setNextLesson] = useState<NextLessonSummary | null>(null);
+  const [exerciseNames, setExerciseNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void findNextLessonSummary(lp.completedLessons, lp.completedCourses).then((lesson) => {
+      if (!cancelled) {
+        setNextLesson(lesson);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lp.completedCourses, lp.completedLessons]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!day) {
+      setExerciseNames({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const ids = day.exercises.slice(0, 3).map((exercise) => exercise.exerciseId);
+    void getExerciseNameMap(ids).then((names) => {
+      if (!cancelled) {
+        setExerciseNames(names);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [day]);
 
   // Don't render if there's nothing to show
   if (!day && !nextLesson) return null;
@@ -42,7 +65,7 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
   function handleStartWorkout() {
     if (!program) return;
     startWorkout(program, dayIndex);
-    navigate('/workout/active');
+    window.location.assign('/workout/active');
   }
 
   return (
@@ -81,14 +104,14 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
             {/* Exercise preview */}
             <ul className="mb-3 space-y-1.5 pl-[42px]">
               {day.exercises.slice(0, 3).map((pe) => {
-                const ex = getExerciseById(pe.exerciseId);
-                if (!ex) return null;
                 return (
                   <li
                     key={pe.exerciseId}
                     className="flex items-center justify-between text-xs"
                   >
-                    <span className="text-slate-600 dark:text-slate-300">{ex.name}</span>
+                    <span className="text-slate-600 dark:text-slate-300">
+                      {exerciseNames[pe.exerciseId] ?? pe.exerciseId.replace(/-/g, ' ')}
+                    </span>
                     <span className="text-slate-400 tabular-nums">
                       {pe.scheme.sets}×{pe.scheme.reps}
                     </span>

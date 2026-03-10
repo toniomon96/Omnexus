@@ -1,9 +1,9 @@
 import { test, expect } from './helpers/fixtures';
-import { signIn, enterAsGuest, TEST_USER } from './helpers/auth';
+import { signIn, enterAsGuest } from './helpers/auth';
 
 const hasRealCredentials =
   !!process.env.E2E_TEST_EMAIL &&
-  process.env.E2E_TEST_EMAIL !== TEST_USER.email;
+  process.env.E2E_TEST_EMAIL !== 'e2e-test@omnexus.test';
 
 // ─── Guest upgrade wall (no credentials needed) ───────────────────────────────
 
@@ -42,16 +42,19 @@ test.describe('Community — guest upgrade wall', () => {
 test.describe('Feed — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/feed');
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    // Wait for AuthOnlyGuard hydration (profile fetch + render)
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Feed' });
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('shows activity feed content or empty state', async ({ page }) => {
@@ -68,16 +71,18 @@ test.describe('Feed — authenticated', () => {
 test.describe('Friends — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/friends');
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Friends' });
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('friend search input is present', async ({ page }) => {
@@ -91,16 +96,18 @@ test.describe('Friends — authenticated', () => {
 test.describe('Leaderboard — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/leaderboard');
-    await page.waitForFunction(() =>
-      !document.querySelector('.animate-spin'),
+    await page.waitForFunction(
+      () => !document.querySelector('.animate-spin'),
+      { timeout: 20_000 },
     ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Leaderboard' });
-    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /community/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('leaderboard list or empty state renders', async ({ page }) => {

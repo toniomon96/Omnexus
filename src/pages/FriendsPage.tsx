@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../contexts/ToastContext';
-import {
-  searchProfiles,
-  getFriendships,
-  sendFriendRequest,
-  respondFriendRequest,
-  removeFriendship,
-} from '../lib/db';
 import type { FriendProfile, FriendshipWithProfile } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -16,6 +9,31 @@ import { FriendCard } from '../components/community/FriendCard';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Search, UserPlus, UserCircle } from 'lucide-react';
+
+async function loadFriendships(userId: string) {
+  const { getFriendships } = await import('../lib/db');
+  return getFriendships(userId);
+}
+
+async function findProfiles(query: string, userId: string) {
+  const { searchProfiles } = await import('../lib/db');
+  return searchProfiles(query, userId);
+}
+
+async function createFriendRequest(userId: string, addresseeId: string) {
+  const { sendFriendRequest } = await import('../lib/db');
+  return sendFriendRequest(userId, addresseeId);
+}
+
+async function updateFriendRequest(id: string, status: 'accepted' | 'blocked') {
+  const { respondFriendRequest } = await import('../lib/db');
+  return respondFriendRequest(id, status);
+}
+
+async function deleteFriendship(id: string) {
+  const { removeFriendship } = await import('../lib/db');
+  return removeFriendship(id);
+}
 
 export function FriendsPage() {
   const { state } = useApp();
@@ -30,7 +48,7 @@ export function FriendsPage() {
   const [pendingSend, setPendingSend] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    getFriendships(userId).then((data) => {
+    loadFriendships(userId).then((data) => {
       setFriendships(data);
       setLoading(false);
     });
@@ -43,7 +61,7 @@ export function FriendsPage() {
     }
     const timer = setTimeout(async () => {
       setSearching(true);
-      const results = await searchProfiles(query, userId);
+      const results = await findProfiles(query, userId);
       // Filter out existing friends/pending
       const knownIds = new Set(friendships.map((f) => f.friend.id));
       setSearchResults(results.filter((r) => !knownIds.has(r.id)));
@@ -55,8 +73,8 @@ export function FriendsPage() {
   async function handleSendRequest(addresseeId: string) {
     setPendingSend((s) => new Set(s).add(addresseeId));
     try {
-      await sendFriendRequest(userId, addresseeId);
-      const updated = await getFriendships(userId);
+      await createFriendRequest(userId, addresseeId);
+      const updated = await loadFriendships(userId);
       setFriendships(updated);
       setSearchResults((prev) => prev.filter((r) => r.id !== addresseeId));
       toast('Friend request sent', 'success');
@@ -68,7 +86,7 @@ export function FriendsPage() {
 
   async function handleAccept(id: string) {
     try {
-      await respondFriendRequest(id, 'accepted');
+      await updateFriendRequest(id, 'accepted');
       setFriendships((prev) =>
         prev.map((f) => (f.id === id ? { ...f, status: 'accepted' } : f)),
       );
@@ -80,7 +98,7 @@ export function FriendsPage() {
 
   async function handleRemove(id: string) {
     try {
-      await removeFriendship(id);
+      await deleteFriendship(id);
       setFriendships((prev) => prev.filter((f) => f.id !== id));
       toast('Friend removed', 'success');
     } catch {

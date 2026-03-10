@@ -3,7 +3,12 @@
  * Runs on the first login after Phase 3 is deployed. Idempotent — safe to retry.
  */
 
-import * as db from './db';
+import {
+  upsertCustomProgram,
+  upsertLearningProgress,
+  upsertPersonalRecords,
+  upsertSession,
+} from './dbHydration';
 import {
   getHistory,
   getLearningProgress,
@@ -35,12 +40,12 @@ export async function runMigrationIfNeeded(userId: string): Promise<void> {
   try {
     await Promise.all([
       hasSessions &&
-        Promise.all(history.sessions.map((s) => db.upsertSession(s, userId))),
-      hasPRs && db.upsertPersonalRecords(history.personalRecords, userId),
-      hasLearning && db.upsertLearningProgress(learningProgress, userId),
+        Promise.all(history.sessions.map((s) => upsertSession(s, userId))),
+      hasPRs && upsertPersonalRecords(history.personalRecords, userId),
+      hasLearning && upsertLearningProgress(learningProgress, userId),
       hasCustomPrograms &&
         Promise.all(
-          customPrograms.map((p) => db.upsertCustomProgram(p, userId)),
+          customPrograms.map((p) => upsertCustomProgram(p, userId)),
         ),
     ]);
 

@@ -77,6 +77,8 @@ export interface SubscriptionStatus {
   programGenLimit: number;
 }
 
+export type ProgramLifecycleStatus = 'draft' | 'active' | 'archived';
+
 // ─── AI Training Profile ──────────────────────────────────────────────────────
 
 export interface UserTrainingProfile {
@@ -143,6 +145,7 @@ export interface Program {
   tags: string[];
   isCustom?: boolean;
   isAiGenerated?: boolean;
+  aiLifecycleStatus?: ProgramLifecycleStatus;
   createdAt?: string;
   /** 8-entry array, one coaching note per week of the program */
   weeklyProgressionNotes?: string[];

@@ -3,7 +3,21 @@ import { Trophy, Users, Calendar, ChevronDown, ChevronUp, UserPlus, Loader2 } fr
 import type { Challenge, ChallengeParticipant, FriendshipWithProfile } from '../../types';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
-import { getChallengeLeaderboard, getCooperativeTotal, sendChallengeInvitation } from '../../lib/db';
+
+async function loadChallengeLeaderboard(challengeId: string, currentUserId: string) {
+  const { getChallengeLeaderboard } = await import('../../lib/db');
+  return getChallengeLeaderboard(challengeId, currentUserId);
+}
+
+async function loadCooperativeTotal(challengeId: string) {
+  const { getCooperativeTotal } = await import('../../lib/db');
+  return getCooperativeTotal(challengeId);
+}
+
+async function inviteFriendToChallenge(challengeId: string, fromUserId: string, toUserId: string) {
+  const { sendChallengeInvitation } = await import('../../lib/db');
+  return sendChallengeInvitation(challengeId, fromUserId, toUserId);
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -44,7 +58,7 @@ function ChallengeLeaderboard({
 
   useEffect(() => {
     let cancelled = false;
-    getChallengeLeaderboard(challengeId, currentUserId)
+    loadChallengeLeaderboard(challengeId, currentUserId)
       .then((data) => { if (!cancelled) setParticipants(data); })
       .catch(() => { if (!cancelled) setError(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -107,7 +121,7 @@ function FriendPicker({
   async function handleInvite(toUserId: string) {
     setSending((s) => new Set(s).add(toUserId));
     try {
-      await sendChallengeInvitation(challengeId, fromUserId, toUserId);
+      await inviteFriendToChallenge(challengeId, fromUserId, toUserId);
       setSent((s) => new Set(s).add(toUserId));
     } catch {
       // duplicate silently ignored in db helper
@@ -172,7 +186,7 @@ export function ChallengeCard({
   useEffect(() => {
     if (!showLeaderboard || !challenge.isCooperative || coopTotal !== null) return;
     let cancelled = false;
-    getCooperativeTotal(challenge.id)
+    loadCooperativeTotal(challenge.id)
       .then((total) => { if (!cancelled) setCoopTotal(total); })
       .catch(() => {});
     return () => { cancelled = true; };

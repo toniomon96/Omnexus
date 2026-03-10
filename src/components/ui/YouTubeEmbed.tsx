@@ -12,7 +12,7 @@ export function YouTubeEmbed({ videoId, title }: YouTubeEmbedProps) {
 
   if (active) {
     return (
-      <div className="relative w-full rounded-xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+      <div className="relative w-full overflow-hidden rounded-xl aspect-video">
         <iframe
           className="absolute inset-0 w-full h-full"
           src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
@@ -27,8 +27,7 @@ export function YouTubeEmbed({ videoId, title }: YouTubeEmbedProps) {
   return (
     <button
       onClick={() => setActive(true)}
-      className="relative w-full rounded-xl overflow-hidden group block"
-      style={{ paddingBottom: '56.25%' }}
+      className="group relative block w-full overflow-hidden rounded-xl aspect-video"
       aria-label={`Watch demo: ${title}`}
     >
       <img

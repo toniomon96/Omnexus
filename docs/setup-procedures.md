@@ -272,7 +272,7 @@ Enables the subscription paywall, usage limits, and the `/subscription` page.
    - Copy your **Secret key** (`sk_test_...` for test mode)
 4. Go to **Developers** → **Webhooks** → **Add endpoint**:
    - URL: `https://your-app.vercel.app/api/webhook-stripe`
-   - Events to listen for: `customer.subscription.created`, `customer.subscription.updated`,
+  - Events to listen for: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
      `customer.subscription.deleted`, `invoice.payment_failed`
    - Copy the **Signing secret** (`whsec_...`)
 
@@ -323,17 +323,15 @@ Add to **Vercel dashboard** → Settings → Environment Variables:
 |---|---|---|
 | `STRIPE_SECRET_KEY` | `sk_live_...` (or `sk_test_...`) | Production (or All) |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Production |
-| `STRIPE_PRICE_ID` | `price_...` | All |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_live_...` | All |
-| `VITE_APP_URL` | `https://your-app.vercel.app` | Production |
+| `STRIPE_PRICE_ID` | `price_...` | Production (or All) |
+| `APP_URL` | `https://your-app.vercel.app` | Production |
 
 Also add to your local `.env.local` for development (use test keys):
 ```
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRICE_ID=price_...
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
-VITE_APP_URL=http://localhost:3000
+APP_URL=http://localhost:3000
 ```
 
 For local webhook testing, install the [Stripe CLI](https://stripe.com/docs/stripe-cli) and run:

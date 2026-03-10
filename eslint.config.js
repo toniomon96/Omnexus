@@ -5,7 +5,15 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['dist/', 'node_modules/'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'android/**',
+      'ios/**',
+      'playwright-report/**',
+      'test-results/**',
+      'coverage/**',
+    ],
   },
   {
     // Service worker runs in a dedicated worker scope — declare its globals

@@ -21,10 +21,11 @@ test.describe('Insights — guest', () => {
     await page.goto('/insights');
     // Wait for page heading before asserting content
     await page.getByRole('heading', { name: /ai-powered insights/i }).waitFor({ timeout: 5_000 }).catch(() => {});
-    // Guest with no history sees "Log some workouts first" message or the button
-    const hasButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 6_000 }).catch(() => false);
-    const hasEmpty = await page.getByText(/log some workouts first/i).isVisible({ timeout: 6_000 }).catch(() => false);
-    expect(hasButton || hasEmpty).toBe(true);
+    // Guest with no history sees empty-state copy + "Start a workout" button, or the Analyze button if history exists
+    const hasAnalyzeButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasStartButton = await page.getByRole('button', { name: /start a workout/i }).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasEmptyText = await page.getByText(/insights appear after you complete workouts/i).isVisible({ timeout: 3_000 }).catch(() => false);
+    expect(hasAnalyzeButton || hasStartButton || hasEmptyText).toBe(true);
   });
 
   test('shows quick follow-up questions', async ({ page }) => {
@@ -50,6 +51,38 @@ test.describe('Insights — guest', () => {
     await page.goto('/insights');
     await expect(page.getByText(/latest research/i)).toBeVisible({ timeout: 5_000 });
   });
+
+  test('network failures show production-safe copy', async ({ page }) => {
+    await page.evaluate(() => {
+      const now = new Date();
+      const completedAt = now.toISOString();
+      const startedAt = new Date(now.getTime() - 45 * 60 * 1000).toISOString();
+      const history = {
+        sessions: [
+          {
+            id: 'session-1',
+            programId: 'program-1',
+            trainingDayIndex: 0,
+            startedAt,
+            completedAt,
+            exercises: [],
+            totalVolumeKg: 500,
+          },
+        ],
+        personalRecords: [],
+      };
+      localStorage.setItem('fit_history', JSON.stringify(history));
+    });
+    await page.route('**/api/insights', async (route) => {
+      await route.abort('failed');
+    });
+
+    await page.goto('/insights');
+    await page.getByRole('button', { name: /analyze my training/i }).click();
+
+    await expect(page.getByText(/could not reach the insights service right now/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/vercel dev|npm run dev/i)).toHaveCount(0);
+  });
 });
 
 // ─── Authenticated ────────────────────────────────────────────────────────────
@@ -57,7 +90,8 @@ test.describe('Insights — guest', () => {
 test.describe('Insights — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
-    await signIn(page);
+    const destination = await signIn(page);
+    test.skip(destination === 'onboarding', 'Test account still requires onboarding before authenticated insights can be exercised');
     await page.goto('/insights');
     await page.waitForFunction(() => !document.querySelector('.animate-spin')).catch(() => {});
   });

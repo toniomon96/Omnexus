@@ -1,14 +1,17 @@
-import { createBrowserRouter, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { useApp } from './store/AppContext'
-import { supabase } from './lib/supabase'
-import { setUser, setCustomPrograms, getGuestProfile, getTheme } from './utils/localStorage'
-import * as db from './lib/db'
+import { setUser, setCustomPrograms, getCustomPrograms, getGuestProfile } from './utils/localStorage'
+import { fetchCustomPrograms, fetchHistory, fetchLearningProgress } from './lib/dbHydration'
 import { runMigrationIfNeeded } from './lib/dataMigration'
-import type { User } from './types'
 import { CookieConsent } from './components/ui/CookieConsent'
 import { GuestBanner } from './components/ui/GuestBanner'
+import { AppTutorial } from './components/onboarding/AppTutorial'
+import { resumeIfNeeded, getGenerationState } from './lib/programGeneration'
+import { RouterErrorBoundary } from './components/ui/RouterErrorBoundary'
+import { ensureProfileUser } from './lib/profileRecovery'
+import { shouldAutoShowTutorial } from './lib/tutorial'
 
 // Module-level set — survives component unmount/remount cycles.
 // Prevents repeated 406 profile queries for users who have a Supabase session
@@ -39,6 +42,7 @@ const LessonPage = lazy(() => import('./pages/LessonPage').then(m => ({ default:
 const InsightsPage = lazy(() => import('./pages/InsightsPage').then(m => ({ default: m.InsightsPage })))
 const AskPage = lazy(() => import('./pages/AskPage').then(m => ({ default: m.AskPage })))
 const ProgramBuilderPage = lazy(() => import('./pages/ProgramBuilderPage').then(m => ({ default: m.ProgramBuilderPage })))
+const AiProgramGenerationPage = lazy(() => import('./pages/AiProgramGenerationPage').then(m => ({ default: m.AiProgramGenerationPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
 const ActivityFeedPage = lazy(() => import('./pages/ActivityFeedPage').then(m => ({ default: m.ActivityFeedPage })))
 const FriendsPage = lazy(() => import('./pages/FriendsPage').then(m => ({ default: m.FriendsPage })))
@@ -80,9 +84,26 @@ function LoadingScreen() {
 function GuestOrAuthGuard() {
   const { session, loading: authLoading } = useAuth()
   const { state, dispatch } = useApp()
+  const location = useLocation()
   const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
   const hydratedRef = useRef(false)
+
+  useEffect(() => {
+    if (location.pathname !== '/' && showTutorial) {
+      setShowTutorial(false)
+    }
+  }, [location.pathname, showTutorial])
+
+  useEffect(() => {
+    if (session || authLoading || state.user) return
+
+    const guest = getGuestProfile()
+    if (guest) {
+      dispatch({ type: 'SET_USER', payload: guest })
+    }
+  }, [session, authLoading, state.user, dispatch])
 
   useEffect(() => {
     // Signed-out authenticated user — clear state
@@ -114,13 +135,9 @@ function GuestOrAuthGuard() {
         let user = state.user
 
         if (!user || user.isGuest) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+          user = await ensureProfileUser(session)
 
-          if (!profile) {
+          if (!user) {
             // Remember this session has no profile so remounts skip the 406 query
             sessionsWithNoProfile.add(session.user.id)
             hydratedRef.current = true
@@ -131,17 +148,6 @@ function GuestOrAuthGuard() {
           // Profile found — clear stale cache entry if present
           sessionsWithNoProfile.delete(session.user.id)
 
-          user = {
-            id: profile.id,
-            name: profile.name,
-            goal: profile.goal,
-            experienceLevel: profile.experience_level,
-            activeProgramId: profile.active_program_id ?? undefined,
-            onboardedAt: profile.created_at,
-            theme: getTheme(),
-            avatarUrl: profile.avatar_url ?? null,
-          } satisfies User
-
           setUser(user)
           dispatch({ type: 'SET_USER', payload: user })
         }
@@ -149,16 +155,38 @@ function GuestOrAuthGuard() {
         await runMigrationIfNeeded(user.id)
 
         const [history, learningProgress, customPrograms] = await Promise.all([
-          db.fetchHistory(user.id),
-          db.fetchLearningProgress(user.id),
-          db.fetchCustomPrograms(user.id),
+          fetchHistory(user.id),
+          fetchLearningProgress(user.id),
+          fetchCustomPrograms(user.id),
         ])
 
         dispatch({ type: 'SET_HISTORY', payload: history })
         if (learningProgress) {
           dispatch({ type: 'SET_LEARNING_PROGRESS', payload: learningProgress })
         }
-        setCustomPrograms(customPrograms)
+        // Safety net: if generation was 'ready' but the Supabase upsert hadn't
+        // landed yet, the fetch returns [] and would wipe the locally-stored program.
+        // Preserve any locally-stored generated program that Supabase doesn't have yet.
+        const genState = getGenerationState();
+        if (genState?.userId === user.id && genState.status === 'ready') {
+          const local = getCustomPrograms();
+          const localGen = local.find(p => p.id === genState.programId);
+          if (localGen && !customPrograms.some(p => p.id === genState.programId)) {
+            setCustomPrograms([...customPrograms, localGen]);
+          } else {
+            setCustomPrograms(customPrograms);
+          }
+        } else {
+          setCustomPrograms(customPrograms);
+        }
+
+        // Resume background program generation if the page was reloaded mid-generation
+        resumeIfNeeded(user.id).catch(() => {})
+
+        // Show tutorial once on first login after account creation
+        if (shouldAutoShowTutorial(user)) {
+          setShowTutorial(true)
+        }
 
         hydratedRef.current = true
       } catch (err) {
@@ -178,9 +206,6 @@ function GuestOrAuthGuard() {
   if (!session) {
     const guest = getGuestProfile()
     if (guest) {
-      if (!state.user) {
-        dispatch({ type: 'SET_USER', payload: guest })
-      }
       return (
         <>
           <GuestBanner />
@@ -197,21 +222,68 @@ function GuestOrAuthGuard() {
 
   if (!state.user) return <LoadingScreen />
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Outlet />
-    </Suspense>
+    <>
+      <Suspense fallback={<LoadingScreen />}>
+        <Outlet />
+      </Suspense>
+      {showTutorial && location.pathname === '/' && (
+        <AppTutorial onDismiss={() => setShowTutorial(false)} />
+      )}
+    </>
   )
 }
 
 /**
  * Hard auth required — community features need a real Supabase account.
  * Guests see an upgrade prompt instead of a broken page.
+ *
+ * When a user navigates directly to a community route (e.g. bookmark or E2E
+ * test goto()), GuestOrAuthGuard never mounts, so state.user is never
+ * populated.  This guard therefore runs its own lightweight profile fetch
+ * so the page renders instead of showing a permanent loading screen.
  */
 function AuthOnlyGuard() {
   const { session, loading } = useAuth()
-  const { state } = useApp()
+  const { state, dispatch } = useApp()
+  const navigate = useNavigate()
+  const [syncing, setSyncing] = useState(false)
 
-  if (loading) return <LoadingScreen />
+  useEffect(() => {
+    // Only hydrate when we have a session but no user yet (direct navigation)
+    if (!session || loading || state.user) return
+
+    if (sessionsWithNoProfile.has(session.user.id)) {
+      navigate('/onboarding', { replace: true })
+      return
+    }
+
+    async function hydrate() {
+      if (!session) return
+      setSyncing(true)
+      try {
+        const user = await ensureProfileUser(session)
+        if (!user) {
+          sessionsWithNoProfile.add(session.user.id)
+          navigate('/onboarding', { replace: true })
+          return
+        }
+
+        sessionsWithNoProfile.delete(session.user.id)
+        dispatch({
+          type: 'SET_USER',
+          payload: user,
+        })
+      } catch (err) {
+        console.error('[AuthOnlyGuard] Profile fetch failed:', err)
+      } finally {
+        setSyncing(false)
+      }
+    }
+
+    hydrate()
+  }, [session, loading, state.user, dispatch, navigate])
+
+  if (loading || syncing) return <LoadingScreen />
 
   if (!session) {
     return (
@@ -272,6 +344,7 @@ function GuestGuard() {
 
 export const router = createBrowserRouter([
   {
+    errorElement: <RouterErrorBoundary />,
     element: <RootLayout />,
     children: [
       { path: '/onboarding', element: <OnboardingGuard /> },
@@ -289,6 +362,7 @@ export const router = createBrowserRouter([
           { path: '/', element: <DashboardPage /> },
           { path: '/profile', element: <ProfilePage /> },
           { path: '/programs', element: <ProgramsPage /> },
+          { path: '/programs/ai/new', element: <AiProgramGenerationPage /> },
           { path: '/programs/builder', element: <ProgramBuilderPage /> },
           { path: '/programs/:programId', element: <ProgramDetailPage /> },
           { path: '/library', element: <ExerciseLibraryPage /> },
