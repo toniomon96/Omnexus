@@ -23,9 +23,20 @@ async function resendConfirmationEmail(email: string) {
 
 async function sendPasswordReset(email: string) {
   const { supabase } = await import('../lib/supabase');
-  return supabase.auth.resetPasswordForEmail(email, {
+  const response = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}/auth/callback`,
   });
+
+  // Some environments (preview domains, localhost variants) may not be in
+  // Supabase's allowlist. Retry without a custom redirect so delivery still works.
+  if (response.error) {
+    const message = response.error.message.toLowerCase();
+    if (message.includes('redirect') || message.includes('allow')) {
+      return supabase.auth.resetPasswordForEmail(email);
+    }
+  }
+
+  return response;
 }
 
 export function LoginPage() {
@@ -102,7 +113,7 @@ export function LoginPage() {
     }
   }
 
-  async function handleForgotPassword(e: React.FormEvent) {
+  async function handleForgotPassword(e: React.SyntheticEvent) {
     e.preventDefault();
     setForgotError('');
     setForgotLoading(true);
@@ -172,11 +183,24 @@ export function LoginPage() {
         {showForgot && (
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-4 space-y-3">
             {forgotSuccess ? (
-              <p className="text-sm text-green-400">
-                Check your email for a password reset link.
-              </p>
+              <div className="space-y-1.5 rounded-lg border border-green-800/60 bg-green-900/20 px-3 py-2.5">
+                <p className="text-sm font-medium text-green-300">
+                  Password reset link sent.
+                </p>
+                <p className="text-xs text-slate-300">
+                  If you do not see it within a few minutes, check Spam or Junk and verify you entered the correct email.
+                </p>
+                <button
+                  type="button"
+                  onClick={(e) => void handleForgotPassword(e)}
+                  disabled={forgotLoading || !forgotEmail}
+                  className="mt-1 text-xs font-medium text-brand-300 hover:text-brand-200 disabled:opacity-60"
+                >
+                  {forgotLoading ? 'Resending...' : 'Resend reset email'}
+                </button>
+              </div>
             ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-3">
+              <div className="space-y-3">
                 <Input
                   label="Your email"
                   type="email"
@@ -190,13 +214,14 @@ export function LoginPage() {
                   <p className="text-sm text-red-400">{forgotError}</p>
                 )}
                 <Button
-                  type="submit"
+                  type="button"
                   fullWidth
                   disabled={forgotLoading || !forgotEmail}
+                  onClick={(e) => void handleForgotPassword(e)}
                 >
                   {forgotLoading ? 'Sending…' : 'Send Reset Link'}
                 </Button>
-              </form>
+              </div>
             )}
           </div>
         )}

@@ -226,7 +226,7 @@ vercel deploy --prod
 Omnexus should move through `local -> dev -> preview -> prod`.
 
 - Local: run `vercel dev` and `npm run verify:local` while building on a feature or bug branch.
-- Dev: merge feature and bug branches into `dev`; CI runs `npm run verify:dev` and Vercel should publish the shared DEV environment.
+- Dev: merge feature and bug branches into `dev`; CI runs `npm run verify:dev` (full E2E) and Vercel should publish the shared DEV environment.
 - Preview: open a `dev -> main` PR; Vercel preview plus `npm run verify:preview` become the release candidate gate.
 - Prod: merge to `main` only after preview validation and approvals; Vercel production should only track `main`.
 
@@ -234,6 +234,26 @@ See `docs/RELEASE_STRATEGY.md` for the full branching, CI, Vercel, and release c
 See `docs/RELEASE_CHECKLIST.md` for release-day execution.
 See `docs/ENVIRONMENT_MATRIX.md` for environment-specific variables and service expectations.
 See `docs/PLATFORM_SETUP_CHECKLIST.md` for the exact GitHub, Vercel, Supabase, and Stripe setup tasks that still need manual admin access.
+
+## CI Gate Matrix
+
+| Trigger | Gate | Command | Coverage |
+|---|---|---|---|
+| PR into `dev` | Dev PR Smoke Check | `npm run verify:smoke` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + smoke E2E |
+| Push to `dev` | Dev Verification Gate | `npm run verify:dev` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| PR into `dev` | Dev Verification Gate | `npm run verify:dev` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| Push to `main` | Production Verification Gate | `npm run verify:prod` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| PR into `main` | Production Verification Gate | `npm run verify:prod` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| Manual release workflow (`target=preview`) | Manual Release Verification | `npm run verify:preview` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| Manual release workflow (`target=production`) | Manual Release Verification | `npm run verify:prod` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+
+Required CI secrets for E2E:
+
+| Secret | Purpose |
+|---|---|
+| `E2E_BASE_URL` | Environment URL under test (preview or deployed app) |
+| `E2E_TEST_EMAIL` | Dedicated test account email for auth E2E flows |
+| `E2E_TEST_PASSWORD` | Dedicated test account password for auth E2E flows |
 
 ### Required Vercel environment variables
 
@@ -275,6 +295,7 @@ In Supabase Dashboard → Authentication → URL Configuration:
 | `docs/RELEASE_STRATEGY.md` | Branching, VCS, testing, and environment promotion strategy |
 | `docs/RELEASE_CHECKLIST.md` | Release-day execution checklist for `dev -> main` promotions |
 | `docs/ENVIRONMENT_MATRIX.md` | Environment-specific variables, branch mapping, and external service behavior |
+| `docs/CI_RUNBOOK.md` | CI failure triage and recovery playbook |
 | `docs/PLATFORM_SETUP_CHECKLIST.md` | Exact manual admin steps for GitHub, Vercel, Supabase, and Stripe |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, data models, Supabase schema |
 | [docs/API.md](docs/API.md) | All serverless endpoint reference |

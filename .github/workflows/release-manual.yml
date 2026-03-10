@@ -42,8 +42,18 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Resolve verification command
+        id: verify-command
+        shell: bash
+        run: |
+          if [[ "${{ inputs.target }}" == "production" ]]; then
+            echo "script=verify:prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "script=verify:preview" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run release verification gate
-        run: npm run verify:preview
+        run: npm run ${{ steps.verify-command.outputs.script }}
         env:
           E2E_BASE_URL: ${{ inputs.base_url || secrets.E2E_BASE_URL }}
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
