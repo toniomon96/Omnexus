@@ -524,6 +524,10 @@ export interface Meal {
 }
 
 export interface MealPlan {
+  planType?: 'weight-loss' | 'weight-gain' | 'maintenance';
+  overview?: string;
+  dailyTips?: string[];
+  hydrationReminder?: string;
   meals: Meal[];
   totalCalories: number;
   totalProtein: number;

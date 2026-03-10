@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { getPreferencesMap } from './_notificationPrefs.js';
 import { pickProgressMessages, type SessionRow } from './_progressMilestones.js';
-import { sendPushToUser } from './_sendPush.js';
+import { sendNotificationReliably } from './_notify.js';
 
 const LOOKBACK_DAYS = 365;
 const RECENT_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -56,6 +56,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (messages.length === 0) return res.status(200).json({ sent: 0 });
 
-  await Promise.allSettled(messages.map((message) => sendPushToUser(user.id, message)));
-  return res.status(200).json({ sent: messages.length });
+  const dayKey = new Date(nowMs).toISOString().slice(0, 10);
+  const results = await Promise.all(
+    messages.map((message) =>
+      sendNotificationReliably({
+        supabaseAdmin,
+        userId: user.id,
+        eventType: 'progress_milestone',
+        dedupeKey: `progress:${user.id}:${message.tag ?? 'generic'}:${dayKey}`,
+        payload: message,
+      }),
+    ),
+  );
+
+  const sent = results.filter((result) => result.status === 'sent').length;
+  return res.status(200).json({ sent });
 }

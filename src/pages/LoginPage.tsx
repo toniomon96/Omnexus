@@ -6,6 +6,7 @@ import { useApp } from '../store/AppContext';
 import { setUser } from '../utils/localStorage';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { apiBase } from '../lib/api';
 
 async function signInWithEmailPassword(email: string, password: string) {
   const { supabase } = await import('../lib/supabase');
@@ -22,21 +23,21 @@ async function resendConfirmationEmail(email: string) {
 }
 
 async function sendPasswordReset(email: string) {
-  const { supabase } = await import('../lib/supabase');
-  const response = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback`,
+  const response = await fetch(`${apiBase}/api/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, redirectTo: `${window.location.origin}/auth/callback` }),
   });
 
-  // Some environments (preview domains, localhost variants) may not be in
-  // Supabase's allowlist. Retry without a custom redirect so delivery still works.
-  if (response.error) {
-    const message = response.error.message.toLowerCase();
-    if (message.includes('redirect') || message.includes('allow')) {
-      return supabase.auth.resetPasswordForEmail(email);
-    }
+  if (response.ok) {
+    return { error: null };
   }
 
-  return response;
+  // Fallback to Supabase default flow if branded reset route is unavailable.
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/callback`,
+  });
 }
 
 function normalizeSignInError(rawMessage: string): {

@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { hasPromptInjectionSignals, normalizeExperience, normalizeGoal, sanitizeFreeText } from './_aiSafety.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -70,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!await checkRateLimit(req, res)) return;
+  if (!await checkRateLimit(req, res, { namespace: 'omnexus_rl:insights', limit: 12, window: '10 m' })) return;
 
   // Insights require a valid Supabase session — workout data is user-specific
   // and this endpoint is not available to guests (cost + data sensitivity).
@@ -96,20 +97,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { userGoal, userExperience, workoutSummary } = req.body ?? {};
 
-  if (!workoutSummary || typeof workoutSummary !== 'string') {
+  const safeSummary = sanitizeFreeText(workoutSummary, MAX_SUMMARY_LENGTH);
+  if (!safeSummary) {
     return res.status(400).json({ error: 'workoutSummary is required' });
   }
   if (workoutSummary.length > MAX_SUMMARY_LENGTH) {
     return res.status(400).json({ error: `workoutSummary too long (max ${MAX_SUMMARY_LENGTH} characters)` });
   }
+  if (hasPromptInjectionSignals(safeSummary)) {
+    return res.status(400).json({ error: 'Unsupported instruction-like text detected in workout summary' });
+  }
 
   try {
     const userMessage = [
-      `User goal: ${userGoal ?? 'general fitness'}`,
-      `Experience level: ${userExperience ?? 'beginner'}`,
+      `User goal: ${normalizeGoal(userGoal)}`,
+      `Experience level: ${normalizeExperience(userExperience)}`,
       '',
       'Workout data:',
-      workoutSummary,
+      safeSummary,
     ].join('\n');
 
     const message = await Promise.race([
@@ -130,6 +135,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ insight: block.text });
   } catch (err: unknown) {
     console.error('[/api/insights]', err);
-    return res.status(500).json({ error: 'Failed to generate insights' });
+    return res.status(500).json({ error: 'Could not generate insights right now. Please try again shortly.' });
   }
 }

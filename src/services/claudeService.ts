@@ -295,6 +295,7 @@ export interface MealPlanRequest {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  planType?: 'weight-loss' | 'weight-gain' | 'maintenance';
   preferences?: string;
 }
 

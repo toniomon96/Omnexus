@@ -129,8 +129,8 @@ describe('training-notifications', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const sendPushToUser = vi.fn(async () => {});
-    vi.doMock('./_sendPush.js', () => ({ sendPushToUser }));
+    const sendNotificationReliably = vi.fn(async () => ({ status: 'sent', attempts: 1 }));
+    vi.doMock('./_notify.js', () => ({ sendNotificationReliably }));
 
     const now = Date.now();
     mockSupabase(
@@ -150,12 +150,15 @@ describe('training-notifications', () => {
     await handler(createReq('Bearer expected-secret'), res);
 
     expect(getStatusCode()).toBe(200);
-    expect(sendPushToUser).toHaveBeenCalledTimes(1);
-    expect(sendPushToUser).toHaveBeenCalledWith(
-      'user-1',
+    expect(sendNotificationReliably).toHaveBeenCalledTimes(1);
+    expect(sendNotificationReliably).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Training Day Check-In',
-        tag: 'missed-day-2',
+        userId: 'user-1',
+        eventType: 'missed_day_nudge',
+        payload: expect.objectContaining({
+          title: 'Training Day Check-In',
+          tag: 'missed-day-2',
+        }),
       }),
     );
     expect(getBody()).toEqual({ sent: 1, usersEvaluated: 1 });
@@ -166,8 +169,8 @@ describe('training-notifications', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const sendPushToUser = vi.fn(async () => {});
-    vi.doMock('./_sendPush.js', () => ({ sendPushToUser }));
+    const sendNotificationReliably = vi.fn(async () => ({ status: 'sent', attempts: 1 }));
+    vi.doMock('./_notify.js', () => ({ sendNotificationReliably }));
 
     const now = Date.now();
     const sessions: SessionRow[] = [];
@@ -194,16 +197,22 @@ describe('training-notifications', () => {
     await handler(createReq('Bearer expected-secret'), res);
 
     expect(getStatusCode()).toBe(200);
-    expect(sendPushToUser).toHaveBeenCalledTimes(2);
-    expect(sendPushToUser).toHaveBeenNthCalledWith(
+    expect(sendNotificationReliably).toHaveBeenCalledTimes(2);
+    expect(sendNotificationReliably).toHaveBeenNthCalledWith(
       1,
-      'user-1',
-      expect.objectContaining({ title: 'Milestone Unlocked', tag: 'milestone-sessions' }),
+      expect.objectContaining({
+        userId: 'user-1',
+        eventType: 'progress_milestone',
+        payload: expect.objectContaining({ title: 'Milestone Unlocked', tag: 'milestone-sessions' }),
+      }),
     );
-    expect(sendPushToUser).toHaveBeenNthCalledWith(
+    expect(sendNotificationReliably).toHaveBeenNthCalledWith(
       2,
-      'user-1',
-      expect.objectContaining({ title: 'Volume Milestone', tag: 'milestone-volume' }),
+      expect.objectContaining({
+        userId: 'user-1',
+        eventType: 'progress_milestone',
+        payload: expect.objectContaining({ title: 'Volume Milestone', tag: 'milestone-volume' }),
+      }),
     );
     expect(getBody()).toEqual({ sent: 2, usersEvaluated: 1 });
   });

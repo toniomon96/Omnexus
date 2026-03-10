@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { getPreferencesMap } from './_notificationPrefs.js';
-import { sendPushToUsers } from './_sendPush.js';
 import { setCorsHeaders } from './_cors.js';
+import { sendNotificationReliably } from './_notify.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!setCorsHeaders(req, res)) return;
@@ -51,12 +51,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (eligibleFriendIds.length === 0) return res.status(200).json({ sent: 0 });
 
   const userName = profileResult.data?.name ?? 'Your friend';
-  await sendPushToUsers(eligibleFriendIds, {
-    title: 'Friend Activity',
-    body: `${userName} just completed a workout 💪`,
-    url: '/feed',
-    tag: 'friend-workout',
-  });
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const results = await Promise.all(
+    eligibleFriendIds.map((friendId) =>
+      sendNotificationReliably({
+        supabaseAdmin,
+        userId: friendId,
+        eventType: 'friend_activity',
+        dedupeKey: `friend-workout:${user.id}:${friendId}:${dayKey}`,
+        payload: {
+          title: 'Friend Activity',
+          body: `${userName} just completed a workout 💪`,
+          url: '/feed',
+          tag: 'friend-workout',
+        },
+      }),
+    ),
+  );
 
-  return res.status(200).json({ sent: eligibleFriendIds.length });
+  const sent = results.filter((result) => result.status === 'sent').length;
+  return res.status(200).json({ sent });
 }
