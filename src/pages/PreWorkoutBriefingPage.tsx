@@ -8,6 +8,8 @@ import { exercises as exerciseData } from '../data/exercises';
 import { programs } from '../data/programs';
 import { getCustomPrograms } from '../utils/localStorage';
 import { getNextWorkout } from '../utils/programUtils';
+import { useWeightUnit } from '../hooks/useWeightUnit';
+import { formatWeightValue } from '../utils/weightUnits';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
@@ -18,6 +20,7 @@ export function PreWorkoutBriefingPage() {
   const { state } = useApp();
   const navigate = useNavigate();
   const { startWorkout } = useWorkoutSession();
+  const weightUnit = useWeightUnit();
 
   const [briefing, setBriefing] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,7 +49,7 @@ export function PreWorkoutBriefingPage() {
           .flatMap((le) =>
             le.sets
               .filter((set) => set.completed && set.weight > 0)
-              .map((set) => `${set.weight}kg×${set.reps}`),
+                .map((set) => `${formatWeightValue(set.weight, weightUnit)} ${weightUnit} x ${set.reps}`),
           ),
       )
       .slice(-3);
