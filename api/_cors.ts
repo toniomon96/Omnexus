@@ -88,6 +88,24 @@ function applyCommonCorsHeaders(res: VercelResponse, origin: string): void {
   res.setHeader('Vary', 'Origin');
 }
 
+function applySecurityHeaders(res: VercelResponse, isProduction: boolean): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cache-Control', 'no-store');
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+}
+
+function getForwardedProto(req: VercelRequest): string | null {
+  const value = req.headers['x-forwarded-proto'];
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0]?.toLowerCase() ?? null;
+  return value.toLowerCase();
+}
+
 /**
  * Applies CORS headers and enforces a strict origin allowlist in production.
  * Returns false when the request must be blocked.
@@ -97,6 +115,15 @@ export function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean
   const vercelEnv = process.env.VERCEL_ENV;
   const isPreview = vercelEnv === 'preview';
   const isProduction = vercelEnv === 'production' || (process.env.NODE_ENV === 'production' && !vercelEnv);
+  applySecurityHeaders(res, isProduction);
+
+  if (isProduction) {
+    const proto = getForwardedProto(req);
+    if (proto && proto !== 'https') {
+      res.status(400).json({ error: 'HTTPS is required' });
+      return false;
+    }
+  }
 
   if (isPreview) {
     const host = getHost(req);

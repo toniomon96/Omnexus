@@ -9,8 +9,33 @@ import { Button } from '../components/ui/Button';
 import { apiBase } from '../lib/api';
 
 async function signInWithEmailPassword(email: string, password: string) {
+  const response = await fetch(`${apiBase}/api/signin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as { error?: string };
+    return {
+      data: { user: null, session: null },
+      error: { message: body.error ?? 'Sign in failed. Please try again.' },
+    };
+  }
+
+  const body = await response.json() as { accessToken?: string; refreshToken?: string };
+  if (!body.accessToken || !body.refreshToken) {
+    return {
+      data: { user: null, session: null },
+      error: { message: 'Sign in failed. Please try again.' },
+    };
+  }
+
   const { supabase } = await import('../lib/supabase');
-  return supabase.auth.signInWithPassword({ email, password });
+  return supabase.auth.setSession({
+    access_token: body.accessToken,
+    refresh_token: body.refreshToken,
+  });
 }
 
 async function resendConfirmationEmail(email: string) {

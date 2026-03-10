@@ -18,6 +18,7 @@ import type { WorkoutSession, PersonalRecord } from '../types';
 import { Plus, X, StopCircle } from 'lucide-react';
 
 const WORKOUT_HELP_DISMISSED_KEY = 'omnexus_workout_help_dismissed';
+const WORKOUT_SHOW_DEMOS_KEY = 'omnexus_workout_show_demos';
 
 export function ActiveWorkoutPage() {
   const navigate = useNavigate();
@@ -41,6 +42,13 @@ export function ActiveWorkoutPage() {
     prs: PersonalRecord[];
   } | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showExerciseDemos, setShowExerciseDemos] = useState(() => {
+    try {
+      return localStorage.getItem(WORKOUT_SHOW_DEMOS_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  });
   const [showBeginnerHelp, setShowBeginnerHelp] = useState(() => {
     try {
       return localStorage.getItem(WORKOUT_HELP_DISMISSED_KEY) !== 'true';
@@ -120,6 +128,18 @@ export function ActiveWorkoutPage() {
     }
   }
 
+  function toggleExerciseDemos() {
+    setShowExerciseDemos((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(WORKOUT_SHOW_DEMOS_KEY, next ? 'true' : 'false');
+      } catch {
+        // Ignore storage errors in private browsing modes.
+      }
+      return next;
+    });
+  }
+
   // Get previous session sets for reference
   function getPrevSets(exerciseId: string, setCount: number) {
     const pastSessions = state.history.sessions
@@ -190,6 +210,26 @@ export function ActiveWorkoutPage() {
             </div>
           )}
 
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Exercise video demos
+              </p>
+              <button
+                type="button"
+                onClick={toggleExerciseDemos}
+                className={[
+                  'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors',
+                  showExerciseDemos
+                    ? 'bg-brand-500/15 text-brand-400 border border-brand-500/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
+                ].join(' ')}
+              >
+                {showExerciseDemos ? 'On' : 'Off'}
+              </button>
+            </div>
+          </div>
+
           {persistedSession.exercises.map((loggedEx, ei) => {
             const dayEx = trainingDay?.exercises[ei];
             const restSecs = dayEx?.scheme.restSeconds ?? 90;
@@ -206,6 +246,7 @@ export function ActiveWorkoutPage() {
                 onAddSet={() => addSet(ei)}
                 onRemoveSet={(si) => removeSet(ei, si)}
                 onStartRest={() => startRest(restSecs)}
+                forceShowDemo={showExerciseDemos}
               />
             );
           })}

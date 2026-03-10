@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { setUser, resetProgramCursors, getHistory } from '../../utils/localStorage';
 import { apiBase } from '../../lib/api';
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../../lib/passwordPolicy';
 import { useApp } from '../../store/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { startGeneration } from '../../lib/programGeneration';
@@ -103,7 +104,7 @@ export function OnboardingForm() {
     setPasswordError('');
     if (!email.trim()) { setEmailError('Please enter your email'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailError('Please enter a valid email'); return; }
-    if (password.length < 6) { setPasswordError('Password must be at least 6 characters'); return; }
+    if (password.length < MIN_PASSWORD_LENGTH) { setPasswordError(passwordLengthError()); return; }
     setStep(1);
   }
 
@@ -367,7 +368,7 @@ export function OnboardingForm() {
               <Input
                 label="Password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="At least 6 characters"
+                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 error={passwordError}

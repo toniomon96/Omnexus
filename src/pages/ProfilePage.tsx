@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight } from 'lucide-react';
 import { apiBase } from '../lib/api';
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../lib/passwordPolicy';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -245,8 +246,8 @@ export function ProfilePage() {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordError('');
-    if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters.');
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setPasswordError(`${passwordLengthError()}.`);
       return;
     }
     if (newPassword !== confirmPassword) {

@@ -18,6 +18,7 @@ All API endpoints are Vercel serverless functions in `/api/`. They run on Node.j
 | Endpoint | Auth Required |
 |---|---|
 | `POST /api/signup` | No |
+| `POST /api/signin` | No |
 | `POST /api/setup-profile` | No (verifies user exists via admin SDK) |
 | `POST /api/ask` | No |
 | `POST /api/insights` | **Yes** — Bearer JWT |
@@ -45,6 +46,46 @@ The server verifies the JWT using `supabaseAdmin.auth.getUser(token)`.
 ---
 
 ## POST /api/onboard
+
+---
+
+## POST /api/signin
+
+Server-mediated sign-in endpoint with brute-force protections. It applies endpoint rate limiting and account lockout controls before exchanging credentials with Supabase Auth.
+
+**Request**
+
+```http
+POST /api/signin
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "you@example.com",
+  "password": "your-password"
+}
+```
+
+**Response 200**
+
+```json
+{
+  "accessToken": "...",
+  "refreshToken": "..."
+}
+```
+
+**Errors**
+
+| Status | Cause |
+|---|---|
+| `400` | Invalid email/password format |
+| `401` | Invalid credentials |
+| `429` | Lockout due to repeated failed attempts |
+| `500` | Supabase auth not configured |
+
+---
 
 Multi-turn AI onboarding conversation. Collects user training goals, history, schedule, equipment, and injuries. When sufficient data is gathered, Claude outputs a structured `UserTrainingProfile`.
 
