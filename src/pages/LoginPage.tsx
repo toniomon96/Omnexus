@@ -183,9 +183,22 @@ export function LoginPage() {
         {showForgot && (
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 p-4 space-y-3">
             {forgotSuccess ? (
-              <p className="text-sm text-green-400">
-                Check your email for a password reset link.
-              </p>
+              <div className="space-y-1.5 rounded-lg border border-green-800/60 bg-green-900/20 px-3 py-2.5">
+                <p className="text-sm font-medium text-green-300">
+                  Password reset link sent.
+                </p>
+                <p className="text-xs text-slate-300">
+                  If you do not see it within a few minutes, check Spam or Junk and verify you entered the correct email.
+                </p>
+                <button
+                  type="button"
+                  onClick={(e) => void handleForgotPassword(e)}
+                  disabled={forgotLoading || !forgotEmail}
+                  className="mt-1 text-xs font-medium text-brand-300 hover:text-brand-200 disabled:opacity-60"
+                >
+                  {forgotLoading ? 'Resending...' : 'Resend reset email'}
+                </button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <Input
