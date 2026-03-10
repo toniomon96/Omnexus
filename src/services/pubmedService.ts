@@ -28,8 +28,10 @@ export async function fetchArticlesByCategory(
   const res = await fetch(`${apiBase}/api/articles?category=${category}&limit=${limit}`);
   if (!res.ok) {
     let message = 'We\'re temporarily having trouble loading the latest research. Please try again in a moment.';
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       message = 'Access to research articles is temporarily unavailable. Please sign in and try again.';
+    } else if (res.status === 403) {
+      message = 'Access to research articles is currently blocked for this app origin. Please verify deployment domain settings and try again.';
     }
     throw new PubMedApiError(message, res.status);
   }

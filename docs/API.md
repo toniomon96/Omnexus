@@ -417,6 +417,26 @@ Not called by the client. Scheduled in `vercel.json`:
 
 ---
 
+## GET /api/training-notifications
+
+**Vercel Cron** - runs at **5pm UTC daily**. Sends two categories of push notifications:
+
+1. Missed-day nudges at fixed inactivity checkpoints (`2`, `3`, `7`, `14` days since the last completed session)
+2. Progress milestones reached in the last 24 hours (session count, volume, and streak milestones)
+
+Not called by the client. Scheduled in `vercel.json`:
+```json
+{ "path": "/api/training-notifications", "schedule": "0 17 * * *" }
+```
+
+**Response 200**
+
+```json
+{ "sent": 37, "usersEvaluated": 214 }
+```
+
+---
+
 ## GET /api/weekly-digest
 
 **Vercel Cron** — runs at **8am UTC every Monday**. Sends each subscribed user a summary comparing their current week's training volume to the previous week.

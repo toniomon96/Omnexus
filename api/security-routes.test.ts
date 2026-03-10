@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import dailyReminder from './daily-reminder';
+import trainingNotifications from './training-notifications';
 import weeklyDigest from './weekly-digest';
 import generateSharedChallenge from './generate-shared-challenge';
 import askHandler from './ask';
@@ -60,7 +61,7 @@ describe('security route hardening', () => {
   it('rejects cron calls when CRON_SECRET is missing', async () => {
     delete process.env.CRON_SECRET;
 
-    for (const handler of [dailyReminder, weeklyDigest, generateSharedChallenge]) {
+    for (const handler of [dailyReminder, trainingNotifications, weeklyDigest, generateSharedChallenge]) {
       const { res, getStatusCode, getBody } = createMockResponse();
       await handler(createReq({ method: 'GET', headers: { origin: 'http://localhost:3000' } }), res);
       expect(getStatusCode()).toBe(500);
@@ -71,7 +72,7 @@ describe('security route hardening', () => {
   it('rejects invalid cron authorization', async () => {
     process.env.CRON_SECRET = 'expected-secret';
 
-    for (const handler of [dailyReminder, weeklyDigest, generateSharedChallenge]) {
+    for (const handler of [dailyReminder, trainingNotifications, weeklyDigest, generateSharedChallenge]) {
       const { res, getStatusCode, getBody } = createMockResponse();
       await handler(createReq({ method: 'GET', headers: { authorization: 'Bearer wrong', origin: 'http://localhost:3000' } }), res);
       expect(getStatusCode()).toBe(401);

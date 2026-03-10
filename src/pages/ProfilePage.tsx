@@ -598,8 +598,8 @@ export function ProfilePage() {
             </p>
             <p className="text-xs text-slate-500 mb-3">
               {pushEnabled
-                ? 'You\'ll receive daily workout reminders and friend activity alerts.'
-                : 'Get daily workout reminders and alerts when friends complete workouts.'}
+                ? 'You\'ll receive reminders, community activity, and progress milestone alerts.'
+                : 'Get training reminders, missed-day nudges, community updates, and milestone alerts.'}
             </p>
             {pushDenied && (
               <p className="text-xs text-amber-400 mb-2">
