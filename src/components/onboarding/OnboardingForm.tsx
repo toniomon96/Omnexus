@@ -263,7 +263,7 @@ export function OnboardingForm() {
   if (emailConfirmPending) {
     return (
       <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-12 items-center justify-center">
-        <div className="max-w-sm w-full text-center space-y-6">
+        <div className="max-w-md w-full text-center space-y-6">
           <div className="w-20 h-20 rounded-full bg-brand-500/15 border border-brand-500/30 flex items-center justify-center mx-auto">
             <Mail size={36} className="text-brand-400" />
           </div>
@@ -313,6 +313,7 @@ export function OnboardingForm() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8 overflow-y-auto">
+      <div className="w-full max-w-2xl mx-auto">
       {repairMode && (
         <div className="mb-4 space-y-3">
           <p className="rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
@@ -455,6 +456,7 @@ export function OnboardingForm() {
           </Button>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -65,7 +65,7 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
   function handleStartWorkout() {
     if (!program) return;
     startWorkout(program, dayIndex);
-    window.location.assign('/workout/active');
+    navigate('/workout/active');
   }
 
   return (

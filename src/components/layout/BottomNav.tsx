@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Dumbbell, Users, GraduationCap, Sparkles } from 'lucide-react';
 
 // All routes that belong to the Community section — keeps the tab highlighted
@@ -7,6 +7,7 @@ const COMMUNITY_PATHS = ['/community', '/feed', '/friends', '/leaderboard', '/ch
 
 export function BottomNav() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isCommunityActive = COMMUNITY_PATHS.some(
     p => location.pathname === p || location.pathname.startsWith(p + '/'),
@@ -33,7 +34,11 @@ export function BottomNav() {
             <button
               key={to}
               type="button"
-              onClick={() => window.location.assign(to)}
+              onClick={() => {
+                if (location.pathname !== to) {
+                  navigate(to);
+                }
+              }}
               aria-current={active ? 'page' : undefined}
               className={[
                 'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-3.5 text-[10px] font-medium transition-colors',

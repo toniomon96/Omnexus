@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { v4 as uuid } from 'uuid';
 import { Zap, Save, X, Check } from 'lucide-react';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
@@ -12,6 +13,7 @@ import { SearchBar } from '../components/exercise-library/SearchBar';
 
 export function QuickLogPage() {
   const { startQuickWorkout } = useWorkoutSession();
+  const navigate = useNavigate();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [query, setQuery] = useState('');
@@ -58,7 +60,7 @@ export function QuickLogPage() {
     }
 
     startQuickWorkout(selectedIds);
-    window.location.assign('/workout/active');
+    navigate('/workout/active');
   }
 
   return (

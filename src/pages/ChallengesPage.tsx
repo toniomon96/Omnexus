@@ -72,10 +72,10 @@ async function respondToChallengeInvitation(invitationId: string, status: 'accep
 async function createChallengesRealtimeChannel(userId: string, onRefresh: () => void) {
   const { supabase } = await import('../lib/supabase');
   return supabase
-    .channel('challenges_rt')
+    .channel(`challenges_rt_${userId}`)
     .on(
       'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'challenge_participants' },
+      { event: 'UPDATE', schema: 'public', table: 'challenge_participants', filter: `user_id=eq.${userId}` },
       () => { onRefresh(); },
     )
     .on(
@@ -109,21 +109,37 @@ export function ChallengesPage() {
     isCooperative: false,
   });
   const channelRef = useRef<{ unsubscribe: () => Promise<unknown> | void } | null>(null);
+  const loadingRef = useRef(false);
 
   const load = useCallback(async () => {
-    const [data, aiData, friendships, invitations] = await loadChallengesData(userId);
-    setChallenges(data);
-    setAcceptedFriends(friendships.filter((f) => f.status === 'accepted'));
-    setPendingInvitations(invitations);
-    const todayStr = new Date().toISOString().split('T')[0];
-    const shared = aiData.find(
-      (c) => c.type === 'shared' && c.startDate <= todayStr && c.endDate >= todayStr,
-    );
-    setSharedChallenge(shared ?? null);
-    setLoading(false);
+    if (!userId || loadingRef.current) return;
+    loadingRef.current = true;
+    try {
+      const [data, aiData, friendships, invitations] = await loadChallengesData(userId);
+      setChallenges(data);
+      setAcceptedFriends(friendships.filter((f) => f.status === 'accepted'));
+      setPendingInvitations(invitations);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const shared = aiData.find(
+        (c) => c.type === 'shared' && c.startDate <= todayStr && c.endDate >= todayStr,
+      );
+      setSharedChallenge(shared ?? null);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
   }, [userId]);
 
   useEffect(() => {
+    if (!userId) {
+      setChallenges([]);
+      setAcceptedFriends([]);
+      setPendingInvitations([]);
+      setSharedChallenge(null);
+      setLoading(false);
+      return;
+    }
+
     void load();
 
     void createChallengesRealtimeChannel(userId, () => {

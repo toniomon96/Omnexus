@@ -55,6 +55,21 @@ Important:
 
 - If GitHub does not show one of those status checks yet, first open a PR into `dev` and a PR into `main` so Actions runs and registers the check names.
 
+### GitHub Actions repository permissions
+
+The `Promote dev to main` workflow creates or updates a pull request.
+
+If it fails with `GitHub Actions is not permitted to create or approve pull requests`, enable the repository setting that allows Actions to open PRs.
+
+Path:
+
+- `GitHub -> Omnexus repo -> Settings -> Actions -> General`
+
+Set:
+
+- `Workflow permissions`: `Read and write permissions`
+- `Allow GitHub Actions to create and approve pull requests`: `On`
+
 ---
 
 ## 2. Vercel branch and environment setup

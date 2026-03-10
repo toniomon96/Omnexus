@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Play, Zap } from 'lucide-react';
 import { getExerciseById } from '../../data/exercises';
 import { useWorkoutSession } from '../../hooks/useWorkoutSession';
+import { useNavigate } from 'react-router-dom';
 
 interface NextWorkoutCardProps {
   program: Program;
@@ -13,10 +14,11 @@ interface NextWorkoutCardProps {
 
 export function NextWorkoutCard({ program, day, dayIndex }: NextWorkoutCardProps) {
   const { startWorkout } = useWorkoutSession();
+  const navigate = useNavigate();
 
   function handleStart() {
     startWorkout(program, dayIndex);
-    window.location.assign('/workout/active');
+    navigate('/workout/active');
   }
 
   return (

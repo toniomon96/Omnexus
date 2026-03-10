@@ -102,7 +102,10 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
   const { state } = useApp();
   const isDark = state.theme === 'dark';
   const weekStart = getWeekStart();
-  const thisWeek = sessions.filter((s) => s.startedAt >= weekStart);
+  const thisWeek = useMemo(
+    () => sessions.filter((s) => s.startedAt >= weekStart),
+    [sessions, weekStart],
+  );
   const [exerciseSummaries, setExerciseSummaries] = useState<Record<string, ExerciseSummary>>({});
 
   const exerciseIds = useMemo(
@@ -131,21 +134,23 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
     };
   }, [exerciseIds]);
 
-  // Count sets per muscle group this week
-  const counts: Partial<Record<MuscleGroup, number>> = {};
-  thisWeek.forEach((session) => {
-    session.exercises.forEach((le) => {
-      const ex = exerciseSummaries[le.exerciseId];
-      if (!ex) return;
-      const completedSets = le.sets.filter((s) => s.completed).length;
-      [...ex.primaryMuscles, ...ex.secondaryMuscles].forEach((m) => {
-        const key = m as MuscleGroup;
-        counts[key] = (counts[key] ?? 0) + completedSets;
+  const counts = useMemo(() => {
+    const next: Partial<Record<MuscleGroup, number>> = {};
+    thisWeek.forEach((session) => {
+      session.exercises.forEach((le) => {
+        const ex = exerciseSummaries[le.exerciseId];
+        if (!ex) return;
+        const completedSets = le.sets.filter((s) => s.completed).length;
+        [...ex.primaryMuscles, ...ex.secondaryMuscles].forEach((m) => {
+          const key = m as MuscleGroup;
+          next[key] = (next[key] ?? 0) + completedSets;
+        });
       });
     });
-  });
+    return next;
+  }, [thisWeek, exerciseSummaries]);
 
-  const maxCount = Math.max(...Object.values(counts), 1);
+  const maxCount = useMemo(() => Math.max(...Object.values(counts), 1), [counts]);
   const intensity = (m: MuscleGroup) => (counts[m] ?? 0) / maxCount;
 
   if (thisWeek.length === 0) return null;
@@ -191,7 +196,12 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
       <div className="flex justify-center gap-6">
         {/* Front */}
         <div className="text-center">
-          <svg viewBox="20 10 140 250" className="w-28 h-auto" aria-label="Front body">
+          <svg
+            viewBox="20 10 140 250"
+            preserveAspectRatio="xMidYMid meet"
+            className="w-28 h-52"
+            aria-label="Front body"
+          >
             {/* Silhouette */}
             <path d={BODY_FRONT} fill="#cbd5e1" className="dark:fill-slate-600" />
             <path d={ARM_FRONT_L} fill="#cbd5e1" className="dark:fill-slate-600" />
@@ -206,7 +216,12 @@ export function MuscleHeatMap({ sessions }: MuscleHeatMapProps) {
 
         {/* Back */}
         <div className="text-center">
-          <svg viewBox="20 10 140 250" className="w-28 h-auto" aria-label="Back body">
+          <svg
+            viewBox="20 10 140 250"
+            preserveAspectRatio="xMidYMid meet"
+            className="w-28 h-52"
+            aria-label="Back body"
+          >
             <path d={BODY_BACK} fill="#cbd5e1" className="dark:fill-slate-600" />
             <path d={ARM_FRONT_L} fill="#cbd5e1" className="dark:fill-slate-600" />
             <path d={ARM_FRONT_R} fill="#cbd5e1" className="dark:fill-slate-600" />
