@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Loader, RefreshCw } from 'lucide-react';
 import { ArticleCard } from './ArticleCard';
-import { fetchArticlesByCategory } from '../../services/pubmedService';
+import { fetchArticlesByCategory, PubMedApiError } from '../../services/pubmedService';
 import type { HealthArticle, LearningCategory } from '../../types';
 
 const CATEGORIES: { value: LearningCategory; label: string }[] = [
@@ -33,8 +33,14 @@ export function ArticleFeed({ initialCategory = 'strength-training' }: ArticleFe
         const results = await fetchArticlesByCategory(category, 5);
         if (!cancelled) setArticles(results);
       } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : 'Failed to load articles');
+        if (!cancelled) {
+          if (err instanceof PubMedApiError) {
+            setError(err.message);
+          } else {
+            setError('We\'re temporarily having trouble loading the latest research. Please try again in a moment.');
+          }
+        }
+        console.error('[ArticleFeed] Failed to load articles:', err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -74,13 +80,13 @@ export function ArticleFeed({ initialCategory = 'strength-training' }: ArticleFe
 
       {!loading && error && (
         <div className="space-y-2 text-center">
-          <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
+          <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
           <button
             onClick={() => setRetryKey((k) => k + 1)}
-            className="flex items-center justify-center gap-1.5 mx-auto text-xs text-brand-500 hover:underline"
+            className="flex items-center justify-center gap-1.5 mx-auto text-sm text-brand-500 hover:underline"
           >
             <RefreshCw size={12} />
-            Try again
+            Retry
           </button>
         </div>
       )}

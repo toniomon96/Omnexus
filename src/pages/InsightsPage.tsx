@@ -10,7 +10,7 @@ import { AdaptationCard } from '../components/insights/AdaptationCard';
 import { PeerInsightsCard } from '../components/insights/PeerInsightsCard';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { getWorkoutInsights } from '../services/claudeService';
+import { ApiError, getWorkoutInsights } from '../services/claudeService';
 import { buildInsightRequest } from '../services/insightsService';
 import { Sparkles, Loader, Shield, MessageCircle, BarChart2, Newspaper, Play } from 'lucide-react';
 import type { LearningCategory, Goal } from '../types';
@@ -44,6 +44,11 @@ export function InsightsPage() {
 
   async function handleAnalyze() {
     if (!user) return;
+    if (user.isGuest) {
+      setError('Insights require an account because they analyze your workout history.');
+      return;
+    }
+
     setLoading(true);
     setInsight(null);
     setError(null);
@@ -60,13 +65,15 @@ export function InsightsPage() {
       const { insight: text } = await getWorkoutInsights(request);
       setInsight(text);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong.';
-      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      console.error('[InsightsPage] Failed to generate insights:', err);
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        setError('Insights require an account because they analyze your workout history.');
+      } else if (err instanceof Error && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
         setError(
           'We could not reach the insights service right now. Check your connection and try again.',
         );
       } else {
-        setError(msg);
+        setError('We couldn\'t generate insights right now. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -122,7 +129,24 @@ export function InsightsPage() {
             </div>
           </div>
 
-          {!hasHistory ? (
+          {user.isGuest ? (
+            <div className="flex flex-col items-center gap-3 py-2 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Insights require an account because they analyze your workout history.
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Create an account to unlock personalized training insights.
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => navigate('/onboarding')}>
+                  Create Account
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => navigate('/login')}>
+                  Sign In
+                </Button>
+              </div>
+            </div>
+          ) : !hasHistory ? (
             <div className="flex flex-col items-center gap-3 py-2 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Insights appear after you complete workouts. Log a few sessions and Omnexus will analyze your progress.
@@ -157,6 +181,15 @@ export function InsightsPage() {
         {error && (
           <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
             <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            {!user.isGuest && (
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                className="mt-2 text-sm font-medium text-brand-500 hover:underline"
+              >
+                Retry
+              </button>
+            )}
           </Card>
         )}
 

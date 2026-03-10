@@ -152,8 +152,23 @@ export function useWorkoutSession() {
       if (!exercise) return;
       const set = exercise.sets[setIdx];
       if (!set) return;
-      Object.assign(set, data);
-      if (data.completed) {
+
+      const nextData: Partial<LoggedSet> = { ...data };
+
+      if (typeof nextData.weight === 'number') {
+        if (!Number.isFinite(nextData.weight) || nextData.weight < 0) {
+          delete nextData.weight;
+        }
+      }
+
+      if (typeof nextData.reps === 'number') {
+        if (!Number.isFinite(nextData.reps) || nextData.reps < 0 || !Number.isInteger(nextData.reps)) {
+          delete nextData.reps;
+        }
+      }
+
+      Object.assign(set, nextData);
+      if (nextData.completed) {
         set.timestamp = new Date().toISOString();
       }
       session.totalVolumeKg = calculateTotalVolume(session);

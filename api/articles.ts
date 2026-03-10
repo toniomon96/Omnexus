@@ -25,7 +25,7 @@ async function esearch(query: string, limit: number): Promise<string[]> {
     `&term=${encodeURIComponent(query)}` +
     `&retmax=${limit}&retmode=json&sort=relevance&reldate=1825&datetype=pdat`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`PubMed esearch failed: ${res.status}`);
+  if (!res.ok) throw new Error(`PUBMED_HTTP_${res.status}`);
   const data = (await res.json()) as { esearchresult: { idlist: string[] } };
   return data.esearchresult.idlist;
 }
@@ -41,7 +41,7 @@ interface PubMedSummaryEntry {
 async function esummary(ids: string[]): Promise<Record<string, PubMedSummaryEntry>> {
   const url = `${PUBMED}/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`PubMed esummary failed: ${res.status}`);
+  if (!res.ok) throw new Error(`PUBMED_HTTP_${res.status}`);
   const data = (await res.json()) as { result: Record<string, PubMedSummaryEntry> };
   return data.result;
 }
@@ -148,7 +148,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ articles });
   } catch (err: unknown) {
     console.error('[/api/articles]', err);
-    const msg = err instanceof Error ? err.message : 'Failed to fetch articles';
-    return res.status(500).json({ error: msg });
+    const raw = err instanceof Error ? err.message : '';
+    if (raw.includes('PUBMED_HTTP_429')) {
+      return res.status(429).json({ error: 'Research provider rate limited' });
+    }
+    return res.status(500).json({ error: 'Failed to fetch articles' });
   }
 }

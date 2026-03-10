@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import type { LoggedSet } from '../../types';
 import { Check, Trash2 } from 'lucide-react';
 import { triggerHaptic } from '../../lib/capacitor';
+import { parseStrictDecimal, sanitizeDecimalInput } from '../../utils/numberValidation';
 
 interface SetRowProps {
   set: LoggedSet;
@@ -19,7 +21,55 @@ export function SetRow({
   restSeconds,
   onStartRest,
 }: SetRowProps) {
+  const [weightInput, setWeightInput] = useState(set.weight > 0 ? String(set.weight) : '');
+  const [repsInput, setRepsInput] = useState(set.reps > 0 ? String(set.reps) : '');
+
+  useEffect(() => {
+    setWeightInput(set.weight > 0 ? String(set.weight) : '');
+  }, [set.weight]);
+
+  useEffect(() => {
+    setRepsInput(set.reps > 0 ? String(set.reps) : '');
+  }, [set.reps]);
+
+  function handleWeightChange(raw: string) {
+    const sanitized = sanitizeDecimalInput(raw);
+    setWeightInput(sanitized);
+
+    if (!sanitized) {
+      onUpdate({ weight: 0 });
+      return;
+    }
+
+    const parsed = parseStrictDecimal(sanitized);
+    if (parsed !== null) {
+      onUpdate({ weight: parsed });
+    }
+  }
+
+  function handleRepsChange(raw: string) {
+    const sanitized = raw.replace(/[^\d]/g, '');
+    setRepsInput(sanitized);
+
+    if (!sanitized) {
+      onUpdate({ reps: 0 });
+      return;
+    }
+
+    const parsed = Number.parseInt(sanitized, 10);
+    if (Number.isFinite(parsed)) {
+      onUpdate({ reps: parsed });
+    }
+  }
+
   function handleComplete() {
+    const parsedWeight = parseStrictDecimal(weightInput);
+    const hasValidWeight = parsedWeight !== null && parsedWeight >= 0;
+    const hasValidReps = Number.isInteger(set.reps) && set.reps > 0;
+    if (!hasValidWeight || !hasValidReps) {
+      return;
+    }
+
     triggerHaptic('light'); // tactile feedback on native; no-op on web
     const nowCompleted = !set.completed;
     onUpdate({ completed: nowCompleted });
@@ -61,8 +111,8 @@ export function SetRow({
             inputMode="decimal"
             min={0}
             step={0.5}
-            value={set.weight || ''}
-            onChange={(e) => onUpdate({ weight: parseFloat(e.target.value) || 0 })}
+            value={weightInput}
+            onChange={(e) => handleWeightChange(e.target.value)}
             placeholder={prevSet ? String(prevSet.weight) : '0'}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
             aria-label={`Set ${set.setNumber} weight in kg`}
@@ -76,8 +126,9 @@ export function SetRow({
             type="number"
             inputMode="numeric"
             min={0}
-            value={set.reps || ''}
-            onChange={(e) => onUpdate({ reps: parseInt(e.target.value) || 0 })}
+            step={1}
+            value={repsInput}
+            onChange={(e) => handleRepsChange(e.target.value)}
             placeholder={prevSet ? String(prevSet.reps) : '0'}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
             aria-label={`Set ${set.setNumber} reps`}

@@ -4,6 +4,13 @@ import { apiBase } from '../lib/api';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
+export class PubMedApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'PubMedApiError';
+  }
+}
+
 export async function fetchArticlesByCategory(
   category: LearningCategory,
   limit = 5,
@@ -20,10 +27,11 @@ export async function fetchArticlesByCategory(
 
   const res = await fetch(`${apiBase}/api/articles?category=${category}&limit=${limit}`);
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({ error: 'Request failed' }))) as {
-      error?: string;
-    };
-    throw new Error(data.error ?? `HTTP ${res.status}`);
+    let message = 'We\'re temporarily having trouble loading the latest research. Please try again in a moment.';
+    if (res.status === 401 || res.status === 403) {
+      message = 'Access to research articles is temporarily unavailable. Please sign in and try again.';
+    }
+    throw new PubMedApiError(message, res.status);
   }
 
   const { articles } = (await res.json()) as { articles: HealthArticle[] };
