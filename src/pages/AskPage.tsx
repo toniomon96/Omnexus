@@ -8,7 +8,7 @@ import { MarkdownText } from '../components/ui/MarkdownText';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { askOmnexus, ApiError } from '../services/claudeService';
+import { askOmnexusStream, ApiError } from '../services/claudeService';
 import type { ConversationMessage, Citation } from '../services/claudeService';
 import {
   appendInsightSession,
@@ -127,7 +127,7 @@ export function AskPage() {
     if (!q || loading) return;
 
     setLoading(true);
-    setCurrentAnswer(null);
+    setCurrentAnswer('');
     setCurrentQuestion(q);
     setError(null);
     setUpgradeRequired(false);
@@ -135,12 +135,19 @@ export function AskPage() {
     setCurrentCitations([]);
 
     try {
-      const { answer, citations } = await askOmnexus({
+      const { answer, citations } = await askOmnexusStream({
         question: q,
         userContext: state.user
           ? { goal: state.user.goal, experienceLevel: state.user.experienceLevel }
           : undefined,
         conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
+      }, {
+        onMeta: ({ citations: nextCitations }) => {
+          setCurrentCitations(nextCitations ?? []);
+        },
+        onChunk: ({ text }) => {
+          setCurrentAnswer((prev) => (prev ?? '') + text);
+        },
       });
 
       setCurrentAnswer(answer);
@@ -264,7 +271,7 @@ export function AskPage() {
         </div>
 
         {/* Suggested questions (shown when idle) */}
-        {!currentAnswer && (
+        {!currentAnswer && !loading && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Try asking
@@ -319,7 +326,7 @@ export function AskPage() {
         )}
 
         {/* Current answer */}
-        {currentAnswer && (
+        {(currentAnswer !== null || loading) && (
           <div ref={answerRef} className="space-y-3">
             <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-1">
               <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
@@ -331,7 +338,15 @@ export function AskPage() {
                 </p>
               </div>
               <div className="px-3 py-3">
-                <MarkdownText text={currentAnswer} />
+                {currentAnswer ? (
+                  <MarkdownText text={currentAnswer} />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                    <div className="h-3 w-3/5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                    <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                  </div>
+                )}
               </div>
             </div>
             {/* Sources used */}
@@ -397,7 +412,7 @@ export function AskPage() {
         )}
 
         {/* Recent Q&A history */}
-        {sessions.length > 0 && !currentAnswer && (
+        {sessions.length > 0 && !currentAnswer && !loading && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Recent Questions

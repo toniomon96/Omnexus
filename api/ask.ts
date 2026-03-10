@@ -57,7 +57,112 @@ End EVERY response with this exact line:
 
 const MAX_HISTORY_ITEMS = 4;
 const MAX_HISTORY_CONTENT = 2000;
-const CLAUDE_TIMEOUT_MS = 9000;
+const CLAUDE_TIMEOUT_MS = 12000;
+const CLAUDE_RETRY_TIMEOUT_MS = 8000;
+const CLAUDE_STREAM_TIMEOUT_MS = 20000;
+const CLAUDE_PRIMARY_MODEL = process.env.ASK_MODEL ?? 'claude-3-5-haiku-latest';
+const CLAUDE_FALLBACK_MODEL = process.env.ASK_FALLBACK_MODEL ?? 'claude-3-5-haiku-latest';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function calculateMaxTokens(isPremium: boolean, contentSize: number): number {
+  if (isPremium) {
+    if (contentSize > 5000) return 1200;
+    if (contentSize > 3000) return 1500;
+    return 1800;
+  }
+  if (contentSize > 3000) return 700;
+  return 1024;
+}
+
+function buildAskFallbackAnswer(): string {
+  return 'I\'m having trouble reaching the AI service right now. Try again in a moment. In the meantime, focus on training fundamentals: progressive overload, 7-9 hours of sleep, and consistent protein intake around your daily target.\n\n⚠️ This is educational information only, not medical advice. Please consult a qualified healthcare professional for personal health concerns.';
+}
+
+function writeSseEvent(res: VercelResponse, event: string, payload: Record<string, unknown>): void {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+async function streamClaudeText(params: {
+  model: string;
+  maxTokens: number;
+  system: string;
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  onText: (delta: string) => void;
+}): Promise<void> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CLAUDE_STREAM_TIMEOUT_MS);
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: params.model,
+        max_tokens: params.maxTokens,
+        system: params.system,
+        messages: params.messages,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Anthropic stream failed (${response.status})`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() ?? '';
+
+      for (const frame of frames) {
+        const dataLine = frame
+          .split('\n')
+          .find((line) => line.startsWith('data:'));
+        if (!dataLine) continue;
+
+        const payload = dataLine.slice(5).trim();
+        if (!payload || payload === '[DONE]') continue;
+
+        const parsed = JSON.parse(payload) as {
+          type?: string;
+          delta?: { type?: string; text?: string };
+          error?: { message?: string };
+        };
+
+        if (parsed.type === 'error') {
+          throw new Error(parsed.error?.message ?? 'Anthropic stream error');
+        }
+
+        if (
+          parsed.type === 'content_block_delta' &&
+          parsed.delta?.type === 'text_delta' &&
+          typeof parsed.delta.text === 'string' &&
+          parsed.delta.text.length > 0
+        ) {
+          params.onText(parsed.delta.text);
+        }
+      }
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 // ─── Handler ────────────────────────────────────────────────────────────────────
 
@@ -128,6 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { question, userContext, conversationHistory } = req.body ?? {};
+  const shouldStream = req.body?.stream === true;
 
   if (!question || typeof question !== 'string' || question.trim().length === 0) {
     return res.status(400).json({ error: 'question is required' });
@@ -203,18 +309,82 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : [];
     const finalUserMessage = contextBlock + userMessage;
     const messages: MessageParam[] = [...history, { role: 'user', content: finalUserMessage }];
+    const contentSize = finalUserMessage.length + history.reduce((sum, h) => sum + h.content.length, 0);
+    const maxTokens = calculateMaxTokens(isPremium, contentSize);
 
-    const message = await Promise.race([
-      anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: isPremium ? 2000 : 1024,
-        system: SYSTEM_PROMPT,
-        messages,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Claude request timed out')), CLAUDE_TIMEOUT_MS),
-      ),
-    ]);
+    const runClaudeCall = async (timeoutMs: number, model: string) => {
+      return await Promise.race([
+        anthropic.messages.create({
+          model,
+          max_tokens: maxTokens,
+          system: SYSTEM_PROMPT,
+          messages,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Claude request timed out')), timeoutMs),
+        ),
+      ]);
+    };
+
+    if (shouldStream) {
+      res.status(200);
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+
+      writeSseEvent(res, 'meta', { citations });
+
+      let streamedAnswer = '';
+      try {
+        await streamClaudeText({
+          model: CLAUDE_PRIMARY_MODEL,
+          maxTokens,
+          system: SYSTEM_PROMPT,
+          messages,
+          onText: (delta) => {
+            streamedAnswer += delta;
+            writeSseEvent(res, 'chunk', { text: delta });
+          },
+        });
+
+        if (!streamedAnswer.trim()) {
+          throw new Error('Anthropic stream produced empty response');
+        }
+
+        writeSseEvent(res, 'done', { answer: streamedAnswer, citations });
+      } catch {
+        const fallbackAnswer = streamedAnswer.trim() || buildAskFallbackAnswer();
+        writeSseEvent(res, 'done', { answer: fallbackAnswer, citations, degraded: true });
+      }
+
+      return res.end();
+    }
+
+    let message;
+    try {
+      message = await runClaudeCall(CLAUDE_TIMEOUT_MS, CLAUDE_PRIMARY_MODEL);
+    } catch (err) {
+      const messageText = err instanceof Error ? err.message : '';
+      if (!messageText.includes('Claude request timed out')) {
+        throw err;
+      }
+
+      // Retry #1: same model with a short backoff.
+      await sleep(250 + Math.floor(Math.random() * 200));
+
+      try {
+        message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_PRIMARY_MODEL);
+      } catch (retryErr) {
+        const retryMessage = retryErr instanceof Error ? retryErr.message : '';
+        if (!retryMessage.includes('Claude request timed out')) {
+          throw retryErr;
+        }
+
+        // Retry #2: fallback model to reduce latency during provider spikes.
+        await sleep(300 + Math.floor(Math.random() * 200));
+        message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_FALLBACK_MODEL);
+      }
+    }
 
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected Claude response type');
@@ -224,8 +394,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const message = err instanceof Error ? err.message : '';
     if (message.includes('Claude request timed out')) {
       return res.status(200).json({
-        answer:
-          'I\'m having trouble reaching the AI service right now. Try again in a moment. In the meantime, focus on training fundamentals: progressive overload, 7-9 hours of sleep, and consistent protein intake around your daily target.\n\n⚠️ This is educational information only, not medical advice. Please consult a qualified healthcare professional for personal health concerns.',
+        answer: buildAskFallbackAnswer(),
         citations: [],
         degraded: true,
       });

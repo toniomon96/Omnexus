@@ -25,6 +25,32 @@ export interface AskResponse {
   citations?: Citation[];
 }
 
+interface AskStreamEventMeta {
+  citations?: Citation[];
+}
+
+interface AskStreamEventChunk {
+  text: string;
+}
+
+interface AskStreamEventDone {
+  answer: string;
+  citations?: Citation[];
+}
+
+interface AskStreamErrorEvent {
+  code: 'malformed_sse_frame' | 'stream_ended_without_done';
+  message: string;
+  skippedFrames: number;
+}
+
+interface AskStreamHandlers {
+  onMeta?: (meta: AskStreamEventMeta) => void;
+  onChunk: (chunk: AskStreamEventChunk) => void;
+  onDone?: (done: AskStreamEventDone) => void;
+  onError?: (error: AskStreamErrorEvent) => void;
+}
+
 export interface InsightRequest {
   userGoal: string;
   userExperience: string;
@@ -76,6 +102,170 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 export function askOmnexus(body: AskRequest): Promise<AskResponse> {
   return post<AskResponse>('/api/ask', body);
+}
+
+export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHandlers): Promise<AskResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+  };
+
+  const accessToken = await getAccessToken();
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const res = await fetch(`${apiBase}/api/ask`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ ...body, stream: true }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: 'Request failed' })) as { error?: string };
+    throw new ApiError(data.error ?? `HTTP ${res.status}`, res.status);
+  }
+
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('text/event-stream') || !res.body) {
+    const raw = await res.text();
+    const normalizedRaw = raw.replace(/\r\n/g, '\n').replace(/\\n/g, '\n');
+    const looksLikeSse = normalizedRaw.includes('event:') && normalizedRaw.includes('data:');
+
+    if (!looksLikeSse) {
+      const data = JSON.parse(raw) as AskResponse;
+      handlers.onChunk({ text: data.answer });
+      handlers.onDone?.({ answer: data.answer, citations: data.citations });
+      return data;
+    }
+
+    let answerFromSseText = '';
+    let citationsFromSseText: Citation[] = [];
+    let skippedFramesFromSseText = 0;
+
+    const frames = normalizedRaw.split('\n\n');
+    for (const frame of frames) {
+      const eventLine = frame.split('\n').find((line) => line.startsWith('event:'));
+      const dataLine = frame.split('\n').find((line) => line.startsWith('data:'));
+      if (!eventLine || !dataLine) continue;
+
+      const eventType = eventLine.slice(6).trim();
+      const payloadText = dataLine.slice(5).trim();
+      if (!payloadText) continue;
+
+      let payload: { text?: string; answer?: string; citations?: Citation[] };
+      try {
+        payload = JSON.parse(payloadText) as { text?: string; answer?: string; citations?: Citation[] };
+      } catch {
+        skippedFramesFromSseText += 1;
+        handlers.onError?.({
+          code: 'malformed_sse_frame',
+          message: 'Skipped malformed SSE frame payload',
+          skippedFrames: skippedFramesFromSseText,
+        });
+        continue;
+      }
+
+      if (eventType === 'meta') {
+        citationsFromSseText = payload.citations ?? citationsFromSseText;
+        handlers.onMeta?.({ citations: citationsFromSseText });
+      }
+
+      if (eventType === 'chunk' && typeof payload.text === 'string') {
+        answerFromSseText += payload.text;
+        handlers.onChunk({ text: payload.text });
+      }
+
+      if (eventType === 'done') {
+        answerFromSseText = payload.answer ?? answerFromSseText;
+        citationsFromSseText = payload.citations ?? citationsFromSseText;
+        handlers.onDone?.({ answer: answerFromSseText, citations: citationsFromSseText });
+        return { answer: answerFromSseText, citations: citationsFromSseText };
+      }
+    }
+
+    handlers.onError?.({
+      code: 'stream_ended_without_done',
+      message: 'SSE stream ended without a done event',
+      skippedFrames: skippedFramesFromSseText,
+    });
+    handlers.onDone?.({ answer: answerFromSseText, citations: citationsFromSseText });
+    return { answer: answerFromSseText, citations: citationsFromSseText };
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let answer = '';
+  let citations: Citation[] = [];
+  let skippedFrames = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const frames = buffer.split('\n\n');
+    buffer = frames.pop() ?? '';
+
+    for (const frame of frames) {
+      const eventLine = frame.split('\n').find((line) => line.startsWith('event:'));
+      const dataLine = frame.split('\n').find((line) => line.startsWith('data:'));
+      if (!eventLine || !dataLine) continue;
+
+      const eventType = eventLine.slice(6).trim();
+      const payloadText = dataLine.slice(5).trim();
+      if (!payloadText) continue;
+
+      let payload: {
+        text?: string;
+        citations?: Citation[];
+        answer?: string;
+      };
+
+      try {
+        payload = JSON.parse(payloadText) as {
+          text?: string;
+          citations?: Citation[];
+          answer?: string;
+        };
+      } catch {
+        skippedFrames += 1;
+        handlers.onError?.({
+          code: 'malformed_sse_frame',
+          message: 'Skipped malformed SSE frame payload',
+          skippedFrames,
+        });
+        continue;
+      }
+
+      if (eventType === 'meta') {
+        citations = payload.citations ?? citations;
+        handlers.onMeta?.({ citations });
+      }
+
+      if (eventType === 'chunk' && typeof payload.text === 'string') {
+        answer += payload.text;
+        handlers.onChunk({ text: payload.text });
+      }
+
+      if (eventType === 'done') {
+        answer = payload.answer ?? answer;
+        citations = payload.citations ?? citations;
+        handlers.onDone?.({ answer, citations });
+        return { answer, citations };
+      }
+    }
+  }
+
+  handlers.onError?.({
+    code: 'stream_ended_without_done',
+    message: 'SSE stream ended without a done event',
+    skippedFrames,
+  });
+
+  handlers.onDone?.({ answer, citations });
+  return { answer, citations };
 }
 
 export function getWorkoutInsights(body: InsightRequest): Promise<InsightResponse> {

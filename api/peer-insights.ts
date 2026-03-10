@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { buildCacheKey, getMemoryCache, setMemoryCache } from './_cache.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach providing encouraging peer comparison insights.
 
@@ -17,6 +18,7 @@ Be encouraging, not judgmental. Use specific numbers from the data. Never mentio
 Output plain text only (no markdown, no bullet points).`;
 
 const MIN_PEERS = 3;
+const PEER_INSIGHTS_CACHE_TTL_SECONDS = 180;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!setCorsHeaders(req, res)) return;
@@ -49,6 +51,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = user.id;
 
   const { goal, experienceLevel } = req.body ?? {};
+  const cacheKey = buildCacheKey('peer-insights', [goal ?? 'general-fitness', experienceLevel ?? 'beginner']);
+  const cached = getMemoryCache<{ narrative: string; peerCount: number; hasEnoughPeers: boolean }>(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
 
   // Find peer user IDs with same goal + experience level from profiles/training_profiles
   // We aggregate workout data without ever passing individual records to Claude
@@ -77,7 +84,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .filter(Boolean);
 
     if (peerIds.length < MIN_PEERS) {
-      return res.status(200).json({ narrative: '', peerCount: peerIds.length, hasEnoughPeers: false });
+      const payload = { narrative: '', peerCount: peerIds.length, hasEnoughPeers: false };
+      setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+      return res.status(200).json(payload);
     }
 
     // Aggregate workout stats for peers in last 30 days
@@ -91,7 +100,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     peerCount = peerIds.length;
 
     if (!sessions || sessions.length === 0) {
-      return res.status(200).json({ narrative: '', peerCount, hasEnoughPeers: false });
+      const payload = { narrative: '', peerCount, hasEnoughPeers: false };
+      setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+      return res.status(200).json(payload);
     }
 
     // Calculate aggregate metrics (only aggregates — no individual data passed to Claude)
@@ -110,7 +121,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const activeUsers = userStats.length;
 
     if (activeUsers < MIN_PEERS) {
-      return res.status(200).json({ narrative: '', peerCount, hasEnoughPeers: false });
+      const payload = { narrative: '', peerCount, hasEnoughPeers: false };
+      setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+      return res.status(200).json(payload);
     }
 
     const avgWeeklySessions = (userStats.reduce((s, u) => s + u.count, 0) / activeUsers / 4.3).toFixed(1);
@@ -138,5 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Failed to generate peer insights' });
   }
 
-  return res.status(200).json({ narrative, peerCount, hasEnoughPeers: true });
+  const payload = { narrative, peerCount, hasEnoughPeers: true };
+  setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+  return res.status(200).json(payload);
 }

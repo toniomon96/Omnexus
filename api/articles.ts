@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { HealthArticle, LearningCategory } from '../src/types/index.js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { buildCacheKey, getMemoryCache, setEdgeCacheHeaders, setMemoryCache } from './_cache.js';
 
 // ─── PubMed search queries per category ──────────────────────────────────────
 
@@ -16,7 +17,7 @@ const CATEGORY_QUERIES: Record<LearningCategory, string> = {
 };
 
 const PUBMED = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
-const FALLBACK_CACHE_CONTROL = 's-maxage=300, stale-while-revalidate=3600';
+const MEMORY_CACHE_TTL_SECONDS = 300;
 
 // ─── PubMed helpers ───────────────────────────────────────────────────────────
 
@@ -101,6 +102,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Invalid category' });
   }
 
+  const cacheKey = buildCacheKey('articles', [category, limit]);
+  const memoryHit = getMemoryCache<{ articles: HealthArticle[] }>(cacheKey);
+  if (memoryHit) {
+    setEdgeCacheHeaders(res, 21600, 86400);
+    return res.status(200).json(memoryHit);
+  }
+
   try {
     const ids = await esearch(CATEGORY_QUERIES[category as LearningCategory], limit);
     if (ids.length === 0) return res.status(200).json({ articles: [] });
@@ -143,22 +151,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .filter((a) => a.summary.length > 0);
 
+    const payload = { articles };
+    setMemoryCache(cacheKey, payload, MEMORY_CACHE_TTL_SECONDS);
     // Cache at CDN edge for 6h; serve stale for up to 24h during background revalidation.
     // PubMed results for a fixed query + date window are stable intraday.
-    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
-    return res.status(200).json({ articles });
+    setEdgeCacheHeaders(res, 21600, 86400);
+    return res.status(200).json(payload);
   } catch (err: unknown) {
     const raw = err instanceof Error ? err.message : '';
     if (raw.includes('PUBMED_HTTP_429')) {
       // Graceful degradation for transient upstream rate limits.
       // Client can keep showing the previous cached list while this response avoids hard failures.
       console.warn('[/api/articles] PubMed provider rate limited; serving empty fallback');
-      res.setHeader('Cache-Control', FALLBACK_CACHE_CONTROL);
+      setEdgeCacheHeaders(res, 300, 3600);
       return res.status(200).json({ articles: [], degraded: true, reason: 'provider_rate_limited' });
     }
     if (raw.includes('PUBMED_HTTP_5')) {
       console.warn('[/api/articles] PubMed provider unavailable; serving empty fallback');
-      res.setHeader('Cache-Control', FALLBACK_CACHE_CONTROL);
+      setEdgeCacheHeaders(res, 300, 3600);
       return res.status(200).json({ articles: [], degraded: true, reason: 'provider_unavailable' });
     }
     console.error('[/api/articles]', err);

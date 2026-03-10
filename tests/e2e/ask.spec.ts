@@ -68,4 +68,44 @@ test.describe('Ask AI Coach', () => {
     await expect(page.getByText(/could not reach the ai service right now/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/vercel dev|npm run dev/i)).toHaveCount(0);
   });
+
+  test('sends stream-mode ask request and renders response', async ({ page }) => {
+    let sawStreamMode = false;
+
+    await page.route('**/api/ask', async (route) => {
+      const payload = route.request().postDataJSON() as { stream?: boolean } | null;
+      sawStreamMode = payload?.stream === true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ answer: 'Partial answer', citations: [] }),
+      });
+    });
+
+    await page.goto('/ask');
+    await page.locator('textarea').fill('stream test');
+    await page.getByRole('button', { name: /ask omnexus/i }).click();
+
+    await expect(page.getByText('Partial answer', { exact: false })).toBeVisible({ timeout: 5_000 });
+    expect(sawStreamMode).toBe(true);
+  });
+
+  test('shows loading state during ask request and resets after completion', async ({ page }) => {
+    await page.route('**/api/ask', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ answer: 'Done response', citations: [] }),
+      });
+    });
+
+    await page.goto('/ask');
+    await page.locator('textarea').fill('loading state test');
+    await page.getByRole('button', { name: /ask omnexus/i }).click();
+
+    await expect(page.getByRole('button', { name: /thinking/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Done response', { exact: false })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /ask omnexus/i })).toBeVisible({ timeout: 5_000 });
+  });
 });

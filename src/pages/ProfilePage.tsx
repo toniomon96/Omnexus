@@ -107,6 +107,8 @@ export function ProfilePage() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   }));
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [autoSavingPrefs, setAutoSavingPrefs] = useState(false);
+  const [prefsDirty, setPrefsDirty] = useState(false);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -133,9 +135,27 @@ export function ProfilePage() {
     if (isGuest || !currentUser) return;
     import('../lib/db')
       .then(({ getNotificationPreferences }) => getNotificationPreferences(currentUser.id))
-      .then((prefs) => setNotificationPrefs(prefs))
+      .then((prefs) => {
+        setNotificationPrefs(prefs);
+        setPrefsDirty(false);
+      })
       .catch(() => {});
   }, [isGuest, currentUser]);
+
+  useEffect(() => {
+    if (isGuest || !currentUser || !pushEnabled || !prefsDirty) return;
+
+    const timer = setTimeout(() => {
+      setAutoSavingPrefs(true);
+      import('../lib/db')
+        .then(({ upsertNotificationPreferences }) => upsertNotificationPreferences(currentUser.id, notificationPrefs))
+        .then(() => setPrefsDirty(false))
+        .catch(() => {})
+        .finally(() => setAutoSavingPrefs(false));
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [isGuest, currentUser, pushEnabled, prefsDirty, notificationPrefs]);
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
@@ -343,12 +363,21 @@ export function ProfilePage() {
     try {
       const { upsertNotificationPreferences } = await import('../lib/db');
       await upsertNotificationPreferences(currentUser.id, notificationPrefs);
+      setPrefsDirty(false);
       toast('Notification preferences saved', 'success');
     } catch {
       toast('Failed to save notification preferences', 'error');
     } finally {
       setSavingPrefs(false);
     }
+  }
+
+  function updateNotificationPrefs(next: NotificationPreferences | ((prev: NotificationPreferences) => NotificationPreferences)) {
+    setNotificationPrefs((prev) => {
+      const resolved = typeof next === 'function' ? (next as (value: NotificationPreferences) => NotificationPreferences)(prev) : next;
+      return resolved;
+    });
+    setPrefsDirty(true);
   }
 
   const isDirty =
@@ -651,7 +680,7 @@ export function ProfilePage() {
                 <input
                   type="checkbox"
                   checked={notificationPrefs.trainingRemindersEnabled}
-                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, trainingRemindersEnabled: e.target.checked }))}
+                  onChange={(e) => updateNotificationPrefs((prev) => ({ ...prev, trainingRemindersEnabled: e.target.checked }))}
                   disabled={!pushEnabled}
                 />
               </label>
@@ -660,7 +689,7 @@ export function ProfilePage() {
                 <input
                   type="checkbox"
                   checked={notificationPrefs.missedDayEnabled}
-                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, missedDayEnabled: e.target.checked }))}
+                  onChange={(e) => updateNotificationPrefs((prev) => ({ ...prev, missedDayEnabled: e.target.checked }))}
                   disabled={!pushEnabled}
                 />
               </label>
@@ -669,7 +698,7 @@ export function ProfilePage() {
                 <input
                   type="checkbox"
                   checked={notificationPrefs.communityEnabled}
-                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, communityEnabled: e.target.checked }))}
+                  onChange={(e) => updateNotificationPrefs((prev) => ({ ...prev, communityEnabled: e.target.checked }))}
                   disabled={!pushEnabled}
                 />
               </label>
@@ -678,7 +707,7 @@ export function ProfilePage() {
                 <input
                   type="checkbox"
                   checked={notificationPrefs.progressEnabled}
-                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, progressEnabled: e.target.checked }))}
+                  onChange={(e) => updateNotificationPrefs((prev) => ({ ...prev, progressEnabled: e.target.checked }))}
                   disabled={!pushEnabled}
                 />
               </label>
@@ -687,7 +716,7 @@ export function ProfilePage() {
                 <select
                   className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
                   value={notificationPrefs.preferredHourLocal}
-                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, preferredHourLocal: Number(e.target.value) }))}
+                  onChange={(e) => updateNotificationPrefs((prev) => ({ ...prev, preferredHourLocal: Number(e.target.value) }))}
                   disabled={!pushEnabled}
                 >
                   {Array.from({ length: 24 }, (_, i) => (
@@ -726,7 +755,7 @@ export function ProfilePage() {
               className="mt-2"
             >
               <Save size={16} />
-              {savingPrefs ? 'Saving…' : 'Save Notification Settings'}
+              {savingPrefs || autoSavingPrefs ? 'Saving…' : prefsDirty ? 'Save Notification Settings*' : 'Save Notification Settings'}
             </Button>
           </Card>
         )}
