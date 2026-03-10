@@ -221,6 +221,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ answer: block.text, citations });
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : '';
+    if (message.includes('Claude request timed out')) {
+      return res.status(200).json({
+        answer:
+          'I\'m having trouble reaching the AI service right now. Try again in a moment. In the meantime, focus on training fundamentals: progressive overload, 7-9 hours of sleep, and consistent protein intake around your daily target.\n\n⚠️ This is educational information only, not medical advice. Please consult a qualified healthcare professional for personal health concerns.',
+        citations: [],
+        degraded: true,
+      });
+    }
     console.error('[/api/ask]', err);
     return res.status(500).json({ error: 'Failed to generate response' });
   }

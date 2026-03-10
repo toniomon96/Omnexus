@@ -405,6 +405,22 @@ Required schema:
   "tags": ["<goal>", "<split-type>", "<experience-level>"]
 }
 
+function extractProgramJsonCandidate(text: string): string {
+  const stripped = text
+    .replace(/^```[a-z]*\n?/i, '')
+    .replace(/\n?```$/i, '')
+    .trim();
+
+  const firstBrace = stripped.indexOf('{');
+  const lastBrace = stripped.lastIndexOf('}');
+
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return stripped.slice(firstBrace, lastBrace + 1);
+  }
+
+  return stripped;
+}
+
 FINAL CHECKLIST before generating:
 - schedule length == ${profile.daysPerWeek} days
 - All exerciseIds are from the provided list
@@ -501,11 +517,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let program: GeneratedProgram | null = null;
 
     try {
-      // Strip any accidental markdown code fences
-      const raw = block.text
-        .replace(/^```[a-z]*\n?/i, '')
-        .replace(/\n?```$/i, '')
-        .trim();
+      const raw = extractProgramJsonCandidate(block.text);
       const parsed = JSON.parse(raw) as GeneratedProgram;
       if (validateProgram(parsed)) {
         program = { ...parsed, isCustom: true, isAiGenerated: true };
@@ -516,7 +528,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
     } catch (parseErr) {
-      console.warn('[/api/generate-program] JSON parse error — using fallback', parseErr);
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('[/api/generate-program] JSON parse error — using fallback');
+      } else {
+        console.warn('[/api/generate-program] JSON parse error — using fallback', parseErr);
+      }
     }
 
     if (!program) {

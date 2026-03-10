@@ -55,6 +55,19 @@ describe('setCorsHeaders', () => {
     expect(getBody()).toEqual({ error: 'Origin not allowed' });
   });
 
+  it('allows missing origin in production when host is explicitly allowed', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ALLOWED_ORIGIN = 'https://omnexus.fit';
+
+    const { res, getStatusCode } = createMockResponse();
+    const req = { headers: { host: 'omnexus.fit' } } as unknown as VercelRequest;
+
+    const ok = setCorsHeaders(req, res);
+
+    expect(ok).toBe(true);
+    expect(getStatusCode()).toBe(200);
+  });
+
   it('rejects disallowed origin in production', () => {
     process.env.NODE_ENV = 'production';
     const { res, getStatusCode } = createMockResponse();
@@ -140,5 +153,22 @@ describe('setCorsHeaders', () => {
     expect(ok).toBe(false);
     expect(getStatusCode()).toBe(403);
     expect(getBody()).toEqual({ error: 'Origin not allowed' });
+  });
+
+  it('allows missing origin in preview for vercel host', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.VERCEL_ENV = 'preview';
+
+    const { res, getStatusCode } = createMockResponse();
+    const req = {
+      headers: {
+        host: 'fitness-app-git-polish-v1-lau-143489-toniomontez-2122s-projects.vercel.app',
+      },
+    } as unknown as VercelRequest;
+
+    const ok = setCorsHeaders(req, res);
+
+    expect(ok).toBe(true);
+    expect(getStatusCode()).toBe(200);
   });
 });

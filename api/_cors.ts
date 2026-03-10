@@ -66,6 +66,21 @@ function isSameHostOrigin(origin: string, host: string): boolean {
   }
 }
 
+function getHostFromOrigin(origin: string): string | null {
+  try {
+    return new URL(origin).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function isAllowedHost(host: string, allowedOrigins: Set<string>): boolean {
+  for (const allowedOrigin of allowedOrigins) {
+    if (getHostFromOrigin(allowedOrigin) === host) return true;
+  }
+  return false;
+}
+
 function applyCommonCorsHeaders(res: VercelResponse, origin: string): void {
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
@@ -86,14 +101,18 @@ export function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean
   if (isPreview) {
     const host = getHost(req);
     const allowedOrigins = getProdAllowedOrigins();
+    if (!origin) {
+      // Same-origin requests may omit Origin header; allow trusted preview hosts.
+      if (host && (host.endsWith('.vercel.app') || isAllowedHost(host, allowedOrigins))) {
+        return true;
+      }
+      res.status(403).json({ error: 'Origin not allowed' });
+      return false;
+    }
+
     if (origin && ((host && isSameHostOrigin(origin, host)) || allowedOrigins.has(origin))) {
       applyCommonCorsHeaders(res, origin);
       return true;
-    }
-
-    if (!origin) {
-      res.status(403).json({ error: 'Origin not allowed' });
-      return false;
     }
 
     res.status(403).json({ error: 'Origin not allowed' });
@@ -102,7 +121,16 @@ export function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean
 
   if (isProduction) {
     const allowedOrigins = getProdAllowedOrigins();
-    if (!origin || !allowedOrigins.has(origin)) {
+    if (!origin) {
+      const host = getHost(req);
+      if (host && isAllowedHost(host, allowedOrigins)) {
+        return true;
+      }
+      res.status(403).json({ error: 'Origin not allowed' });
+      return false;
+    }
+
+    if (!allowedOrigins.has(origin)) {
       res.status(403).json({ error: 'Origin not allowed' });
       return false;
     }

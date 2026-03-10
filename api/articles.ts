@@ -16,6 +16,7 @@ const CATEGORY_QUERIES: Record<LearningCategory, string> = {
 };
 
 const PUBMED = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+const FALLBACK_CACHE_CONTROL = 's-maxage=300, stale-while-revalidate=3600';
 
 // ─── PubMed helpers ───────────────────────────────────────────────────────────
 
@@ -147,11 +148,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
     return res.status(200).json({ articles });
   } catch (err: unknown) {
-    console.error('[/api/articles]', err);
     const raw = err instanceof Error ? err.message : '';
     if (raw.includes('PUBMED_HTTP_429')) {
-      return res.status(429).json({ error: 'Research provider rate limited' });
+      // Graceful degradation for transient upstream rate limits.
+      // Client can keep showing the previous cached list while this response avoids hard failures.
+      console.warn('[/api/articles] PubMed provider rate limited; serving empty fallback');
+      res.setHeader('Cache-Control', FALLBACK_CACHE_CONTROL);
+      return res.status(200).json({ articles: [], degraded: true, reason: 'provider_rate_limited' });
     }
+    if (raw.includes('PUBMED_HTTP_5')) {
+      console.warn('[/api/articles] PubMed provider unavailable; serving empty fallback');
+      res.setHeader('Cache-Control', FALLBACK_CACHE_CONTROL);
+      return res.status(200).json({ articles: [], degraded: true, reason: 'provider_unavailable' });
+    }
+    console.error('[/api/articles]', err);
     return res.status(500).json({ error: 'Failed to fetch articles' });
   }
 }
