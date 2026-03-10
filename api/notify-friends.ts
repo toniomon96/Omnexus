@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { getPreferencesMap } from './_notificationPrefs.js';
+import { canSendNotificationNow, getPreferencesMap } from './_notificationPrefs.js';
 import { setCorsHeaders } from './_cors.js';
 import { sendNotificationReliably } from './_notify.js';
 
@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const prefsMap = await getPreferencesMap(supabaseAdmin, friendIds);
   const eligibleFriendIds = friendIds.filter((id) => {
     const pref = prefsMap.get(id);
-    return !!pref?.push_enabled && !!pref?.community_enabled;
+    return !!pref?.push_enabled && !!pref?.community_enabled && !!(pref && canSendNotificationNow(pref));
   });
 
   if (eligibleFriendIds.length === 0) return res.status(200).json({ sent: 0 });

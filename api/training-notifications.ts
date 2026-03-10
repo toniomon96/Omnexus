@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
+import { canSendNotificationNow, getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
 import { pickProgressMessages, type SessionRow } from './_progressMilestones.js';
 import { sendNotificationReliably } from './_notify.js';
 
@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await Promise.allSettled(
     userIds.map(async (userId) => {
       const prefs = prefsMap.get(userId);
-      if (!prefs || !prefs.push_enabled || !isPreferredHour(prefs)) return;
+      if (!prefs || !prefs.push_enabled || !isPreferredHour(prefs) || !canSendNotificationNow(prefs)) return;
 
       const userSessions = byUser.get(userId) ?? [];
       if (userSessions.length === 0) return;

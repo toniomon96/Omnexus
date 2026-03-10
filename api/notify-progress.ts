@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
-import { getPreferencesMap } from './_notificationPrefs.js';
+import { canSendNotificationNow, getPreferencesMap } from './_notificationPrefs.js';
 import { pickProgressMessages, type SessionRow } from './_progressMilestones.js';
 import { sendNotificationReliably } from './_notify.js';
 
@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const prefsMap = await getPreferencesMap(supabaseAdmin, [user.id]);
   const prefs = prefsMap.get(user.id);
-  if (!prefs || !prefs.push_enabled || !prefs.progress_enabled) {
+  if (!prefs || !prefs.push_enabled || !prefs.progress_enabled || !canSendNotificationNow(prefs)) {
     return res.status(200).json({ sent: 0 });
   }
 

@@ -4,6 +4,9 @@ export interface NotificationPreferences {
   missed_day_enabled: boolean;
   community_enabled: boolean;
   progress_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start_local: number;
+  quiet_hours_end_local: number;
   preferred_hour_local: number;
   timezone: string;
 }
@@ -14,6 +17,9 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   missed_day_enabled: true,
   community_enabled: true,
   progress_enabled: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start_local: 22,
+  quiet_hours_end_local: 7,
   preferred_hour_local: 18,
   timezone: 'UTC',
 };
@@ -37,6 +43,23 @@ export function isPreferredHour(pref: NotificationPreferences, now = new Date())
   return getLocalHour(pref.timezone, now) === pref.preferred_hour_local;
 }
 
+export function isWithinQuietHours(pref: NotificationPreferences, now = new Date()): boolean {
+  if (!pref.quiet_hours_enabled) return false;
+  const localHour = getLocalHour(pref.timezone, now);
+  const start = pref.quiet_hours_start_local;
+  const end = pref.quiet_hours_end_local;
+
+  if (start === end) return true;
+  if (start < end) {
+    return localHour >= start && localHour < end;
+  }
+  return localHour >= start || localHour < end;
+}
+
+export function canSendNotificationNow(pref: NotificationPreferences, now = new Date()): boolean {
+  return !isWithinQuietHours(pref, now);
+}
+
 export async function getPreferencesMap(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabaseAdmin: any,
@@ -51,7 +74,7 @@ export async function getPreferencesMap(
 
   const { data, error } = await supabaseAdmin
     .from('notification_preferences')
-    .select('user_id, push_enabled, training_reminders_enabled, missed_day_enabled, community_enabled, progress_enabled, preferred_hour_local, timezone')
+    .select('user_id, push_enabled, training_reminders_enabled, missed_day_enabled, community_enabled, progress_enabled, quiet_hours_enabled, quiet_hours_start_local, quiet_hours_end_local, preferred_hour_local, timezone')
     .in('user_id', userIds);
 
   if (error || !data) return map;
@@ -64,6 +87,9 @@ export async function getPreferencesMap(
       missed_day_enabled: row.missed_day_enabled ?? true,
       community_enabled: row.community_enabled ?? true,
       progress_enabled: row.progress_enabled ?? true,
+      quiet_hours_enabled: row.quiet_hours_enabled ?? false,
+      quiet_hours_start_local: typeof row.quiet_hours_start_local === 'number' ? row.quiet_hours_start_local : 22,
+      quiet_hours_end_local: typeof row.quiet_hours_end_local === 'number' ? row.quiet_hours_end_local : 7,
       preferred_hour_local: typeof row.preferred_hour_local === 'number' ? row.preferred_hour_local : 18,
       timezone: typeof row.timezone === 'string' && row.timezone ? row.timezone : 'UTC',
     });
