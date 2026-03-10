@@ -3,6 +3,8 @@ import { Minus, Plus } from 'lucide-react';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
+import { useWeightUnit } from '../hooks/useWeightUnit';
+import { toDisplayWeight, toStoredWeight } from '../utils/weightUnits';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,7 +45,7 @@ function calcPlates(targetKg: number, barKg: number): number[] {
 
 // ─── Barbell SVG ──────────────────────────────────────────────────────────────
 
-function BarbellSVG({ plates, barKg }: { plates: number[]; barKg: number }) {
+function BarbellSVG({ plates, barKg, weightUnit }: { plates: number[]; barKg: number; weightUnit: 'kg' | 'lbs' }) {
   const plateWidth = (w: number) => Math.max(8, Math.min(24, w));
   const plateHeight = (w: number) => Math.max(30, Math.min(80, w * 2.5));
 
@@ -130,7 +132,7 @@ function BarbellSVG({ plates, barKg }: { plates: number[]; barKg: number }) {
         fontSize={9}
         fill="#94a3b8"
       >
-        {barKg}kg bar
+        {Math.round(toDisplayWeight(barKg, weightUnit))}{weightUnit} bar
       </text>
     </svg>
   );
@@ -139,12 +141,15 @@ function BarbellSVG({ plates, barKg }: { plates: number[]; barKg: number }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PlateCalculatorPage() {
+  const weightUnit = useWeightUnit();
   const [barKg, setBarKg] = useState(20);
   const [targetKg, setTargetKg] = useState(60);
 
   const plates = useMemo(() => calcPlates(targetKg, barKg), [targetKg, barKg]);
 
   const actualKg = barKg + plates.reduce((s, p) => s + p * 2, 0);
+  const targetDisplay = toDisplayWeight(targetKg, weightUnit);
+  const actualDisplay = toDisplayWeight(actualKg, weightUnit);
 
   function step(delta: number) {
     setTargetKg((prev) => Math.max(barKg, Math.round((prev + delta) * 2) / 2));
@@ -194,29 +199,29 @@ export function PlateCalculatorPage() {
             <button
               onClick={() => step(-2.5)}
               className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition"
-              aria-label="Decrease by 2.5 kg"
+              aria-label={`Decrease by ${weightUnit === 'kg' ? '2.5 kg' : '5 lbs'}`}
             >
               <Minus size={18} />
             </button>
             <div className="text-center">
-              <span className="text-4xl font-bold text-slate-100">{targetKg}</span>
-              <span className="text-lg text-slate-400 ml-1">kg</span>
+              <span className="text-4xl font-bold text-slate-100">{Math.round(targetDisplay)}</span>
+              <span className="text-lg text-slate-400 ml-1">{weightUnit}</span>
             </div>
             <button
               onClick={() => step(2.5)}
               className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white hover:bg-brand-600 active:scale-95 transition"
-              aria-label="Increase by 2.5 kg"
+              aria-label={`Increase by ${weightUnit === 'kg' ? '2.5 kg' : '5 lbs'}`}
             >
               <Plus size={18} />
             </button>
           </div>
           <input
             type="range"
-            min={barKg}
-            max={300}
-            step={2.5}
-            value={targetKg}
-            onChange={(e) => setTargetKg(parseFloat(e.target.value))}
+            min={toDisplayWeight(barKg, weightUnit)}
+            max={toDisplayWeight(300, weightUnit)}
+            step={weightUnit === 'kg' ? 2.5 : 5}
+            value={targetDisplay}
+            onChange={(e) => setTargetKg(toStoredWeight(parseFloat(e.target.value), weightUnit))}
             className="w-full mt-4 accent-brand-500"
           />
         </Card>
@@ -228,12 +233,12 @@ export function PlateCalculatorPage() {
             <p className="text-center text-slate-500 text-sm py-4">No plates needed — just the bar!</p>
           ) : (
             <div className="overflow-x-auto scrollbar-hide py-2">
-              <BarbellSVG plates={plates} barKg={barKg} />
+              <BarbellSVG plates={plates} barKg={barKg} weightUnit={weightUnit} />
             </div>
           )}
           {actualKg !== targetKg && plates.length > 0 && (
             <p className="text-center text-amber-400 text-xs mt-2">
-              Closest achievable: {actualKg} kg
+              Closest achievable: {Math.round(actualDisplay)} {weightUnit}
             </p>
           )}
         </Card>
@@ -250,10 +255,10 @@ export function PlateCalculatorPage() {
                     style={{ backgroundColor: PLATE_COLORS[weight] ?? '#94a3b8' }}
                   />
                   <span className="text-slate-200 text-sm">
-                    {count} × {weight} kg
+                    {count} × {Math.round(toDisplayWeight(weight, weightUnit) * 10) / 10} {weightUnit}
                   </span>
                   <span className="text-slate-500 text-xs ml-auto">
-                    {(count * weight).toFixed(count * weight % 1 === 0 ? 0 : 2)} kg
+                    {Math.round(toDisplayWeight(count * weight, weightUnit) * 10) / 10} {weightUnit}
                   </span>
                 </div>
               ))}
@@ -261,7 +266,7 @@ export function PlateCalculatorPage() {
             <div className="border-t border-slate-800 mt-3 pt-2 flex justify-between text-sm">
               <span className="text-slate-400">Total per side</span>
               <span className="font-semibold text-slate-200">
-                {plates.reduce((s, p) => s + p, 0)} kg
+                {Math.round(toDisplayWeight(plates.reduce((s, p) => s + p, 0), weightUnit) * 10) / 10} {weightUnit}
               </span>
             </div>
           </Card>

@@ -1,4 +1,4 @@
-import type { WorkoutSession, User } from '../types';
+import type { WorkoutSession, User, WeightUnit } from '../types';
 import type { InsightRequest } from './claudeService';
 import { getExerciseNameMap } from '../lib/staticCatalogs';
 
@@ -6,6 +6,7 @@ import { getExerciseNameMap } from '../lib/staticCatalogs';
 export async function buildInsightRequest(
   sessions: WorkoutSession[],
   user: User,
+  weightUnit: WeightUnit = 'kg',
 ): Promise<InsightRequest | null> {
   // Limit to last 28 days, most recent first, max 20 sessions
   const cutoff = new Date();
@@ -28,6 +29,7 @@ export async function buildInsightRequest(
   const totalVolume = recent.reduce((sum, s) => sum + s.totalVolumeKg, 0);
   const avgVolume = Math.round(totalVolume / recent.length);
 
+  const displayFactor = weightUnit === 'lbs' ? 2.2046226218 : 1;
   const sessionLines = recent.map((s) => {
     const date = new Date(s.startedAt).toLocaleDateString('en-US', {
       weekday: 'short',
@@ -37,7 +39,7 @@ export async function buildInsightRequest(
     const duration = s.durationSeconds
       ? `${Math.round(s.durationSeconds / 60)} min`
       : 'unknown duration';
-    const volume = `${Math.round(s.totalVolumeKg)} kg`;
+    const volume = `${Math.round(s.totalVolumeKg * displayFactor)} ${weightUnit}`;
     const topExercises = s.exercises
       .slice(0, 3)
       .map((e) => nameOf[e.exerciseId] ?? e.exerciseId)
@@ -47,7 +49,7 @@ export async function buildInsightRequest(
 
   const summary = [
     `Sessions in last 4 weeks: ${recent.length}`,
-    `Average session volume: ${avgVolume} kg`,
+    `Average session volume: ${Math.round(avgVolume * displayFactor)} ${weightUnit}`,
     '',
     'Session log (most recent first):',
     ...sessionLines,

@@ -14,6 +14,7 @@ import { ApiError, getWorkoutInsights } from '../services/claudeService';
 import { buildInsightRequest } from '../services/insightsService';
 import { Sparkles, Loader, Shield, MessageCircle, BarChart2, Newspaper, Play } from 'lucide-react';
 import type { LearningCategory, Goal } from '../types';
+import { useWeightUnit } from '../hooks/useWeightUnit';
 
 const GOAL_CATEGORY: Record<Goal, LearningCategory> = {
   'hypertrophy': 'strength-training',
@@ -33,6 +34,7 @@ export function InsightsPage() {
   const navigate = useNavigate();
   const user = state.user;
   const sessions = state.history.sessions;
+  const weightUnit = useWeightUnit();
 
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export function InsightsPage() {
     setError(null);
 
     try {
-      const request = await buildInsightRequest(sessions, user);
+      const request = await buildInsightRequest(sessions, user, weightUnit);
       if (!request) {
         setError(
           'No completed workouts found in the last 4 weeks. Log a few sessions and come back!',

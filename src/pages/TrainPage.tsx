@@ -21,6 +21,7 @@ import {
   ChevronRight,
   AlertCircle,
   History,
+  CircleHelp,
 } from 'lucide-react';
 
 export function TrainPage() {
@@ -36,6 +37,7 @@ export function TrainPage() {
   const program = allPrograms.find(p => p.id === user.activeProgramId) ?? null;
   const nextWorkout = program ? getNextWorkout(program) : null;
   const recentSessions = state.history.sessions.slice(0, 3);
+  const isFirstWorkout = state.history.sessions.length === 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +69,24 @@ export function TrainPage() {
         {/* Program context */}
         {program && (
           <ProgramContextBar program={program} />
+        )}
+
+        {/* Beginner guide */}
+        {isFirstWorkout && !activeSession && (
+          <Card className="border-brand-300/60 bg-brand-50/70 dark:bg-brand-900/20">
+            <div className="flex items-start gap-3">
+              <CircleHelp size={18} className="text-brand-500 mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">New to workout logging?</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">Start here: pick one option below, log each set, then tap Finish when done.</p>
+                <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal ml-4">
+                  <li>Tap <span className="font-semibold">Start workout</span> for a guided session.</li>
+                  <li>Or tap <span className="font-semibold">Quick Log</span> to build your own session.</li>
+                  <li>In each exercise, enter weight and reps, then tap the check button.</li>
+                </ol>
+              </div>
+            </div>
+          </Card>
         )}
 
         {/* Resume active workout banner */}

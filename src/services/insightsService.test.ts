@@ -100,4 +100,10 @@ describe('buildInsightRequest', () => {
     const result = await buildInsightRequest([s1, s2], user);
     expect(result!.workoutSummary).toContain('Average session volume: 640 kg');
   });
+
+  it('formats summary volume in lbs when requested', async () => {
+    const session = makeSession('s1', '2025-03-01T10:00:00Z', '2025-03-01T11:00:00Z');
+    const result = await buildInsightRequest([session], user, 'lbs');
+    expect(result!.workoutSummary).toContain('Average session volume: 1411 lbs');
+  });
 });
