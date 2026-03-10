@@ -103,6 +103,29 @@ test.describe('Workout flow', () => {
     await expect(page.getByText(/new to workout logging\?/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/tap start workout for a guided session/i)).toBeVisible({ timeout: 5_000 });
   });
+
+  test('active workout beginner helper can be dismissed and stays hidden after reload', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem('fit_history', JSON.stringify({ sessions: [], personalRecords: [] }));
+      localStorage.removeItem('fit_active_session');
+      localStorage.removeItem('omnexus_workout_help_dismissed');
+    });
+
+    await page.goto('/');
+    const startBtn = page.getByRole('button', { name: /start workout|begin/i })
+      .or(page.getByRole('link', { name: /start workout|begin/i }));
+    await expect(startBtn.first()).toBeVisible({ timeout: 5_000 });
+    await startBtn.first().click();
+
+    await page.waitForURL(/\/workout\/active/);
+    await expect(page.getByText(/^quick guide$/i)).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('button', { name: /^got it$/i }).click();
+    await expect(page.getByText(/^quick guide$/i)).toBeHidden();
+
+    await page.reload();
+    await page.waitForURL(/\/workout\/active/);
+    await expect(page.getByText(/^quick guide$/i)).toBeHidden();
+  });
 });
 
 test.describe('Workout complete modal', () => {
