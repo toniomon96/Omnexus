@@ -18,6 +18,8 @@ import { courses } from '../data/courses';
 import { CheckCircle2, TrendingUp, Sparkles, Loader2, BookOpen, ArrowRight, Play, MessageCircle } from 'lucide-react';
 import { YouTubeEmbed } from '../components/ui/YouTubeEmbed';
 import type { ContentRecommendation } from '../types';
+import { useWeightUnit } from '../hooks/useWeightUnit';
+import { formatWeightValue } from '../utils/weightUnits';
 
 const equipEmoji: Record<string, string> = {
   barbell: '🏋️',
@@ -36,6 +38,7 @@ export function ExerciseDetailPage() {
   const { state } = useApp();
   const { progress } = useLearningProgress();
   const navigate = useNavigate();
+  const weightUnit = useWeightUnit();
 
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -104,7 +107,7 @@ export function ExerciseDetailPage() {
               .slice(-5)
               .map(
                 (pt) =>
-                  `${new Date(pt.date).toLocaleDateString()}: max ${pt.maxWeightKg}kg, est. 1RM ${pt.estimated1RM.toFixed(1)}kg (${pt.totalSets} sets)`,
+                  `${new Date(pt.date).toLocaleDateString()}: max ${formatWeightValue(pt.maxWeightKg, weightUnit)}${weightUnit}, est. 1RM ${formatWeightValue(pt.estimated1RM, weightUnit)}${weightUnit} (${pt.totalSets} sets)`,
               )
               .join('\n');
 

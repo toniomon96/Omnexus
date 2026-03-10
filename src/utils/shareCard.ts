@@ -13,6 +13,7 @@ const AMBER = '#f59e0b'; // amber-400
 const WHITE = '#ffffff';
 const SLATE_400 = '#94a3b8';
 const SLATE_600 = '#475569';
+const KG_TO_LBS = 2.2046226218;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,7 @@ export interface PRCardData {
   exerciseName: string;
   weight: number;
   reps: number;
+  weightUnit?: 'kg' | 'lbs';
   date?: string;
 }
 
@@ -187,7 +189,7 @@ function drawPRCard(ctx: CanvasRenderingContext2D, data: PRCardData) {
 
   // Weight × Reps (big number)
   ctx.font = `900 ${SIZE * 0.115}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
-  const statText = `${data.weight} kg × ${data.reps}`;
+  const statText = `${data.weight} ${data.weightUnit ?? 'kg'} × ${data.reps}`;
   // Gradient text via clip trick
   const statGrad = ctx.createLinearGradient(cx - SIZE * 0.3, 0, cx + SIZE * 0.3, 0);
   statGrad.addColorStop(0, '#f59e0b');
@@ -214,11 +216,16 @@ export interface WeeklyCardData {
   volumeKg: number;
   durationMinutes: number;
   streakDays: number;
+  weightUnit?: 'kg' | 'lbs';
   userName?: string;
 }
 
 function drawWeeklyCard(ctx: CanvasRenderingContext2D, data: WeeklyCardData) {
   const cx = SIZE / 2;
+  const displayUnit = data.weightUnit ?? 'kg';
+  const displayVolume = displayUnit === 'lbs'
+    ? data.volumeKg * KG_TO_LBS
+    : data.volumeKg;
 
   drawBackground(ctx);
 
@@ -261,8 +268,8 @@ function drawWeeklyCard(ctx: CanvasRenderingContext2D, data: WeeklyCardData) {
     { label: 'SESSIONS', value: String(data.sessions), unit: '' },
     {
       label: 'VOLUME',
-      value: data.volumeKg >= 1000 ? (data.volumeKg / 1000).toFixed(1) : String(Math.round(data.volumeKg)),
-      unit: data.volumeKg >= 1000 ? 't' : 'kg',
+      value: String(Math.round(displayVolume)),
+      unit: displayUnit,
     },
     { label: 'STREAK', value: String(data.streakDays), unit: 'days' },
   ];

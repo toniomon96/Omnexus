@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../store/AppContext';
+import { useWeightUnit } from '../hooks/useWeightUnit';
 import { useToast } from '../contexts/ToastContext';
 import type { Challenge, AiChallenge, FriendshipWithProfile, ChallengeInvitation } from '../types';
 import { PersonalChallengeCard } from '../components/challenges/PersonalChallengeCard';
@@ -87,6 +88,7 @@ async function createChallengesRealtimeChannel(userId: string, onRefresh: () => 
 }
 
 export function ChallengesPage() {
+  const weightUnit = useWeightUnit();
   const { state } = useApp();
   const { toast } = useToast();
   const userId = state.user?.id ?? '';
@@ -317,7 +319,7 @@ export function ChallengesPage() {
                   onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as Challenge['type'] }))}
                   className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none pr-8"
                 >
-                  <option value="volume">Total Volume (kg)</option>
+                  <option value="volume">Total Volume ({weightUnit})</option>
                   <option value="sessions">Workout Count</option>
                   <option value="streak">Training Streak (days)</option>
                 </select>
@@ -328,7 +330,7 @@ export function ChallengesPage() {
             <Input
               label="Target (optional)"
               type="number"
-              placeholder={form.type === 'volume' ? 'e.g. 10000' : form.type === 'sessions' ? 'e.g. 12' : 'e.g. 30'}
+              placeholder={form.type === 'volume' ? `e.g. ${weightUnit === 'kg' ? '10000' : '22000'}` : form.type === 'sessions' ? 'e.g. 12' : 'e.g. 30'}
               value={form.targetValue}
               onChange={(e) => setForm((f) => ({ ...f, targetValue: e.target.value }))}
             />

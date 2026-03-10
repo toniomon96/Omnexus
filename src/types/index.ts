@@ -50,6 +50,8 @@ export type DayType =
   | 'cardio'
   | 'rest';
 
+export type WeightUnit = 'kg' | 'lbs';
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export interface User {

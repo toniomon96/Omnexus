@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import type { PersonalRecord } from '../../types';
 import { getExerciseById } from '../../data/exercises';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatWeightValue } from '../../utils/weightUnits';
 
 interface PRCelebrationProps {
   prs: PersonalRecord[];
@@ -20,6 +22,7 @@ const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 export function PRCelebration({ prs, onDismiss }: PRCelebrationProps) {
+  const weightUnit = useWeightUnit();
   useEffect(() => {
     const timer = setTimeout(onDismiss, 4000);
     return () => clearTimeout(timer);
@@ -72,7 +75,7 @@ export function PRCelebration({ prs, onDismiss }: PRCelebrationProps) {
                   {ex?.name ?? pr.exerciseId}
                 </span>
                 <span className="text-white font-bold">
-                  {pr.weight}kg × {pr.reps}
+                  {formatWeightValue(pr.weight, weightUnit)}{weightUnit} x {pr.reps}
                 </span>
               </div>
             );

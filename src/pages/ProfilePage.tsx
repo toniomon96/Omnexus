@@ -6,8 +6,8 @@ import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { setUser, clearAppStorage } from '../utils/localStorage';
-import type { Goal, ExperienceLevel } from '../types';
+import { setUser, clearAppStorage, getWeightUnit, setWeightUnit } from '../utils/localStorage';
+import type { Goal, ExperienceLevel, WeightUnit } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
@@ -81,6 +81,7 @@ export function ProfilePage() {
   const [name, setName] = useState(currentUser?.name ?? '');
   const [goal, setGoal] = useState<Goal>(currentUser?.goal ?? 'general-fitness');
   const [level, setLevel] = useState<ExperienceLevel>(currentUser?.experienceLevel ?? 'beginner');
+  const [weightUnit, setWeightUnitState] = useState<WeightUnit>(() => getWeightUnit());
   const { toast } = useToast();
 
   const [saving, setSaving] = useState(false);
@@ -148,6 +149,12 @@ export function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleWeightUnitChange(nextUnit: WeightUnit) {
+    setWeightUnit(nextUnit);
+    setWeightUnitState(nextUnit);
+    toast(`Weight unit set to ${nextUnit.toUpperCase()}`, 'success');
   }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -462,6 +469,29 @@ export function ProfilePage() {
                       {LEVEL_LABELS[l]}
                     </option>
                   ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="profile-weight-unit" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Weight Unit
+              </label>
+              <div className="relative">
+                <select
+                  id="profile-weight-unit"
+                  value={weightUnit}
+                  onChange={(e) => handleWeightUnitChange(e.target.value as WeightUnit)}
+                  aria-label="Weight Unit"
+                  title="Weight Unit"
+                  className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
+                >
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="lbs">Pounds (lbs)</option>
                 </select>
                 <ChevronDown
                   size={16}

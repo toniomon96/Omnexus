@@ -14,6 +14,8 @@ import { HeatmapCalendar } from '../components/history/HeatmapCalendar';
 import { getExerciseNameMap, getWeeklyVolumeByMuscleMap } from '../lib/staticCatalogs';
 import { Clock, List, Calendar, Play } from 'lucide-react';
 import type { MuscleGroup } from '../types';
+import { useWeightUnit } from '../hooks/useWeightUnit';
+import { formatMass, formatWeightValue } from '../utils/weightUnits';
 
 function createEmptyWeeklyVolume(): Record<MuscleGroup, number[]> {
   return {
@@ -67,6 +69,7 @@ const SessionList = memo(function SessionList({ sessions }: { sessions: WorkoutS
 
 export function HistoryPage() {
   const { state } = useApp();
+  const weightUnit = useWeightUnit();
   const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [ready, setReady] = useState(false);
@@ -165,7 +168,7 @@ export function HistoryPage() {
               </Card>
               <Card padding="sm" className="text-center">
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {(totalVolume / 1000).toFixed(1)}t
+                  {formatMass(totalVolume, weightUnit)}
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">Total Volume</p>
               </Card>
@@ -188,7 +191,7 @@ export function HistoryPage() {
                           {prExerciseNames[pr.exerciseId] ?? pr.exerciseId}
                         </span>
                         <span className="font-bold text-yellow-600 dark:text-yellow-400 ml-2 shrink-0">
-                          {pr.weight}kg × {pr.reps}
+                          {formatWeightValue(pr.weight, weightUnit)}{weightUnit} x {pr.reps}
                         </span>
                       </div>
                     );

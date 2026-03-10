@@ -1,4 +1,6 @@
 import type { WorkoutSession } from '../../types';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass } from '../../utils/weightUnits';
 
 interface HeatmapCalendarProps {
   sessions: WorkoutSession[];
@@ -20,6 +22,7 @@ function volumeColor(vol: number): string {
 }
 
 export function HeatmapCalendar({ sessions, weeks = 26 }: HeatmapCalendarProps) {
+  const weightUnit = useWeightUnit();
   // Build volume map
   const volumeMap: Record<string, number> = {};
   for (const s of sessions) {
@@ -99,7 +102,7 @@ export function HeatmapCalendar({ sessions, weeks = 26 }: HeatmapCalendarProps) 
                 return (
                   <div
                     key={iso}
-                    title={vol > 0 ? `${iso}: ${Math.round(vol).toLocaleString()} kg` : iso}
+                    title={vol > 0 ? `${iso}: ${formatMass(vol, weightUnit)}` : iso}
                     className={[
                       'w-3 h-3 rounded-sm',
                       isFuture ? 'opacity-0' : volumeColor(vol),

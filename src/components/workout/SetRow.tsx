@@ -3,6 +3,8 @@ import type { LoggedSet } from '../../types';
 import { Check, Trash2 } from 'lucide-react';
 import { triggerHaptic } from '../../lib/capacitor';
 import { parseStrictDecimal, sanitizeDecimalInput } from '../../utils/numberValidation';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatWeightValue, toStoredWeight } from '../../utils/weightUnits';
 
 interface SetRowProps {
   set: LoggedSet;
@@ -21,12 +23,15 @@ export function SetRow({
   restSeconds,
   onStartRest,
 }: SetRowProps) {
-  const [weightInput, setWeightInput] = useState(set.weight > 0 ? String(set.weight) : '');
+  const weightUnit = useWeightUnit();
+  const [weightInput, setWeightInput] = useState(
+    set.weight > 0 ? formatWeightValue(set.weight, weightUnit) : '',
+  );
   const [repsInput, setRepsInput] = useState(set.reps > 0 ? String(set.reps) : '');
 
   useEffect(() => {
-    setWeightInput(set.weight > 0 ? String(set.weight) : '');
-  }, [set.weight]);
+    setWeightInput(set.weight > 0 ? formatWeightValue(set.weight, weightUnit) : '');
+  }, [set.weight, weightUnit]);
 
   useEffect(() => {
     setRepsInput(set.reps > 0 ? String(set.reps) : '');
@@ -43,7 +48,7 @@ export function SetRow({
 
     const parsed = parseStrictDecimal(sanitized);
     if (parsed !== null) {
-      onUpdate({ weight: parsed });
+      onUpdate({ weight: toStoredWeight(parsed, weightUnit) });
     }
   }
 
@@ -99,7 +104,7 @@ export function SetRow({
           {prevSet ? (
             <>
               <span className="block text-slate-300 dark:text-slate-600 text-[9px] uppercase tracking-wide">last</span>
-              {prevSet.weight}kg×{prevSet.reps}
+              {formatWeightValue(prevSet.weight, weightUnit)}{weightUnit}x{prevSet.reps}
             </>
           ) : '—'}
         </span>
@@ -113,11 +118,11 @@ export function SetRow({
             step={0.5}
             value={weightInput}
             onChange={(e) => handleWeightChange(e.target.value)}
-            placeholder={prevSet ? String(prevSet.weight) : '0'}
+            placeholder={prevSet ? formatWeightValue(prevSet.weight, weightUnit) : '0'}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-            aria-label={`Set ${set.setNumber} weight in kg`}
+            aria-label={`Set ${set.setNumber} weight in ${weightUnit}`}
           />
-          <span className="text-xs text-slate-400 shrink-0">kg</span>
+          <span className="text-xs text-slate-400 shrink-0">{weightUnit}</span>
         </div>
 
         {/* Reps input */}

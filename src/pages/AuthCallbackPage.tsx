@@ -5,6 +5,12 @@ import { getHistory } from '../utils/localStorage';
 
 type Status = 'loading' | 'confirmed' | 'recovery' | 'error';
 
+export function isRecoveryCallbackUrl(href: string): boolean {
+  const url = new URL(href);
+  const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash);
+  return url.searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+}
+
 async function migrateGuestHistory(userId: string): Promise<void> {
   const history = getHistory();
   if (history.sessions.length === 0 && history.personalRecords.length === 0) return;
@@ -40,11 +46,7 @@ export function AuthCallbackPage() {
   const [status, setStatus] = useState<Status>('loading');
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash);
-    const isRecoveryLink =
-      url.searchParams.get('type') === 'recovery' ||
-      hashParams.get('type') === 'recovery';
+    const isRecoveryLink = isRecoveryCallbackUrl(window.location.href);
 
     // Supabase v2 automatically processes the URL hash (access_token / type params)
     // and fires onAuthStateChange. We listen and route accordingly.

@@ -1,6 +1,8 @@
 import { Dumbbell, Clock } from 'lucide-react';
 import type { FeedSession, FeedReaction, ReactionEmoji } from '../../types';
 import { FeedReactionBar } from './FeedReactionBar';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass } from '../../utils/weightUnits';
 
 interface ActivityItemProps {
   item: FeedSession;
@@ -26,6 +28,7 @@ function timeAgo(iso: string) {
 }
 
 export function ActivityItem({ item, reactions, currentUserId, onReact, onUnreact }: ActivityItemProps) {
+  const weightUnit = useWeightUnit();
   return (
     <div className="flex gap-3 py-3.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -47,7 +50,7 @@ export function ActivityItem({ item, reactions, currentUserId, onReact, onUnreac
         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
           <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
             <Dumbbell size={11} />
-            {item.totalVolumeKg.toLocaleString()} kg total
+            {formatMass(item.totalVolumeKg, weightUnit)} total
           </span>
           {item.durationSeconds && (
             <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
