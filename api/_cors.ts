@@ -50,6 +50,22 @@ function getOrigin(req: VercelRequest): string | null {
   return Array.isArray(origin) ? origin[0] : origin;
 }
 
+function getHost(req: VercelRequest): string | null {
+  const host = req.headers.host;
+  if (!host) return null;
+  const value = Array.isArray(host) ? host[0] : host;
+  return value.trim().toLowerCase();
+}
+
+function isSameHostOrigin(origin: string, host: string): boolean {
+  try {
+    const originUrl = new URL(origin);
+    return originUrl.host.toLowerCase() === host;
+  } catch {
+    return false;
+  }
+}
+
 function applyCommonCorsHeaders(res: VercelResponse, origin: string): void {
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
@@ -63,7 +79,26 @@ function applyCommonCorsHeaders(res: VercelResponse, origin: string): void {
  */
 export function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean {
   const origin = getOrigin(req);
-  const isProduction = process.env.NODE_ENV === 'production';
+  const vercelEnv = process.env.VERCEL_ENV;
+  const isPreview = vercelEnv === 'preview';
+  const isProduction = vercelEnv === 'production' || (process.env.NODE_ENV === 'production' && !vercelEnv);
+
+  if (isPreview) {
+    const host = getHost(req);
+    const allowedOrigins = getProdAllowedOrigins();
+    if (origin && ((host && isSameHostOrigin(origin, host)) || allowedOrigins.has(origin))) {
+      applyCommonCorsHeaders(res, origin);
+      return true;
+    }
+
+    if (!origin) {
+      res.status(403).json({ error: 'Origin not allowed' });
+      return false;
+    }
+
+    res.status(403).json({ error: 'Origin not allowed' });
+    return false;
+  }
 
   if (isProduction) {
     const allowedOrigins = getProdAllowedOrigins();
