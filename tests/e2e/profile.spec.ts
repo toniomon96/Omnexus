@@ -37,4 +37,46 @@ test.describe('Profile page — guest', () => {
     await page.goto('/profile');
     await expect(page.getByRole('button', { name: /exit guest mode/i })).toBeVisible();
   });
+
+  test('weight unit selection persists and updates history labels', async ({ page }) => {
+    await page.evaluate(() => {
+      const history = {
+        sessions: [
+          {
+            id: 'session-unit-1',
+            programId: 'program-1',
+            trainingDayIndex: 0,
+            startedAt: new Date().toISOString(),
+            completedAt: new Date().toISOString(),
+            durationSeconds: 1800,
+            exercises: [
+              {
+                exerciseId: 'barbell-bench-press',
+                sets: [
+                  { setNumber: 1, weight: 100, reps: 5, completed: true, timestamp: new Date().toISOString() },
+                ],
+              },
+            ],
+            totalVolumeKg: 500,
+          },
+        ],
+        personalRecords: [
+          {
+            exerciseId: 'barbell-bench-press',
+            weight: 100,
+            reps: 5,
+            achievedAt: new Date().toISOString(),
+            sessionId: 'session-unit-1',
+          },
+        ],
+      };
+      localStorage.setItem('fit_history', JSON.stringify(history));
+    });
+
+    await page.goto('/profile');
+    await page.selectOption('#profile-weight-unit', 'lbs');
+
+    await page.goto('/history');
+    await expect(page.getByText(/lbs/i).first()).toBeVisible({ timeout: 5_000 });
+  });
 });

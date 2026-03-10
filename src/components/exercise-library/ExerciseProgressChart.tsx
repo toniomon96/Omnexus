@@ -1,4 +1,6 @@
 import type { ExerciseDataPoint } from '../../utils/volumeUtils';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatWeightValue } from '../../utils/weightUnits';
 
 interface ExerciseProgressChartProps {
   data: ExerciseDataPoint[];
@@ -10,6 +12,7 @@ function formatShortDate(iso: string): string {
 }
 
 export function ExerciseProgressChart({ data }: ExerciseProgressChartProps) {
+  const weightUnit = useWeightUnit();
   if (data.length === 0) {
     return (
       <p className="text-sm text-slate-400 text-center py-4">
@@ -22,7 +25,7 @@ export function ExerciseProgressChart({ data }: ExerciseProgressChartProps) {
     const pt = data[0];
     return (
       <div className="text-center py-2">
-        <p className="text-2xl font-bold text-brand-500">{pt.estimated1RM.toFixed(1)} kg</p>
+        <p className="text-2xl font-bold text-brand-500">{formatWeightValue(pt.estimated1RM, weightUnit)} {weightUnit}</p>
         <p className="text-xs text-slate-400 mt-0.5">Estimated 1RM · {formatShortDate(pt.date)}</p>
         <p className="text-xs text-slate-400 mt-1">Log more sessions to see your trend.</p>
       </div>
@@ -133,7 +136,7 @@ export function ExerciseProgressChart({ data }: ExerciseProgressChartProps) {
       <div className="flex justify-between items-center mt-1 px-1">
         <span className="text-xs text-slate-400">Estimated 1RM over time</span>
         <span className="text-xs font-semibold text-brand-500">
-          {data[data.length - 1].estimated1RM.toFixed(1)} kg
+          {formatWeightValue(data[data.length - 1].estimated1RM, weightUnit)} {weightUnit}
         </span>
       </div>
     </div>

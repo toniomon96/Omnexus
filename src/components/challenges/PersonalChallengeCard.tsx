@@ -5,6 +5,9 @@ import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
 import { generatePersonalChallenge } from '../../services/adaptService';
 import type { AiChallenge } from '../../types';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { toDisplayWeight } from '../../utils/weightUnits';
+import type { WeightUnit } from '../../types';
 
 async function loadAiChallenges(userId: string) {
   const { getAiChallenges } = await import('../../lib/db');
@@ -20,6 +23,27 @@ interface PersonalChallengeCardProps {
   avgRpe: number;
 }
 
+export function getPersonalChallengeTargetDisplay(
+  challenge: Pick<AiChallenge, 'metric' | 'target' | 'unit'>,
+  weightUnit: WeightUnit,
+): { targetText: string; unitText: string } {
+  const normalizedUnit = challenge.unit.trim().toLowerCase();
+  const challengeUsesMass = challenge.metric === 'total_volume'
+    || normalizedUnit === 'kg'
+    || normalizedUnit === 'kgs'
+    || normalizedUnit === 'lb'
+    || normalizedUnit === 'lbs'
+    || normalizedUnit === 'pounds';
+  const displayTarget = challengeUsesMass ? toDisplayWeight(challenge.target, weightUnit) : challenge.target;
+  const roundedTarget = Math.round(displayTarget * 10) / 10;
+  const targetText = Number.isInteger(roundedTarget)
+    ? roundedTarget.toLocaleString()
+    : roundedTarget.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const unitText = challengeUsesMass ? weightUnit : challenge.unit;
+
+  return { targetText, unitText };
+}
+
 export function PersonalChallengeCard({
   userId,
   goal,
@@ -28,6 +52,7 @@ export function PersonalChallengeCard({
   sessionsLast30Days,
   avgRpe,
 }: PersonalChallengeCardProps) {
+  const weightUnit = useWeightUnit();
   const [challenge, setChallenge] = useState<AiChallenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -112,6 +137,7 @@ export function PersonalChallengeCard({
   const daysPassed = totalDays - daysRemaining;
   const progressPct = totalDays > 0 ? Math.min(100, Math.round((daysPassed / totalDays) * 100)) : 0;
   const isActive = challenge.startDate <= today && challenge.endDate >= today;
+  const { targetText: displayTargetText, unitText: displayUnit } = getPersonalChallengeTargetDisplay(challenge, weightUnit);
 
   return (
     <Card>
@@ -141,7 +167,7 @@ export function PersonalChallengeCard({
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{challenge.description}</p>
 
       <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
-        <span>Target: {challenge.target} {challenge.unit}</span>
+        <span>Target: {displayTargetText} {displayUnit}</span>
         <span>{progressPct}% through</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">

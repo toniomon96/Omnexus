@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react';
 import type { LoggedSet } from '../../types';
 import { Check, Trash2 } from 'lucide-react';
 import { triggerHaptic } from '../../lib/capacitor';
+import { parseStrictDecimal, sanitizeDecimalInput } from '../../utils/numberValidation';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatWeightValue, toStoredWeight } from '../../utils/weightUnits';
 
 interface SetRowProps {
   set: LoggedSet;
@@ -19,7 +23,58 @@ export function SetRow({
   restSeconds,
   onStartRest,
 }: SetRowProps) {
+  const weightUnit = useWeightUnit();
+  const [weightInput, setWeightInput] = useState(
+    set.weight > 0 ? formatWeightValue(set.weight, weightUnit) : '',
+  );
+  const [repsInput, setRepsInput] = useState(set.reps > 0 ? String(set.reps) : '');
+
+  useEffect(() => {
+    setWeightInput(set.weight > 0 ? formatWeightValue(set.weight, weightUnit) : '');
+  }, [set.weight, weightUnit]);
+
+  useEffect(() => {
+    setRepsInput(set.reps > 0 ? String(set.reps) : '');
+  }, [set.reps]);
+
+  function handleWeightChange(raw: string) {
+    const sanitized = sanitizeDecimalInput(raw);
+    setWeightInput(sanitized);
+
+    if (!sanitized) {
+      onUpdate({ weight: 0 });
+      return;
+    }
+
+    const parsed = parseStrictDecimal(sanitized);
+    if (parsed !== null) {
+      onUpdate({ weight: toStoredWeight(parsed, weightUnit) });
+    }
+  }
+
+  function handleRepsChange(raw: string) {
+    const sanitized = raw.replace(/[^\d]/g, '');
+    setRepsInput(sanitized);
+
+    if (!sanitized) {
+      onUpdate({ reps: 0 });
+      return;
+    }
+
+    const parsed = Number.parseInt(sanitized, 10);
+    if (Number.isFinite(parsed)) {
+      onUpdate({ reps: parsed });
+    }
+  }
+
   function handleComplete() {
+    const parsedWeight = parseStrictDecimal(weightInput);
+    const hasValidWeight = parsedWeight !== null && parsedWeight >= 0;
+    const hasValidReps = Number.isInteger(set.reps) && set.reps > 0;
+    if (!hasValidWeight || !hasValidReps) {
+      return;
+    }
+
     triggerHaptic('light'); // tactile feedback on native; no-op on web
     const nowCompleted = !set.completed;
     onUpdate({ completed: nowCompleted });
@@ -49,7 +104,7 @@ export function SetRow({
           {prevSet ? (
             <>
               <span className="block text-slate-300 dark:text-slate-600 text-[9px] uppercase tracking-wide">last</span>
-              {prevSet.weight}kg×{prevSet.reps}
+              {formatWeightValue(prevSet.weight, weightUnit)}{weightUnit}x{prevSet.reps}
             </>
           ) : '—'}
         </span>
@@ -61,13 +116,13 @@ export function SetRow({
             inputMode="decimal"
             min={0}
             step={0.5}
-            value={set.weight || ''}
-            onChange={(e) => onUpdate({ weight: parseFloat(e.target.value) || 0 })}
-            placeholder={prevSet ? String(prevSet.weight) : '0'}
+            value={weightInput}
+            onChange={(e) => handleWeightChange(e.target.value)}
+            placeholder={prevSet ? formatWeightValue(prevSet.weight, weightUnit) : '0'}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-            aria-label={`Set ${set.setNumber} weight in kg`}
+            aria-label={`Set ${set.setNumber} weight in ${weightUnit}`}
           />
-          <span className="text-xs text-slate-400 shrink-0">kg</span>
+          <span className="text-xs text-slate-400 shrink-0">{weightUnit}</span>
         </div>
 
         {/* Reps input */}
@@ -76,8 +131,9 @@ export function SetRow({
             type="number"
             inputMode="numeric"
             min={0}
-            value={set.reps || ''}
-            onChange={(e) => onUpdate({ reps: parseInt(e.target.value) || 0 })}
+            step={1}
+            value={repsInput}
+            onChange={(e) => handleRepsChange(e.target.value)}
             placeholder={prevSet ? String(prevSet.reps) : '0'}
             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-sm font-medium tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-400 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
             aria-label={`Set ${set.setNumber} reps`}

@@ -11,6 +11,7 @@ import type {
   Program,
   WorkoutTemplate,
   HealthArticle,
+  WeightUnit,
 } from '../types';
 
 const KEYS = {
@@ -30,6 +31,7 @@ const KEYS = {
   DAILY_SNIPPET_CACHE: 'omnexus_daily_snippet',
   GUEST_PROFILE: 'omnexus_guest',
   MEASUREMENTS: 'omnexus_measurements',
+  WEIGHT_UNIT: 'omnexus_weight_unit',
 } as const;
 
 function safeRead<T>(key: string, fallback: T): T {
@@ -140,6 +142,15 @@ export function getTheme(): 'dark' | 'light' {
 
 export function setTheme(theme: 'dark' | 'light'): void {
   safeWrite(KEYS.THEME, theme);
+}
+
+export function getWeightUnit(): WeightUnit {
+  const stored = safeRead<WeightUnit | null>(KEYS.WEIGHT_UNIT, null);
+  return stored === 'lbs' ? 'lbs' : 'kg';
+}
+
+export function setWeightUnit(unit: WeightUnit): void {
+  safeWrite(KEYS.WEIGHT_UNIT, unit);
 }
 
 // ─── Program Cursors ──────────────────────────────────────────────────────────

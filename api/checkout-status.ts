@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { setCorsHeaders } from './_cors.js';
 import { getStripeConfig } from './_stripe.js';
 
 const supabaseAdmin =
@@ -20,7 +20,7 @@ function getSubscriptionPeriodEnd(subscription: Stripe.Subscription): string | n
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res, ALLOWED_ORIGIN);
+  if (!setCorsHeaders(req, res)) return;
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });

@@ -92,6 +92,40 @@ test.describe('Workout flow', () => {
       page.waitForURL(/\/workout\/active/, { timeout: 5_000 }),
     );
   });
+
+  test('train page shows beginner guidance for first workout', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem('fit_history', JSON.stringify({ sessions: [], personalRecords: [] }));
+      localStorage.removeItem('fit_active_session');
+    });
+
+    await page.goto('/train');
+    await expect(page.getByText(/new to workout logging\?/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/tap start workout for a guided session/i)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('active workout beginner helper can be dismissed and stays hidden after reload', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem('fit_history', JSON.stringify({ sessions: [], personalRecords: [] }));
+      localStorage.removeItem('fit_active_session');
+      localStorage.removeItem('omnexus_workout_help_dismissed');
+    });
+
+    await page.goto('/');
+    const startBtn = page.getByRole('button', { name: /start workout|begin/i })
+      .or(page.getByRole('link', { name: /start workout|begin/i }));
+    await expect(startBtn.first()).toBeVisible({ timeout: 5_000 });
+    await startBtn.first().click();
+
+    await page.waitForURL(/\/workout\/active/);
+    await expect(page.getByText(/^quick guide$/i)).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('button', { name: /^got it$/i }).click();
+    await expect(page.getByText(/^quick guide$/i)).toBeHidden();
+
+    await page.reload();
+    await page.waitForURL(/\/workout\/active/);
+    await expect(page.getByText(/^quick guide$/i)).toBeHidden();
+  });
 });
 
 test.describe('Workout complete modal', () => {
@@ -192,6 +226,12 @@ test.describe('Quick log workout', () => {
     });
   });
 
+  test('quick-log page shows step-by-step help and disabled start until selection', async ({ page }) => {
+    await page.goto('/workout/quick');
+    await expect(page.getByText(/how quick log works/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /select at least 1 exercise to start/i })).toBeDisabled();
+  });
+
   test('train page routes users without a program into quick log instead of a dead end', async ({ page }) => {
     await page.evaluate(() => {
       const raw = localStorage.getItem('fit_user');
@@ -208,7 +248,7 @@ test.describe('Quick log workout', () => {
     await expect(page.getByRole('button', { name: /browse programs/i })).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: /^quick log$/i }).first().click();
     await expect(page).toHaveURL('/workout/quick');
-    await expect(page.getByRole('heading', { name: /quick log/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: /^quick log$/i })).toBeVisible({ timeout: 5_000 });
   });
 });
 

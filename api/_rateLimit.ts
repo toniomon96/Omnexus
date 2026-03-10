@@ -7,8 +7,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  *   UPSTASH_REDIS_REST_URL   — from Upstash console
  *   UPSTASH_REDIS_REST_TOKEN — from Upstash console
  *
- * If the vars are absent (e.g. local dev without Redis), rate limiting
- * is skipped entirely so development is unaffected.
+ * In development, missing vars disable rate limiting to keep local workflows simple.
+ * In production, missing vars fail closed with HTTP 500.
  */
 
 // Dynamic imports keep the bundle small when rate limiting is disabled.
@@ -52,8 +52,16 @@ export async function checkRateLimit(
   req: VercelRequest,
   res: VercelResponse,
 ): Promise<boolean> {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const hasUpstashConfig = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (isProduction && !hasUpstashConfig) {
+    res.status(500).json({ error: 'Rate limiting is not configured' });
+    return false;
+  }
+
   const rl = await getRatelimit();
-  if (!rl) return true; // Rate limiting disabled — allow request
+  if (!rl) return true; // Development fallback only (production handled above)
 
   // Use the real IP from Vercel's forwarded header
   const ip =

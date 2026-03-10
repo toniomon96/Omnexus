@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { setCorsHeaders } from './_cors.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach creating a weekly community challenge for a fitness app.
 
@@ -17,7 +16,6 @@ Output ONLY valid JSON (no markdown fences) with this exact shape:
 The challenge should be inclusive for all fitness levels. Make it community-focused and motivating.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   // Vercel cron uses GET
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -25,7 +23,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    return res.status(500).json({ error: 'CRON_SECRET not configured' });
+  }
+  if (req.headers.authorization !== `Bearer ${cronSecret}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

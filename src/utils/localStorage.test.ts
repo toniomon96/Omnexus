@@ -49,6 +49,8 @@ import {
   getGuestProfile,
   setGuestProfile,
   clearGuestProfile,
+  getWeightUnit,
+  setWeightUnit,
 } from './localStorage';
 import type { User, WorkoutSession, PersonalRecord, LearningProgress, Program, InsightSession } from '../types';
 
@@ -207,6 +209,22 @@ describe('Theme storage', () => {
   it('stores and retrieves theme', () => {
     setTheme('dark');
     expect(getTheme()).toBe('dark');
+  });
+});
+
+describe('Weight unit storage', () => {
+  it('defaults to kg', () => {
+    expect(getWeightUnit()).toBe('kg');
+  });
+
+  it('stores and retrieves weight unit', () => {
+    setWeightUnit('lbs');
+    expect(getWeightUnit()).toBe('lbs');
+  });
+
+  it('falls back to kg for invalid stored values', () => {
+    localStorageMock.setItem('omnexus_weight_unit', JSON.stringify('stone'));
+    expect(getWeightUnit()).toBe('kg');
   });
 });
 

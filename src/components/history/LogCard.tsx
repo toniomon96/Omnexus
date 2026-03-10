@@ -7,6 +7,8 @@ import { Card } from '../ui/Card';
 import { ChevronDown, ChevronUp, Timer, Zap, Trophy, Gauge, Pencil, Check, X } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass, formatWeightValue, toStoredWeight } from '../../utils/weightUnits';
 
 interface LogCardProps {
   session: WorkoutSession;
@@ -16,6 +18,7 @@ interface LogCardProps {
 export function LogCard({ session, exerciseNames }: LogCardProps) {
   const { dispatch } = useApp();
   const { session: authSession } = useAuth();
+  const weightUnit = useWeightUnit();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   // Draft edits: exerciseId -> setIndex -> { weight, reps }
@@ -43,7 +46,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
       ex.sets.forEach((s, i) => {
         if (s.completed) {
           initial[ex.exerciseId][i] = {
-            weight: String(s.weight),
+            weight: formatWeightValue(s.weight, weightUnit),
             reps: String(s.reps),
           };
         }
@@ -66,7 +69,8 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
         sets: ex.sets.map((s, i): LoggedSet => {
           const draft = drafts[ex.exerciseId]?.[i];
           if (!s.completed || !draft) return s;
-          const weight = parseFloat(draft.weight) || s.weight;
+          const parsedWeight = parseFloat(draft.weight);
+          const weight = Number.isFinite(parsedWeight) ? toStoredWeight(parsedWeight, weightUnit) : s.weight;
           const reps = parseInt(draft.reps, 10) || s.reps;
           return { ...s, weight, reps };
         }),
@@ -116,7 +120,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
             </div>
             <div className="flex items-center gap-1 text-xs text-slate-400">
               <Zap size={12} />
-              {session.totalVolumeKg.toFixed(0)}kg
+              {formatMass(session.totalVolumeKg, weightUnit)}
             </div>
             {avgRpe !== null && (
               <div className="flex items-center gap-1 text-xs text-slate-400">
@@ -203,9 +207,9 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
                                 }))
                               }
                               className="w-14 text-xs text-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-1 py-0.5 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
-                              aria-label={`Set ${i + 1} weight`}
+                              aria-label={`Set ${i + 1} weight in ${weightUnit}`}
                             />
-                            <span className="text-xs text-slate-400">kg×</span>
+                            <span className="text-xs text-slate-400">{weightUnit}x</span>
                             <input
                               type="number"
                               inputMode="numeric"
@@ -235,7 +239,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
                               : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
                           ].join(' ')}
                         >
-                          {s.weight}kg×{s.reps}
+                          {formatWeightValue(s.weight, weightUnit)}{weightUnit}x{s.reps}
                           {s.rpe != null && ` @${s.rpe}`}
                           {s.isPersonalRecord && ' 🏆'}
                         </span>

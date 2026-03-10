@@ -1,4 +1,6 @@
 import type { LeaderboardEntry } from '../../types';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass } from '../../utils/weightUnits';
 
 interface LeaderboardRowProps {
   rank: number;
@@ -12,6 +14,7 @@ const RANK_STYLES: Record<number, string> = {
 };
 
 export function LeaderboardRow({ rank, entry }: LeaderboardRowProps) {
+  const weightUnit = useWeightUnit();
   return (
     <div
       className={[
@@ -41,7 +44,7 @@ export function LeaderboardRow({ rank, entry }: LeaderboardRowProps) {
 
       <div className="text-right shrink-0">
         <p className="text-sm font-bold text-slate-900 dark:text-white">
-          {entry.weeklyVolumeKg.toLocaleString()} kg
+          {formatMass(entry.weeklyVolumeKg, weightUnit)}
         </p>
         <p className="text-xs text-slate-400">this week</p>
       </div>

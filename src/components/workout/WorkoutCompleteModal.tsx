@@ -12,6 +12,8 @@ import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History, Messa
 import { triggerHapticNotification } from '../../lib/capacitor';
 import { getAdaptation } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass, formatWeightValue, toDisplayWeight } from '../../utils/weightUnits';
 
 interface WorkoutCompleteModalProps {
   open: boolean;
@@ -93,6 +95,7 @@ export function WorkoutCompleteModal({
 }: WorkoutCompleteModalProps) {
   const navigate = useNavigate();
   const { state } = useApp();
+  const weightUnit = useWeightUnit();
   const hasPRs = prs.length > 0;
   useConfetti(open && hasPRs);
 
@@ -195,7 +198,7 @@ export function WorkoutCompleteModal({
                 {
                   icon: <Zap size={18} className="text-orange-500" />,
                   label: 'Volume',
-                  value: `${session.totalVolumeKg.toFixed(0)} kg`,
+                  value: formatMass(session.totalVolumeKg, weightUnit),
                 },
                 {
                   icon: <Trophy size={18} className="text-yellow-500" />,
@@ -245,7 +248,7 @@ export function WorkoutCompleteModal({
                           {ex?.name ?? pr.exerciseId}
                         </span>
                         <span className="text-sm font-bold text-yellow-700 dark:text-yellow-400 tabular-nums">
-                          {pr.weight} kg × {pr.reps}
+                          {formatWeightValue(pr.weight, weightUnit)} {weightUnit} x {pr.reps}
                         </span>
                       </li>
                     );
@@ -281,7 +284,7 @@ export function WorkoutCompleteModal({
             <button
               type="button"
               onClick={() => navigate('/ask', {
-                state: { prefill: `I just finished a workout with ${totalSets} sets and ${session.totalVolumeKg.toFixed(0)}kg total volume. How did I do and what should I focus on next session?` },
+                state: { prefill: `I just finished a workout with ${totalSets} sets and ${formatMass(session.totalVolumeKg, weightUnit)} total volume. How did I do and what should I focus on next session?` },
               })}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-sm text-slate-600 dark:text-slate-400 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
             >
@@ -341,8 +344,9 @@ export function WorkoutCompleteModal({
             const ex = getExerciseById(featuredPR.exerciseId);
             return generatePRCard({
               exerciseName: ex?.name ?? featuredPR.exerciseId,
-              weight: featuredPR.weight,
+              weight: Math.round(toDisplayWeight(featuredPR.weight, weightUnit)),
               reps: featuredPR.reps,
+              weightUnit,
               date: new Date().toLocaleDateString(undefined, {
                 month: 'long',
                 day: 'numeric',

@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { sendPushToUsers } from './_sendPush.js';
-import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { setCorsHeaders } from './_cors.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res, ALLOWED_ORIGIN);
+  if (!setCorsHeaders(req, res)) return;
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).end();
 

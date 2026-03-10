@@ -10,6 +10,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Button } from '../components/ui/Button';
 import { SearchBar } from '../components/exercise-library/SearchBar';
+import { Card } from '../components/ui/Card';
 
 export function QuickLogPage() {
   const { startQuickWorkout } = useWorkoutSession();
@@ -67,6 +68,16 @@ export function QuickLogPage() {
     <AppShell>
       <TopBar title="Quick Log" />
       <div className="p-4 space-y-5 pb-32">
+
+        {/* Beginner instructions */}
+        <Card className="border-brand-300/60 bg-brand-50/70 dark:bg-brand-900/20">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">How Quick Log Works</h2>
+          <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal ml-4">
+            <li>Search and tap exercises to add them.</li>
+            <li>Tap <span className="font-semibold">Start Workout</span>.</li>
+            <li>Enter weight and reps for each set, then tap <span className="font-semibold">Finish</span>.</li>
+          </ol>
+        </Card>
 
         {/* Templates */}
         {templates.length > 0 && (
@@ -131,7 +142,12 @@ export function QuickLogPage() {
                     className="flex items-center gap-1.5 px-3 py-1 bg-brand-500/20 text-brand-300 rounded-full text-sm"
                   >
                     {ex?.name ?? id}
-                    <button onClick={() => toggle(id)} className="hover:text-white">
+                    <button
+                      onClick={() => toggle(id)}
+                      className="hover:text-white"
+                      aria-label={`Remove ${ex?.name ?? id}`}
+                      title={`Remove ${ex?.name ?? id}`}
+                    >
                       <X size={12} />
                     </button>
                   </span>
@@ -167,14 +183,18 @@ export function QuickLogPage() {
       </div>
 
       {/* Start button */}
-      {selectedIds.length > 0 && (
-        <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4">
-          <Button onClick={handleStart} className="w-full flex items-center justify-center gap-2">
+      <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4">
+        <Button
+          onClick={handleStart}
+          disabled={selectedIds.length === 0}
+          className="w-full flex items-center justify-center gap-2"
+        >
             <Zap size={16} />
-            Start Workout ({selectedIds.length} exercises)
+            {selectedIds.length > 0
+              ? `Start Workout (${selectedIds.length} exercises)`
+              : 'Select at least 1 exercise to start'}
           </Button>
-        </div>
-      )}
+      </div>
     </AppShell>
   );
 }

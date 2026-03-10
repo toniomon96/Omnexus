@@ -1,23 +1,40 @@
-import type { VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-/**
- * Shared CORS helper.
- *
- * REQUIRED in production: set ALLOWED_ORIGIN in Vercel environment settings
- * to your frontend URL, e.g. https://your-app.vercel.app
- *
- * Falls back to '*' only in local development (NODE_ENV !== 'production').
- * In production without ALLOWED_ORIGIN set, a warning is logged so it's
- * visible in Vercel function logs.
- */
-const envOrigin = process.env.ALLOWED_ORIGIN;
-if (!envOrigin && process.env.NODE_ENV === 'production') {
-  console.warn('[CORS] ALLOWED_ORIGIN is not set in production — defaulting to wildcard. Set ALLOWED_ORIGIN in Vercel environment settings.');
+const PROD_ALLOWED_ORIGINS = new Set([
+  'https://omnexus.netlify.app',
+  'https://fitness-app-ten-eta.vercel.app',
+]);
+
+function getOrigin(req: VercelRequest): string | null {
+  const origin = req.headers.origin;
+  if (!origin) return null;
+  return Array.isArray(origin) ? origin[0] : origin;
 }
-export const ALLOWED_ORIGIN = envOrigin ?? '*';
 
-export function setCorsHeaders(res: VercelResponse, origin = '*'): void {
+function applyCommonCorsHeaders(res: VercelResponse, origin: string): void {
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Vary', 'Origin');
+}
+
+/**
+ * Applies CORS headers and enforces a strict origin allowlist in production.
+ * Returns false when the request must be blocked.
+ */
+export function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean {
+  const origin = getOrigin(req);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    if (!origin || !PROD_ALLOWED_ORIGINS.has(origin)) {
+      res.status(403).json({ error: 'Origin not allowed' });
+      return false;
+    }
+    applyCommonCorsHeaders(res, origin);
+    return true;
+  }
+
+  applyCommonCorsHeaders(res, origin ?? '*');
+  return true;
 }

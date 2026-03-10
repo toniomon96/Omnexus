@@ -7,6 +7,8 @@ import { ShareCardModal } from '../ui/ShareCardModal';
 import { TrendingUp, TrendingDown, Minus, Dumbbell, Share2 } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { calculateStreak } from '../../utils/dateUtils';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass } from '../../utils/weightUnits';
 
 interface WeeklyRecapCardProps {
   sessions: WorkoutSession[];
@@ -20,6 +22,7 @@ function getLastWeekStart(): string {
 
 export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
   const { state } = useApp();
+  const weightUnit = useWeightUnit();
   const [showShare, setShowShare] = useState(false);
   const [topExerciseName, setTopExerciseName] = useState<string | null>(null);
 
@@ -118,9 +121,7 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-2xl font-bold">
-              {thisVol >= 1000
-                ? `${(thisVol / 1000).toFixed(1)}t`
-                : `${thisVol.toFixed(0)}kg`}
+              {formatMass(thisVol, weightUnit)}
             </span>
             <span className="text-[11px] text-slate-400">volume</span>
           </div>
@@ -138,8 +139,8 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
         {lastVol > 0 && thisVol > 0 && (
           <div className="space-y-1">
             <div className="flex justify-between text-[10px] text-slate-500">
-              <span>Last week {lastVol.toFixed(0)} kg</span>
-              <span>This week {thisVol.toFixed(0)} kg</span>
+              <span>Last week {formatMass(lastVol, weightUnit)}</span>
+              <span>This week {formatMass(thisVol, weightUnit)}</span>
             </div>
             <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <div
@@ -180,6 +181,7 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
             volumeKg: thisVol,
             durationMinutes: thisDurationMin,
             streakDays: streak,
+            weightUnit,
             userName: state.user?.name,
           })
         }

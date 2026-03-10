@@ -17,6 +17,8 @@ import { formatDuration } from '../utils/dateUtils';
 import type { WorkoutSession, PersonalRecord } from '../types';
 import { Plus, X, StopCircle } from 'lucide-react';
 
+const WORKOUT_HELP_DISMISSED_KEY = 'omnexus_workout_help_dismissed';
+
 export function ActiveWorkoutPage() {
   const navigate = useNavigate();
   const { state, dispatch } = useApp();
@@ -39,7 +41,15 @@ export function ActiveWorkoutPage() {
     prs: PersonalRecord[];
   } | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showBeginnerHelp, setShowBeginnerHelp] = useState(() => {
+    try {
+      return localStorage.getItem(WORKOUT_HELP_DISMISSED_KEY) !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const persistedSession = session ?? getActiveSession();
+  const isFirstWorkout = state.history.sessions.length === 0;
 
   useEffect(() => {
     if (!session && persistedSession && !state.activeSession) {
@@ -101,6 +111,15 @@ export function ActiveWorkoutPage() {
     setShowDiscardConfirm(true);
   }
 
+  function dismissBeginnerHelp() {
+    setShowBeginnerHelp(false);
+    try {
+      localStorage.setItem(WORKOUT_HELP_DISMISSED_KEY, 'true');
+    } catch {
+      // Ignore storage errors in private browsing modes.
+    }
+  }
+
   // Get previous session sets for reference
   function getPrevSets(exerciseId: string, setCount: number) {
     const pastSessions = state.history.sessions
@@ -149,6 +168,26 @@ export function ActiveWorkoutPage() {
         </div>
 
         <div className="px-4 pb-32 space-y-4 mt-4">
+          {isFirstWorkout && showBeginnerHelp && (
+            <div className="rounded-xl border border-brand-300/50 bg-brand-50/70 px-3 py-2.5 dark:bg-brand-900/20">
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-xs text-slate-700 dark:text-slate-200 space-y-0.5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Quick guide</p>
+                  <p>1. Enter weight and reps for each set.</p>
+                  <p>2. Tap the check button to log the set.</p>
+                  <p>3. Tap <span className="font-semibold">Finish</span> when done.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissBeginnerHelp}
+                  className="text-xs text-brand-600 dark:text-brand-400 font-semibold shrink-0"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          )}
+
           {persistedSession.exercises.map((loggedEx, ei) => {
             const dayEx = trainingDay?.exercises[ei];
             const restSecs = dayEx?.scheme.restSeconds ?? 90;

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { setCorsHeaders } from './_cors.js';
 import {
   findStripeCustomerByEmail,
   findStripeSubscription,
@@ -20,7 +20,7 @@ const PREMIUM_PROGRAM_LIMIT = 5;
 const PREMIUM_ASK_LIMIT = 999;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res, ALLOWED_ORIGIN);
+  if (!setCorsHeaders(req, res)) return;
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });

@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ HARD CONSTRAINTS:
 // ─── Handler ────────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res, ALLOWED_ORIGIN);
+  if (!setCorsHeaders(req, res)) return;
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

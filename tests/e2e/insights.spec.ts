@@ -21,11 +21,13 @@ test.describe('Insights — guest', () => {
     await page.goto('/insights');
     // Wait for page heading before asserting content
     await page.getByRole('heading', { name: /ai-powered insights/i }).waitFor({ timeout: 5_000 }).catch(() => {});
-    // Guest with no history sees empty-state copy + "Start a workout" button, or the Analyze button if history exists
+    // Guest either sees account CTA (Create Account / Sign In), or old empty-state/analyze variants.
     const hasAnalyzeButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 3_000 }).catch(() => false);
     const hasStartButton = await page.getByRole('button', { name: /start a workout/i }).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasCreateAccount = await page.getByRole('button', { name: /create account/i }).isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasSignIn = await page.getByRole('button', { name: /sign in/i }).isVisible({ timeout: 3_000 }).catch(() => false);
     const hasEmptyText = await page.getByText(/insights appear after you complete workouts/i).isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasAnalyzeButton || hasStartButton || hasEmptyText).toBe(true);
+    expect(hasAnalyzeButton || hasStartButton || hasEmptyText || hasCreateAccount || hasSignIn).toBe(true);
   });
 
   test('shows quick follow-up questions', async ({ page }) => {
@@ -49,10 +51,10 @@ test.describe('Insights — guest', () => {
 
   test('shows Latest Research section', async ({ page }) => {
     await page.goto('/insights');
-    await expect(page.getByText(/latest research/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/latest research/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('network failures show production-safe copy', async ({ page }) => {
+  test('guest users see account CTA and no raw backend errors', async ({ page }) => {
     await page.evaluate(() => {
       const now = new Date();
       const completedAt = now.toISOString();
@@ -73,15 +75,13 @@ test.describe('Insights — guest', () => {
       };
       localStorage.setItem('fit_history', JSON.stringify(history));
     });
-    await page.route('**/api/insights', async (route) => {
-      await route.abort('failed');
-    });
-
     await page.goto('/insights');
-    await page.getByRole('button', { name: /analyze my training/i }).click();
-
-    await expect(page.getByText(/could not reach the insights service right now/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /create account/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /analyze my training/i })).toHaveCount(0);
+    await expect(page.getByText(/could not reach the insights service right now/i)).toHaveCount(0);
     await expect(page.getByText(/vercel dev|npm run dev/i)).toHaveCount(0);
+    await expect(page.getByText(/failed to fetch|internal server error|stack|trace/i)).toHaveCount(0);
   });
 });
 

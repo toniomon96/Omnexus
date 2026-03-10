@@ -20,7 +20,7 @@ All API endpoints are Vercel serverless functions in `/api/`. They run on Node.j
 | `POST /api/signup` | No |
 | `POST /api/setup-profile` | No (verifies user exists via admin SDK) |
 | `POST /api/ask` | No |
-| `POST /api/insights` | No |
+| `POST /api/insights` | **Yes** — Bearer JWT |
 | `POST /api/onboard` | No |
 | `POST /api/generate-program` | No |
 | `GET /api/articles` | No |
@@ -31,10 +31,10 @@ All API endpoints are Vercel serverless functions in `/api/`. They run on Node.j
 | `POST /api/adapt` | Bearer JWT (optional — `userId` in body) |
 | `POST /api/generate-missions` | Bearer JWT (optional — `userId` in body) |
 | `POST /api/generate-personal-challenge` | Bearer JWT (optional — `userId` in body) |
-| `GET /api/generate-shared-challenge` | Vercel Cron (internal) |
+| `GET /api/generate-shared-challenge` | Vercel Cron (internal, requires `Authorization: Bearer <CRON_SECRET>`) |
 | `POST /api/peer-insights` | Bearer JWT (optional — `userId` in body) |
-| `GET /api/daily-reminder` | Vercel Cron (internal) |
-| `GET /api/weekly-digest` | Vercel Cron (internal) |
+| `GET /api/daily-reminder` | Vercel Cron (internal, requires `Authorization: Bearer <CRON_SECRET>`) |
+| `GET /api/weekly-digest` | Vercel Cron (internal, requires `Authorization: Bearer <CRON_SECRET>`) |
 
 Endpoints marked **Yes** require:
 ```http
@@ -68,7 +68,7 @@ Content-Type: application/json
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `messages` | `{role, content}[]` | Yes | Full conversation history; capped at last 12 turns server-side |
+| `messages` | `{role, content}[]` | Yes | Full conversation history; capped at last 20 turns server-side |
 | `userName` | `string` | No | Injected into the initial greeting if `messages` is empty |
 
 **Response 200**
@@ -100,7 +100,7 @@ When the profile is complete:
 
 **AI signal:** Claude appends `[PROFILE_COMPLETE]` + JSON to its reply internally. The endpoint strips this before returning `reply`, and parses the JSON into `profile`.
 
-**Model:** `claude-sonnet-4-6` · `max_tokens: 512`
+**Model:** `claude-sonnet-4-6` · `max_tokens: 600`
 
 ---
 
@@ -242,6 +242,7 @@ The `workoutSummary` is generated client-side: filters to last 28 days (max 20 s
 | Status | Cause |
 |---|---|
 | `400` | Missing `workoutSummary` or summary > 10,000 chars |
+| `401` | Missing/invalid Bearer token |
 | `405` | Non-POST request |
 | `500` | Claude API failure or missing `ANTHROPIC_API_KEY` |
 

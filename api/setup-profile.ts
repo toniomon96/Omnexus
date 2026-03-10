@@ -14,7 +14,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // ─── CORS helper ─────────────────────────────────────────────────────────────
 
-import { setCorsHeaders, ALLOWED_ORIGIN } from './_cors.js';
+import { setCorsHeaders } from './_cors.js';
 
 // ─── Valid enum values ────────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ const VALID_GOALS = new Set(['hypertrophy', 'fat-loss', 'general-fitness']);
 const VALID_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCorsHeaders(res, ALLOWED_ORIGIN);
+  if (!setCorsHeaders(req, res)) return;
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();

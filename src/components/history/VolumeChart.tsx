@@ -1,4 +1,6 @@
 import type { MuscleGroup } from '../../types';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { formatMass, formatWeightValue } from '../../utils/weightUnits';
 
 interface VolumeChartProps {
   weeklyVolume: Record<MuscleGroup, number[]>;
@@ -28,6 +30,7 @@ function getWeekLabel(weeksAgo: number): string {
 }
 
 export function VolumeChart({ weeklyVolume, weeks }: VolumeChartProps) {
+  const weightUnit = useWeightUnit();
   const activeMuscles = TOP_MUSCLES.filter(
     (m) => weeklyVolume[m]?.some((v) => v > 0),
   );
@@ -59,7 +62,7 @@ export function VolumeChart({ weeklyVolume, weeks }: VolumeChartProps) {
                   </span>
                 </div>
                 <span className="text-xs text-slate-400">
-                  {weekData[weekData.length - 1]?.toFixed(0) ?? 0} kg
+                  {formatMass(weekData[weekData.length - 1] ?? 0, weightUnit)}
                 </span>
               </div>
               <div className="flex gap-1 h-8 items-end">
@@ -68,7 +71,7 @@ export function VolumeChart({ weeklyVolume, weeks }: VolumeChartProps) {
                     <div
                       className={`w-full rounded-sm ${muscleColors[muscle]} opacity-80 transition-all duration-500`}
                       style={{ height: `${(vol / maxVol) * 100}%`, minHeight: vol > 0 ? '3px' : '0' }}
-                      title={`${getWeekLabel(weeks - 1 - i)}: ${vol.toFixed(0)}kg`}
+                      title={`${getWeekLabel(weeks - 1 - i)}: ${formatWeightValue(vol, weightUnit)} ${weightUnit}`}
                     />
                   </div>
                 ))}

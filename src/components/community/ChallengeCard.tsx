@@ -3,6 +3,8 @@ import { Trophy, Users, Calendar, ChevronDown, ChevronUp, UserPlus, Loader2 } fr
 import type { Challenge, ChallengeParticipant, FriendshipWithProfile } from '../../types';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
+import { useWeightUnit } from '../../hooks/useWeightUnit';
+import { toDisplayWeight } from '../../utils/weightUnits';
 
 async function loadChallengeLeaderboard(challengeId: string, currentUserId: string) {
   const { getChallengeLeaderboard } = await import('../../lib/db');
@@ -178,6 +180,7 @@ export function ChallengeCard({
   acceptedFriends,
   isCreatedByMe,
 }: ChallengeCardProps) {
+  const weightUnit = useWeightUnit();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [coopTotal, setCoopTotal] = useState<number | null>(null);
@@ -203,7 +206,12 @@ export function ChallengeCard({
       : 0;
 
   const isActive = new Date(challenge.endDate) >= new Date();
-  const typeUnit = TYPE_UNIT[challenge.type];
+  const typeUnit = challenge.type === 'volume' ? weightUnit : TYPE_UNIT[challenge.type];
+
+  function formatProgressValue(value: number): string {
+    if (challenge.type !== 'volume') return value.toLocaleString();
+    return Math.round(toDisplayWeight(value, weightUnit)).toLocaleString();
+  }
 
   function toggleLeaderboard() {
     setShowLeaderboard((v) => !v);
@@ -266,7 +274,7 @@ export function ChallengeCard({
         <span className="flex items-center gap-1">
           <Trophy size={12} />
           {TYPE_LABELS[challenge.type]}
-          {challenge.targetValue && ` · ${challenge.targetValue.toLocaleString()} ${typeUnit}`}
+          {challenge.targetValue && ` · ${formatProgressValue(challenge.targetValue)} ${typeUnit}`}
         </span>
         <span className="flex items-center gap-1">
           <Calendar size={12} />
@@ -284,7 +292,7 @@ export function ChallengeCard({
           <div className="flex justify-between text-xs text-slate-400">
             <span>Progress</span>
             <span>
-              {(challenge.userProgress ?? 0).toLocaleString()} / {challenge.targetValue.toLocaleString()} {typeUnit}
+              {formatProgressValue(challenge.userProgress ?? 0)} / {formatProgressValue(challenge.targetValue)} {typeUnit}
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
@@ -299,7 +307,7 @@ export function ChallengeCard({
           <div className="flex justify-between text-xs text-slate-400">
             <span>Team progress</span>
             <span>
-              {coopTotal !== null ? coopTotal.toLocaleString() : '…'} / {challenge.targetValue.toLocaleString()} {typeUnit}
+              {coopTotal !== null ? formatProgressValue(coopTotal) : '…'} / {formatProgressValue(challenge.targetValue)} {typeUnit}
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
@@ -307,7 +315,7 @@ export function ChallengeCard({
           </div>
           {challenge.isJoined && challenge.userProgress !== null && (
             <p className="text-[10px] text-slate-500">
-              Your contribution: {(challenge.userProgress ?? 0).toLocaleString()} {typeUnit}
+              Your contribution: {formatProgressValue(challenge.userProgress ?? 0)} {typeUnit}
             </p>
           )}
         </div>

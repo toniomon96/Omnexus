@@ -5,6 +5,12 @@ import { getHistory } from '../utils/localStorage';
 
 type Status = 'loading' | 'confirmed' | 'recovery' | 'error';
 
+export function isRecoveryCallbackUrl(href: string): boolean {
+  const url = new URL(href);
+  const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash);
+  return url.searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+}
+
 async function migrateGuestHistory(userId: string): Promise<void> {
   const history = getHistory();
   if (history.sessions.length === 0 && history.personalRecords.length === 0) return;
@@ -40,6 +46,8 @@ export function AuthCallbackPage() {
   const [status, setStatus] = useState<Status>('loading');
 
   useEffect(() => {
+    const isRecoveryLink = isRecoveryCallbackUrl(window.location.href);
+
     // Supabase v2 automatically processes the URL hash (access_token / type params)
     // and fires onAuthStateChange. We listen and route accordingly.
     let active = true;
@@ -70,7 +78,10 @@ export function AuthCallbackPage() {
     // This handles edge cases where the hash has already been consumed.
     const timeout = setTimeout(async () => {
       const { data: { session } } = await getAuthCallbackSession();
-      if (session) {
+      if (isRecoveryLink && session) {
+        setStatus('recovery');
+        setTimeout(() => navigate('/reset-password', { replace: true }), 500);
+      } else if (session) {
         setStatus('confirmed');
         setTimeout(() => navigate('/', { replace: true }), 1500);
       } else {
