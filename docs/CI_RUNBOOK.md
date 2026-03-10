@@ -5,9 +5,12 @@ This runbook is for fast triage when GitHub Actions gates fail.
 ## Gate Commands
 
 - Local gate: `npm run verify:local`
+- Smoke gate: `npm run verify:smoke`
 - Dev gate: `npm run verify:dev`
 - Preview gate: `npm run verify:preview`
 - Production gate: `npm run verify:prod`
+
+`verify:*` commands enforce unit test coverage thresholds via `npm run test:coverage`.
 
 ## Quick Triage Order
 

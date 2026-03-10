@@ -61,6 +61,51 @@ jobs:
       - name: Local verification gate
         run: npm run verify:local
 
+  e2e-smoke-pr:
+    name: Dev PR Smoke Check
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'pull_request' && github.base_ref == 'dev'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke pre-merge checks
+        run: npm run verify:smoke
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+
+      - name: Publish smoke test summary
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: 'test-results/junit.xml'
+          check_name: 'Dev PR Smoke Results'
+          fail_on_failure: true
+
+      - name: Upload smoke report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-report-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
   e2e-dev:
     name: Dev Verification Gate
     runs-on: ubuntu-latest
@@ -105,7 +150,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-smoke-report-${{ github.run_id }}
+          name: playwright-dev-full-report-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/

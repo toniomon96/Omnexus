@@ -226,7 +226,7 @@ vercel deploy --prod
 Omnexus should move through `local -> dev -> preview -> prod`.
 
 - Local: run `vercel dev` and `npm run verify:local` while building on a feature or bug branch.
-- Dev: merge feature and bug branches into `dev`; CI runs `npm run verify:dev` and Vercel should publish the shared DEV environment.
+- Dev: merge feature and bug branches into `dev`; CI runs `npm run verify:dev` (full E2E) and Vercel should publish the shared DEV environment.
 - Preview: open a `dev -> main` PR; Vercel preview plus `npm run verify:preview` become the release candidate gate.
 - Prod: merge to `main` only after preview validation and approvals; Vercel production should only track `main`.
 
@@ -239,12 +239,13 @@ See `docs/PLATFORM_SETUP_CHECKLIST.md` for the exact GitHub, Vercel, Supabase, a
 
 | Trigger | Gate | Command | Coverage |
 |---|---|---|---|
-| Push to `dev` | Dev Verification Gate | `npm run verify:dev` | `lint` + `typecheck` + `unit` + `build` + smoke E2E |
-| PR into `dev` | Dev Verification Gate | `npm run verify:dev` | `lint` + `typecheck` + `unit` + `build` + smoke E2E |
-| Push to `main` | Production Verification Gate | `npm run verify:prod` | `lint` + `typecheck` + `unit` + `build` + full E2E |
-| PR into `main` | Production Verification Gate | `npm run verify:prod` | `lint` + `typecheck` + `unit` + `build` + full E2E |
-| Manual release workflow (`target=preview`) | Manual Release Verification | `npm run verify:preview` | `lint` + `typecheck` + `unit` + `build` + full E2E |
-| Manual release workflow (`target=production`) | Manual Release Verification | `npm run verify:prod` | `lint` + `typecheck` + `unit` + `build` + full E2E |
+| PR into `dev` | Dev PR Smoke Check | `npm run verify:smoke` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + smoke E2E |
+| Push to `dev` | Dev Verification Gate | `npm run verify:dev` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| PR into `dev` | Dev Verification Gate | `npm run verify:dev` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| Push to `main` | Production Verification Gate | `npm run verify:prod` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| PR into `main` | Production Verification Gate | `npm run verify:prod` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| Manual release workflow (`target=preview`) | Manual Release Verification | `npm run verify:preview` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
+| Manual release workflow (`target=production`) | Manual Release Verification | `npm run verify:prod` | `lint` + `typecheck` + `unit (coverage threshold)` + `build` + full E2E |
 
 Required CI secrets for E2E:
 
