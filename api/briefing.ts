@@ -28,6 +28,14 @@ HARD CONSTRAINTS:
 - NEVER recommend weights that seem unsafe or represent extreme jumps
 - NEVER invent data not present in the history`;
 
+const BRIEFING_MODEL = process.env.BRIEFING_MODEL ?? 'claude-3-5-haiku-latest';
+const BRIEFING_TIMEOUT_MS = 8000;
+
+function buildFallbackBriefing(exerciseNames: string[], goal: string, level: string): string {
+  const exerciseList = exerciseNames.slice(0, 5).join(', ');
+  return `Quick pre-workout focus for ${goal} (${level}): Start with 1-2 progressive warm-up sets on your first movement, then keep working sets around RPE 7-8 unless the last session felt very easy. Prioritize technical quality and controlled reps on ${exerciseList}. If top sets move cleanly, progress by about 2.5-5 kg or 1-2 reps on your final working set. Lock in and execute.`;
+}
+
 // ─── Handler ────────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -76,20 +84,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 512,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    const message = await Promise.race([
+      client.messages.create({
+        model: BRIEFING_MODEL,
+        max_tokens: 320,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Briefing request timed out')), BRIEFING_TIMEOUT_MS),
+      ),
+    ]);
 
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');
 
     return res.status(200).json({ briefing: block.text });
   } catch (err: unknown) {
-    console.error('[/api/briefing]', err);
     const msg = err instanceof Error ? err.message : 'Failed to generate briefing';
+    if (msg.includes('timed out')) {
+      return res.status(200).json({
+        briefing: buildFallbackBriefing(
+          exerciseNames as string[],
+          userContext?.goal ?? 'general fitness',
+          userContext?.experienceLevel ?? 'beginner',
+        ),
+        degraded: true,
+      });
+    }
+    console.error('[/api/briefing]', err);
     return res.status(500).json({ error: msg });
   }
 }

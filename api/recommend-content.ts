@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { buildCacheKey, getMemoryCache, setMemoryCache } from './_cache.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ interface RecommendResponse {
   hasContentGap: boolean;
   gapTopic?: string;
 }
+
+const RECOMMEND_CACHE_TTL_SECONDS = 180;
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
@@ -58,6 +61,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!openaiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
   if (!supabaseUrl || !supabaseServiceKey) return res.status(500).json({ error: 'Supabase env vars not configured' });
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedCompleted = [...new Set(completedLessons)].sort().join(',');
+  const safeLimit = Math.max(1, limit);
+  const cacheKey = buildCacheKey('recommend-content', [normalizedQuery, normalizedCompleted, safeLimit]);
+  const cached = getMemoryCache<RecommendResponse>(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
 
   try {
     const openai = new OpenAI({ apiKey: openaiKey });
@@ -119,7 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Sort by relevance descending, apply limit
     recommendations.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    const sliced = recommendations.slice(0, Math.max(1, limit));
+    const sliced = recommendations.slice(0, safeLimit);
 
     const maxSimilarity = sliced.length > 0 ? sliced[0].relevanceScore : 0;
     const hasContentGap = maxSimilarity < 0.65 || recommendations.length === 0;
@@ -130,6 +142,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ...(hasContentGap ? { gapTopic: query.trim() } : {}),
     };
 
+    setMemoryCache(cacheKey, response, RECOMMEND_CACHE_TTL_SECONDS);
     return res.status(200).json(response);
   } catch (err: unknown) {
     console.error('[/api/recommend-content]', err);

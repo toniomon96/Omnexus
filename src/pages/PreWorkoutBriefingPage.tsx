@@ -15,6 +15,7 @@ import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { MarkdownText } from '../components/ui/MarkdownText';
+import { Skeleton } from '../components/ui/Skeleton';
 
 export function PreWorkoutBriefingPage() {
   const { state } = useApp();
@@ -117,9 +118,10 @@ export function PreWorkoutBriefingPage() {
 
           {loading && (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" style={{ width: `${70 + i * 10}%` }} />
-              ))}
+              <Skeleton variant="text" className="w-11/12" />
+              <Skeleton variant="text" className="w-4/5" />
+              <Skeleton variant="text" className="w-3/4" />
+              <p className="text-[11px] text-slate-400 pt-1">Preparing your coaching cues...</p>
             </div>
           )}
 

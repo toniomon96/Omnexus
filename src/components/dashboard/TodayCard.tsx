@@ -6,6 +6,7 @@ import { useWorkoutSession } from '../../hooks/useWorkoutSession';
 import { findNextLessonSummary, getExerciseNameMap, type NextLessonSummary } from '../../lib/staticCatalogs';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { Skeleton } from '../ui/Skeleton';
 import { Play, BookOpen, ChevronRight, Calendar } from 'lucide-react';
 
 interface TodayCardProps {
@@ -21,16 +22,25 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
 
   const lp = state.learningProgress;
   const [nextLesson, setNextLesson] = useState<NextLessonSummary | null>(null);
+  const [loadingNextLesson, setLoadingNextLesson] = useState(false);
   const [exerciseNames, setExerciseNames] = useState<Record<string, string>>({});
+  const [loadingExerciseNames, setLoadingExerciseNames] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadingNextLesson(true);
 
-    void findNextLessonSummary(lp.completedLessons, lp.completedCourses).then((lesson) => {
-      if (!cancelled) {
-        setNextLesson(lesson);
-      }
-    });
+    void findNextLessonSummary(lp.completedLessons, lp.completedCourses)
+      .then((lesson) => {
+        if (!cancelled) {
+          setNextLesson(lesson);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingNextLesson(false);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -42,17 +52,25 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
 
     if (!day) {
       setExerciseNames({});
+      setLoadingExerciseNames(false);
       return () => {
         cancelled = true;
       };
     }
 
+    setLoadingExerciseNames(true);
     const ids = day.exercises.slice(0, 3).map((exercise) => exercise.exerciseId);
-    void getExerciseNameMap(ids).then((names) => {
-      if (!cancelled) {
-        setExerciseNames(names);
-      }
-    });
+    void getExerciseNameMap(ids)
+      .then((names) => {
+        if (!cancelled) {
+          setExerciseNames(names);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingExerciseNames(false);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -103,7 +121,13 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
 
             {/* Exercise preview */}
             <ul className="mb-3 space-y-1.5 pl-[42px]">
-              {day.exercises.slice(0, 3).map((pe) => {
+              {loadingExerciseNames && (
+                <li className="space-y-1.5">
+                  <Skeleton variant="text" className="w-4/5" />
+                  <Skeleton variant="text" className="w-3/5" />
+                </li>
+              )}
+              {!loadingExerciseNames && day.exercises.slice(0, 3).map((pe) => {
                 return (
                   <li
                     key={pe.exerciseId}
@@ -118,7 +142,7 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
                   </li>
                 );
               })}
-              {day.exercises.length > 3 && (
+              {!loadingExerciseNames && day.exercises.length > 3 && (
                 <li className="text-xs text-slate-400">
                   +{day.exercises.length - 3} more
                 </li>
@@ -138,6 +162,12 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
         )}
 
         {/* ─── Learning section ────────────────────────────────────────────── */}
+        {loadingNextLesson && (
+          <div className="px-2 py-2 -mx-2 space-y-1.5">
+            <Skeleton variant="text" className="w-3/4" />
+            <Skeleton variant="text" className="w-1/2" />
+          </div>
+        )}
         {nextLesson && (
           <button
             onClick={() =>
