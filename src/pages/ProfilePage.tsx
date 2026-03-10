@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { setUser, clearAppStorage, getWeightUnit, setWeightUnit } from '../utils/localStorage';
-import type { Goal, ExperienceLevel, WeightUnit } from '../types';
+import type { Goal, ExperienceLevel, WeightUnit, NotificationPreferences } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
@@ -97,6 +97,16 @@ export function ProfilePage() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushDenied, setPushDenied] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(() => ({
+    pushEnabled: true,
+    trainingRemindersEnabled: true,
+    missedDayEnabled: true,
+    communityEnabled: true,
+    progressEnabled: true,
+    preferredHourLocal: 18,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  }));
+  const [savingPrefs, setSavingPrefs] = useState(false);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -118,6 +128,14 @@ export function ProfilePage() {
     }
     checkPush();
   }, [isGuest]);
+
+  useEffect(() => {
+    if (isGuest || !currentUser) return;
+    import('../lib/db')
+      .then(({ getNotificationPreferences }) => getNotificationPreferences(currentUser.id))
+      .then((prefs) => setNotificationPrefs(prefs))
+      .catch(() => {});
+  }, [isGuest, currentUser]);
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
@@ -237,11 +255,23 @@ export function ProfilePage() {
       if (pushEnabled) {
         await unsubscribeFromPush(currentUser.id);
         setPushEnabled(false);
+        const next = { ...notificationPrefs, pushEnabled: false };
+        setNotificationPrefs(next);
+        if (!isGuest) {
+          const { upsertNotificationPreferences } = await import('../lib/db');
+          await upsertNotificationPreferences(currentUser.id, next);
+        }
       } else {
         const ok = await subscribeToPush(currentUser.id);
         if (ok) {
           setPushEnabled(true);
           setPushDenied(false);
+          const next = { ...notificationPrefs, pushEnabled: true };
+          setNotificationPrefs(next);
+          if (!isGuest) {
+            const { upsertNotificationPreferences } = await import('../lib/db');
+            await upsertNotificationPreferences(currentUser.id, next);
+          }
         } else {
           const perm = await getPushPermission();
           if (perm === 'denied') setPushDenied(true);
@@ -304,6 +334,20 @@ export function ProfilePage() {
       toast('Failed to delete account. Please try again.', 'error');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleSaveNotificationPrefs() {
+    if (!currentUser || isGuest) return;
+    setSavingPrefs(true);
+    try {
+      const { upsertNotificationPreferences } = await import('../lib/db');
+      await upsertNotificationPreferences(currentUser.id, notificationPrefs);
+      toast('Notification preferences saved', 'success');
+    } catch {
+      toast('Failed to save notification preferences', 'error');
+    } finally {
+      setSavingPrefs(false);
     }
   }
 
@@ -601,6 +645,60 @@ export function ProfilePage() {
                 ? 'You\'ll receive reminders, community activity, and progress milestone alerts.'
                 : 'Get training reminders, missed-day nudges, community updates, and milestone alerts.'}
             </p>
+            <div className="space-y-2 mb-3 text-xs text-slate-300">
+              <label className="flex items-center justify-between gap-2">
+                <span>Training reminders</span>
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.trainingRemindersEnabled}
+                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, trainingRemindersEnabled: e.target.checked }))}
+                  disabled={!pushEnabled}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                <span>Missed-day nudges</span>
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.missedDayEnabled}
+                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, missedDayEnabled: e.target.checked }))}
+                  disabled={!pushEnabled}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                <span>Community updates</span>
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.communityEnabled}
+                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, communityEnabled: e.target.checked }))}
+                  disabled={!pushEnabled}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                <span>Progress milestones</span>
+                <input
+                  type="checkbox"
+                  checked={notificationPrefs.progressEnabled}
+                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, progressEnabled: e.target.checked }))}
+                  disabled={!pushEnabled}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                <span>Preferred local hour</span>
+                <select
+                  className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
+                  value={notificationPrefs.preferredHourLocal}
+                  onChange={(e) => setNotificationPrefs((prev) => ({ ...prev, preferredHourLocal: Number(e.target.value) }))}
+                  disabled={!pushEnabled}
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{`${String(i).padStart(2, '0')}:00`}</option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-[11px] text-slate-500">
+                Time zone: {notificationPrefs.timezone}
+              </p>
+            </div>
             {pushDenied && (
               <p className="text-xs text-amber-400 mb-2">
                 Notifications blocked by your browser. Enable them in your browser settings to continue.
@@ -619,6 +717,16 @@ export function ProfilePage() {
                 : pushEnabled
                   ? 'Notifications On'
                   : 'Enable Notifications'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleSaveNotificationPrefs}
+              disabled={savingPrefs || !pushEnabled}
+              fullWidth
+              className="mt-2"
+            >
+              <Save size={16} />
+              {savingPrefs ? 'Saving…' : 'Save Notification Settings'}
             </Button>
           </Card>
         )}

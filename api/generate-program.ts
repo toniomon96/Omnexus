@@ -537,13 +537,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('[/api/generate-program]', err);
     // Always return a usable program even on hard server errors
     if (countAgainstQuota && supabaseAdmin && usageAuthUserId) {
-      await supabaseAdmin
-        .from('user_ai_usage')
-        .upsert(
-          { user_id: usageAuthUserId, date: usageToday, program_gen_count: currentDayProgramCount + 1 },
-          { onConflict: 'user_id,date' },
-        )
-        .catch(() => {});
+      try {
+        await supabaseAdmin
+          .from('user_ai_usage')
+          .upsert(
+            { user_id: usageAuthUserId, date: usageToday, program_gen_count: currentDayProgramCount + 1 },
+            { onConflict: 'user_id,date' },
+          );
+      } catch {
+        // Ignore quota accounting failures on fallback response path.
+      }
     }
     return res.status(200).json({ program: buildFallback(profile) });
   }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from './_cors';
+import { setCorsHeaders } from './_cors.js';
 
 function createMockResponse() {
   const headers = new Map<string, string>();
@@ -75,5 +75,31 @@ describe('setCorsHeaders', () => {
 
     expect(ok).toBe(true);
     expect(getHeader('Access-Control-Allow-Origin')).toBe('https://omnexus.netlify.app');
+  });
+
+  it('allows ALLOWED_ORIGIN from env in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ALLOWED_ORIGIN = 'https://omnexus.fit';
+
+    const { res, getHeader } = createMockResponse();
+    const req = { headers: { origin: 'https://omnexus.fit' } } as unknown as VercelRequest;
+
+    const ok = setCorsHeaders(req, res);
+
+    expect(ok).toBe(true);
+    expect(getHeader('Access-Control-Allow-Origin')).toBe('https://omnexus.fit');
+  });
+
+  it('allows APP_URL origin in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.APP_URL = 'https://app.omnexus.fit/some/path';
+
+    const { res, getHeader } = createMockResponse();
+    const req = { headers: { origin: 'https://app.omnexus.fit' } } as unknown as VercelRequest;
+
+    const ok = setCorsHeaders(req, res);
+
+    expect(ok).toBe(true);
+    expect(getHeader('Access-Control-Allow-Origin')).toBe('https://app.omnexus.fit');
   });
 });

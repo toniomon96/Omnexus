@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import dailyReminder from './daily-reminder';
-import trainingNotifications from './training-notifications';
-import weeklyDigest from './weekly-digest';
-import generateSharedChallenge from './generate-shared-challenge';
-import askHandler from './ask';
-import insightsHandler from './insights';
+import dailyReminder from './daily-reminder.js';
+import trainingNotifications from './training-notifications.js';
+import weeklyDigest from './weekly-digest.js';
+import generateSharedChallenge from './generate-shared-challenge.js';
+import askHandler from './ask.js';
+import insightsHandler from './insights.js';
 
 function createMockResponse() {
   const headers = new Map<string, string>();

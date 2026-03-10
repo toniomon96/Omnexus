@@ -69,7 +69,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: setupProfile } = await import('./setup-profile');
+    const { default: setupProfile } = await import('./setup-profile.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await setupProfile(createReq({ body: { userId: 'user_1' } }), res);
@@ -98,7 +98,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: setupProfile } = await import('./setup-profile');
+    const { default: setupProfile } = await import('./setup-profile.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await setupProfile(
@@ -137,7 +137,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: setupProfile } = await import('./setup-profile');
+    const { default: setupProfile } = await import('./setup-profile.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await setupProfile(
@@ -173,7 +173,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: signup } = await import('./signup');
+    const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await signup(createReq({ body: { email: 'not-an-email', password: 'password123' } }), res);
@@ -199,7 +199,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: signup } = await import('./signup');
+    const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await signup(createReq({ body: { email: 'test@example.com', password: '123' } }), res);
@@ -235,7 +235,7 @@ describe('account route validation guards', () => {
       }),
     }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(
@@ -268,7 +268,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: setupProfile } = await import('./setup-profile');
+    const { default: setupProfile } = await import('./setup-profile.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await setupProfile(
@@ -305,7 +305,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: setupProfile } = await import('./setup-profile');
+    const { default: setupProfile } = await import('./setup-profile.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await setupProfile(
@@ -342,7 +342,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: setupProfile } = await import('./setup-profile');
+    const { default: setupProfile } = await import('./setup-profile.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await setupProfile(
@@ -379,7 +379,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: signup } = await import('./signup');
+    const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await signup(createReq({ body: { email: 'test@example.com', password: 'password123' } }), res);
@@ -405,7 +405,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: signup } = await import('./signup');
+    const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await signup(createReq({ body: { email: 'test@example.com', password: 'password123' } }), res);
@@ -431,7 +431,7 @@ describe('account route validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: signup } = await import('./signup');
+    const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await signup(createReq({ body: { email: 'test@example.com', password: 'password123' } }), res);

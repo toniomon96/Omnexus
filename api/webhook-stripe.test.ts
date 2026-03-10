@@ -123,7 +123,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler({ method: 'GET' } as VercelRequest, res);
@@ -155,7 +155,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_1"}'), res);
@@ -182,7 +182,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_bad_config"}'), res);
@@ -229,7 +229,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_checkout"}'), res);
@@ -272,7 +272,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_invoice"}'), res);
@@ -320,7 +320,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_missing_ref"}'), res);
@@ -369,7 +369,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_checkout_upsert_err"}'), res);
@@ -410,7 +410,7 @@ describe('stripe webhook handler', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const { default: handler } = await import('./webhook-stripe');
+    const { default: handler } = await import('./webhook-stripe.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createWebhookReq('{"id":"evt_subscription_no_profile"}'), res);

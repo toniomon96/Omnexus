@@ -37,6 +37,17 @@ interface SessionRow {
 }
 
 function mockSupabase(subscriptions: Array<{ user_id: string }>, sessions: SessionRow[]) {
+  const preferenceRows = subscriptions.map((s) => ({
+    user_id: s.user_id,
+    push_enabled: true,
+    training_reminders_enabled: true,
+    missed_day_enabled: true,
+    community_enabled: true,
+    progress_enabled: true,
+    preferred_hour_local: 17,
+    timezone: 'UTC',
+  }));
+
   const from = vi.fn((table: string) => {
     if (table === 'push_subscriptions') {
       return {
@@ -52,6 +63,14 @@ function mockSupabase(subscriptions: Array<{ user_id: string }>, sessions: Sessi
               not: vi.fn(async () => ({ data: sessions, error: null })),
             })),
           })),
+        })),
+      };
+    }
+
+    if (table === 'notification_preferences') {
+      return {
+        select: vi.fn(() => ({
+          in: vi.fn(async () => ({ data: preferenceRows, error: null })),
         })),
       };
     }
@@ -84,7 +103,7 @@ describe('training-notifications', () => {
   it('returns 500 when CRON_SECRET is missing', async () => {
     delete process.env.CRON_SECRET;
 
-    const { default: handler } = await import('./training-notifications');
+    const { default: handler } = await import('./training-notifications.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createReq('Bearer whatever'), res);
@@ -96,7 +115,7 @@ describe('training-notifications', () => {
   it('returns 401 for invalid cron authorization', async () => {
     process.env.CRON_SECRET = 'expected-secret';
 
-    const { default: handler } = await import('./training-notifications');
+    const { default: handler } = await import('./training-notifications.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createReq('Bearer wrong-secret'), res);
@@ -125,7 +144,7 @@ describe('training-notifications', () => {
       ],
     );
 
-    const { default: handler } = await import('./training-notifications');
+    const { default: handler } = await import('./training-notifications.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createReq('Bearer expected-secret'), res);
@@ -169,7 +188,7 @@ describe('training-notifications', () => {
 
     mockSupabase([{ user_id: 'user-1' }], sessions);
 
-    const { default: handler } = await import('./training-notifications');
+    const { default: handler } = await import('./training-notifications.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await handler(createReq('Bearer expected-secret'), res);

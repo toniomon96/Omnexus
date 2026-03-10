@@ -67,6 +67,16 @@ export interface User {
   avatarUrl?: string | null;
 }
 
+export interface NotificationPreferences {
+  pushEnabled: boolean;
+  trainingRemindersEnabled: boolean;
+  missedDayEnabled: boolean;
+  communityEnabled: boolean;
+  progressEnabled: boolean;
+  preferredHourLocal: number;
+  timezone: string;
+}
+
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
 export interface SubscriptionStatus {

@@ -60,7 +60,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('create-checkout rejects non-POST methods', async () => {
-    const { default: createCheckout } = await import('./create-checkout');
+    const { default: createCheckout } = await import('./create-checkout.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await createCheckout(createReq({ method: 'GET' }), res);
@@ -70,7 +70,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('create-checkout requires authentication', async () => {
-    const { default: createCheckout } = await import('./create-checkout');
+    const { default: createCheckout } = await import('./create-checkout.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await createCheckout(createReq({ method: 'POST', headers: { origin: 'http://localhost:3000' } }), res);
@@ -80,7 +80,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('create-checkout fails when auth service is not configured', async () => {
-    const { default: createCheckout } = await import('./create-checkout');
+    const { default: createCheckout } = await import('./create-checkout.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await createCheckout(
@@ -93,7 +93,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('customer-portal rejects non-POST methods', async () => {
-    const { default: customerPortal } = await import('./customer-portal');
+    const { default: customerPortal } = await import('./customer-portal.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await customerPortal(createReq({ method: 'GET' }), res);
@@ -103,7 +103,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('customer-portal requires authentication', async () => {
-    const { default: customerPortal } = await import('./customer-portal');
+    const { default: customerPortal } = await import('./customer-portal.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await customerPortal(createReq({ method: 'POST', headers: { origin: 'http://localhost:3000' } }), res);
@@ -113,7 +113,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('customer-portal fails when auth service is not configured', async () => {
-    const { default: customerPortal } = await import('./customer-portal');
+    const { default: customerPortal } = await import('./customer-portal.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await customerPortal(
@@ -126,7 +126,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('subscription-status rejects non-GET methods', async () => {
-    const { default: subscriptionStatus } = await import('./subscription-status');
+    const { default: subscriptionStatus } = await import('./subscription-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await subscriptionStatus(createReq({ method: 'POST' }), res);
@@ -136,7 +136,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('subscription-status requires authentication', async () => {
-    const { default: subscriptionStatus } = await import('./subscription-status');
+    const { default: subscriptionStatus } = await import('./subscription-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await subscriptionStatus(createReq({ method: 'GET', headers: { origin: 'http://localhost:3000' } }), res);
@@ -146,7 +146,7 @@ describe('billing routes baseline guards', () => {
   });
 
   it('subscription-status fails when auth service is not configured', async () => {
-    const { default: subscriptionStatus } = await import('./subscription-status');
+    const { default: subscriptionStatus } = await import('./subscription-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await subscriptionStatus(
@@ -191,7 +191,7 @@ describe('billing routes baseline guards', () => {
       getStripeConfig: () => ({ stripe: {}, priceId: 'price_1', appUrl: 'http://localhost:3000' }),
     }));
 
-    const { default: createCheckout } = await import('./create-checkout');
+    const { default: createCheckout } = await import('./create-checkout.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await createCheckout(
@@ -265,7 +265,7 @@ describe('billing routes baseline guards', () => {
       isStripeMissingResourceError: vi.fn(() => false),
     }));
 
-    const { default: createCheckout } = await import('./create-checkout');
+    const { default: createCheckout } = await import('./create-checkout.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await createCheckout(
@@ -310,7 +310,7 @@ describe('billing routes baseline guards', () => {
       validateStripeCustomer: vi.fn(async () => true),
     }));
 
-    const { default: customerPortal } = await import('./customer-portal');
+    const { default: customerPortal } = await import('./customer-portal.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await customerPortal(
@@ -392,7 +392,7 @@ describe('billing routes baseline guards', () => {
       getSubscriptionPeriodEnd: vi.fn(() => '2026-04-01T00:00:00.000Z'),
     }));
 
-    const { default: subscriptionStatus } = await import('./subscription-status');
+    const { default: subscriptionStatus } = await import('./subscription-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await subscriptionStatus(

@@ -1,9 +1,48 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const PROD_ALLOWED_ORIGINS = new Set([
+const DEFAULT_PROD_ALLOWED_ORIGINS = new Set([
   'https://omnexus.netlify.app',
   'https://fitness-app-ten-eta.vercel.app',
 ]);
+
+function tryGetOrigin(urlLike?: string): string | null {
+  if (!urlLike) return null;
+  try {
+    return new URL(urlLike).origin;
+  } catch {
+    return null;
+  }
+}
+
+function parseEnvOrigins(value?: string): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => tryGetOrigin(part) ?? part)
+    .filter((part) => /^https?:\/\//.test(part));
+}
+
+function getProdAllowedOrigins(): Set<string> {
+  const origins = new Set<string>(DEFAULT_PROD_ALLOWED_ORIGINS);
+
+  for (const origin of parseEnvOrigins(process.env.ALLOWED_ORIGINS)) {
+    origins.add(origin);
+  }
+
+  for (const origin of parseEnvOrigins(process.env.ALLOWED_ORIGIN)) {
+    origins.add(origin);
+  }
+
+  const appUrlOrigin = tryGetOrigin(process.env.APP_URL);
+  if (appUrlOrigin) origins.add(appUrlOrigin);
+
+  const apiBaseOrigin = tryGetOrigin(process.env.VITE_API_BASE_URL);
+  if (apiBaseOrigin) origins.add(apiBaseOrigin);
+
+  return origins;
+}
 
 function getOrigin(req: VercelRequest): string | null {
   const origin = req.headers.origin;
@@ -27,7 +66,8 @@ export function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction) {
-    if (!origin || !PROD_ALLOWED_ORIGINS.has(origin)) {
+    const allowedOrigins = getProdAllowedOrigins();
+    if (!origin || !allowedOrigins.has(origin)) {
       res.status(403).json({ error: 'Origin not allowed' });
       return false;
     }

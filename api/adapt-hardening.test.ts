@@ -99,7 +99,7 @@ describe('adapt hardening', () => {
     vi.doMock('./_cors.js', () => ({ setCorsHeaders: () => true }));
     vi.doMock('./_rateLimit.js', () => ({ checkRateLimit: vi.fn(async () => true) }));
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(createReq(), res);
@@ -119,7 +119,7 @@ describe('adapt hardening', () => {
     const supabaseMock = createSupabaseMock();
     vi.doMock('@supabase/supabase-js', () => ({ createClient: () => supabaseMock }));
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(createReq(), res);
@@ -139,7 +139,7 @@ describe('adapt hardening', () => {
     const supabaseMock = createSupabaseMock();
     vi.doMock('@supabase/supabase-js', () => ({ createClient: () => supabaseMock }));
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(
@@ -176,7 +176,7 @@ describe('adapt hardening', () => {
       },
     }));
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(createReq(), res);
@@ -225,7 +225,7 @@ describe('adapt hardening', () => {
       },
     }));
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(createReq(), res);

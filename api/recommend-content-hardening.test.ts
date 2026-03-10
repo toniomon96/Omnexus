@@ -56,7 +56,7 @@ describe('recommend-content hardening', () => {
     vi.doMock('./_cors.js', () => ({ setCorsHeaders: () => true }));
     vi.doMock('./_rateLimit.js', () => ({ checkRateLimit: vi.fn(async () => true) }));
 
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq(), res);
@@ -73,7 +73,7 @@ describe('recommend-content hardening', () => {
     vi.doMock('./_cors.js', () => ({ setCorsHeaders: () => true }));
     vi.doMock('./_rateLimit.js', () => ({ checkRateLimit: vi.fn(async () => true) }));
 
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq(), res);
@@ -116,7 +116,7 @@ describe('recommend-content hardening', () => {
       },
     }));
 
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq(), res);
@@ -171,7 +171,7 @@ describe('recommend-content hardening', () => {
       },
     }));
 
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq({ body: { query: 'rare topic' } }), res);
@@ -202,7 +202,7 @@ describe('recommend-content hardening', () => {
       },
     }));
 
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq(), res);
