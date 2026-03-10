@@ -18,7 +18,7 @@ Use this checklist whenever Omnexus is promoted from `dev` to `main`.
 
 ## 3. Preview candidate
 
-- [ ] A `dev -> main` PR is open
+- [ ] A `dev -> main` PR is open, created manually or via `Promote dev to main`
 - [ ] Vercel Preview deployment is available
 - [ ] `Preview Release Gate` passed
 - [ ] Preview environment variables are correct

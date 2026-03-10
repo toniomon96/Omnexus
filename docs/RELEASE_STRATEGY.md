@@ -48,6 +48,7 @@ The GitHub Actions workflow enforces:
 - `pull_request` into `main`: `Quality Gate` and `Preview Release Gate`
 - `push` to `main`: `Quality Gate` and `Dev Smoke Gate`
 - manual `Release Verification` runs for preview or production targets
+- manual `Promote dev to main` creates or refreshes the release PR
 
 Recommended GitHub branch protection:
 
@@ -84,13 +85,23 @@ Recommended environment ownership:
 1. Merge validated feature and bug branches into `dev`
 2. Confirm `dev` is green in GitHub Actions
 3. Perform exploratory QA in the DEV environment
-4. Open a `dev -> main` PR
+4. Run `Promote dev to main` or open a `dev -> main` PR manually
 5. Review the Vercel preview deployment
 6. Confirm `Preview Release Gate` is green
 7. Complete manual release QA on preview
 8. Merge to `main`
 9. Confirm Vercel production deployment is healthy
 10. If a production issue is found, ship `hotfix/*` from `main` and then back-merge the fix into `dev`
+
+## Automation path
+
+To automate the version-control promotion step:
+
+1. In GitHub Actions, select the `dev` branch in the "Run workflow" branch selector (or use `gh workflow run "<workflow name>" --ref dev`).
+2. Run the `Promote dev to main` GitHub Actions workflow
+3. Review the created or updated release PR
+4. Let Vercel create the Preview deployment from that PR
+5. Merge when Preview is approved
 
 ## Minimum standard for production safety
 
