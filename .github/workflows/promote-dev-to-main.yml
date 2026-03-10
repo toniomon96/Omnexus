@@ -41,8 +41,8 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const titleInput = core.getInput('title').trim();
-            const notesInput = core.getInput('notes').trim();
+            const titleInput = ((context.payload.inputs && context.payload.inputs.title) || '').trim();
+            const notesInput = ((context.payload.inputs && context.payload.inputs.notes) || '').trim();
             const today = new Date().toISOString().slice(0, 10);
             const title = titleInput || `release: promote dev to main (${today})`;
             const notesSection = notesInput
