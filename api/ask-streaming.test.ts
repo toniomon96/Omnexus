@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-function createReq(body: Record<string, unknown>): VercelRequest {
+function createReq(body: Record<string, unknown>, headers: Record<string, string> = {}): VercelRequest {
   return {
     method: 'POST',
-    headers: { origin: 'http://localhost:3000' },
+    headers: { origin: 'http://localhost:3000', ...headers },
     socket: { remoteAddress: '127.0.0.1' },
     body,
   } as unknown as VercelRequest;
@@ -120,8 +120,35 @@ describe('/api/ask streaming mode', () => {
     const output = getWrites();
     expect(output).toContain('event: done');
     expect(output).toContain('"degraded":true');
+    expect(output).toContain('"degradedReason":"anthropic_upstream_error"');
+    expect(output).toContain('"traceId"');
     expect(output).toContain('having trouble reaching the AI service right now');
     expect(isEnded()).toBe(true);
+  });
+
+  it('parses CRLF-delimited upstream SSE frames', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+
+    vi.doMock('./_cors.js', () => ({ setCorsHeaders: () => true }));
+    vi.doMock('./_rateLimit.js', () => ({ checkRateLimit: vi.fn(async () => true) }));
+
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      body: streamFromFrames([
+        'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"CR"}}\r\n\r\n',
+        'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"LF"}}\r\n\r\n',
+      ]),
+    } as Response)));
+
+    const { default: askHandler } = await import('./ask.js');
+    const { res, getWrites } = createRes();
+
+    await askHandler(createReq({ question: 'crlf stream', stream: true }), res);
+
+    const output = getWrites();
+    expect(output).toContain('event: done');
+    expect(output).toContain('CRLF');
+    expect(output).not.toContain('"degraded":true');
   });
 
   it('returns 500 json when Anthropic key is missing', async () => {
@@ -137,5 +164,39 @@ describe('/api/ask streaming mode', () => {
 
     expect(getStatusCode()).toBe(500);
     expect(getJsonBody()).toEqual({ error: 'AI service is not configured' });
+  });
+
+  it('continues as guest when bearer token is invalid', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
+
+    vi.doMock('./_cors.js', () => ({ setCorsHeaders: () => true }));
+    vi.doMock('./_rateLimit.js', () => ({ checkRateLimit: vi.fn(async () => true) }));
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: () => ({
+        auth: {
+          getUser: vi.fn(async () => ({ data: { user: null }, error: { message: 'invalid jwt' } })),
+        },
+      }),
+    }));
+
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      body: streamFromFrames([
+        'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Guest OK"}}\n\n',
+      ]),
+    } as Response)));
+
+    const { default: askHandler } = await import('./ask.js');
+    const { res, getStatusCode, getWrites } = createRes();
+
+    await askHandler(
+      createReq({ question: 'token expired', stream: true }, { authorization: 'Bearer stale' }),
+      res,
+    );
+
+    expect(getStatusCode()).toBe(200);
+    expect(getWrites()).toContain('Guest OK');
   });
 });

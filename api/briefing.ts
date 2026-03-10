@@ -28,8 +28,14 @@ HARD CONSTRAINTS:
 - NEVER recommend weights that seem unsafe or represent extreme jumps
 - NEVER invent data not present in the history`;
 
-const BRIEFING_MODEL = process.env.BRIEFING_MODEL ?? 'claude-3-5-haiku-latest';
+const BRIEFING_MODEL = process.env.BRIEFING_MODEL ?? 'claude-3-5-haiku-20241022';
+const BRIEFING_FALLBACK_MODEL = process.env.BRIEFING_FALLBACK_MODEL ?? 'claude-sonnet-4-6';
 const BRIEFING_TIMEOUT_MS = 8000;
+
+function isModelNotFoundError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : '';
+  return msg.includes('not_found_error') || msg.includes('model:');
+}
 
 function buildFallbackBriefing(exerciseNames: string[], goal: string, level: string): string {
   const exerciseList = exerciseNames.slice(0, 5).join(', ');
@@ -83,18 +89,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const runBriefingCall = async (model: string) => {
+      return await Promise.race([
+        client.messages.create({
+          model,
+          max_tokens: 320,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: userMessage }],
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Briefing request timed out')), BRIEFING_TIMEOUT_MS),
+        ),
+      ]);
+    };
 
-    const message = await Promise.race([
-      client.messages.create({
-        model: BRIEFING_MODEL,
-        max_tokens: 320,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Briefing request timed out')), BRIEFING_TIMEOUT_MS),
-      ),
-    ]);
+    let message;
+    try {
+      message = await runBriefingCall(BRIEFING_MODEL);
+    } catch (err) {
+      if (
+        isModelNotFoundError(err) &&
+        BRIEFING_FALLBACK_MODEL !== BRIEFING_MODEL
+      ) {
+        message = await runBriefingCall(BRIEFING_FALLBACK_MODEL);
+      } else {
+        throw err;
+      }
+    }
 
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');

@@ -23,6 +23,13 @@ const supabaseAdmin =
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Citation { title: string; url?: string; type: string; }
+type AskDegradedReason =
+  | 'anthropic_timeout'
+  | 'anthropic_upstream_error'
+  | 'anthropic_stream_error'
+  | 'anthropic_empty_stream'
+  | 'anthropic_model_not_found'
+  | 'anthropic_unknown';
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
@@ -60,8 +67,8 @@ const MAX_HISTORY_CONTENT = 2000;
 const CLAUDE_TIMEOUT_MS = 12000;
 const CLAUDE_RETRY_TIMEOUT_MS = 8000;
 const CLAUDE_STREAM_TIMEOUT_MS = 20000;
-const CLAUDE_PRIMARY_MODEL = process.env.ASK_MODEL ?? 'claude-3-5-haiku-latest';
-const CLAUDE_FALLBACK_MODEL = process.env.ASK_FALLBACK_MODEL ?? 'claude-3-5-haiku-latest';
+const CLAUDE_PRIMARY_MODEL = process.env.ASK_MODEL ?? 'claude-3-5-haiku-20241022';
+const CLAUDE_FALLBACK_MODEL = process.env.ASK_FALLBACK_MODEL ?? 'claude-sonnet-4-6';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -84,6 +91,44 @@ function buildAskFallbackAnswer(): string {
 function writeSseEvent(res: VercelResponse, event: string, payload: Record<string, unknown>): void {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function getTraceId(req: VercelRequest): string {
+  const vercelId = req.headers['x-vercel-id'];
+  if (typeof vercelId === 'string' && vercelId.trim().length > 0) {
+    return vercelId;
+  }
+  return `ask_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function classifyDegradedReason(err: unknown): AskDegradedReason {
+  const message = err instanceof Error ? err.message : '';
+  if (message.includes('timed out') || message.includes('aborted')) return 'anthropic_timeout';
+  if (message.includes('not_found_error') || message.includes('model:')) return 'anthropic_model_not_found';
+  if (message.includes('Anthropic stream failed')) return 'anthropic_upstream_error';
+  if (message.includes('Anthropic stream error')) return 'anthropic_stream_error';
+  if (message.includes('empty response')) return 'anthropic_empty_stream';
+  return 'anthropic_unknown';
+}
+
+function isModelNotFoundError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : '';
+  return message.includes('not_found_error') || message.includes('model:');
+}
+
+function logAskDegraded(params: {
+  traceId: string;
+  reason: AskDegradedReason;
+  mode: 'stream' | 'json';
+  error?: unknown;
+}): void {
+  const message = params.error instanceof Error ? params.error.message : 'unknown_error';
+  console.warn('[api/ask] degraded', {
+    traceId: params.traceId,
+    reason: params.reason,
+    mode: params.mode,
+    error: message,
+  });
 }
 
 async function streamClaudeText(params: {
@@ -115,7 +160,10 @@ async function streamClaudeText(params: {
     });
 
     if (!response.ok || !response.body) {
-      throw new Error(`Anthropic stream failed (${response.status})`);
+      const details = typeof response.text === 'function'
+        ? await response.text().catch(() => '')
+        : '';
+      throw new Error(`Anthropic stream failed (${response.status}) ${details.slice(0, 300)}`.trim());
     }
 
     const reader = response.body.getReader();
@@ -127,16 +175,16 @@ async function streamClaudeText(params: {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const frames = buffer.split('\n\n');
+      const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() ?? '';
 
       for (const frame of frames) {
-        const dataLine = frame
-          .split('\n')
-          .find((line) => line.startsWith('data:'));
-        if (!dataLine) continue;
-
-        const payload = dataLine.slice(5).trim();
+        const payload = frame
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith('data:'))
+          .map((line) => line.slice(5).trim())
+          .join('\n')
+          .trim();
         if (!payload || payload === '[DONE]') continue;
 
         const parsed = JSON.parse(payload) as {
@@ -167,6 +215,8 @@ async function streamClaudeText(params: {
 // ─── Handler ────────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const traceId = getTraceId(req);
+
   if (!setCorsHeaders(req, res)) return;
 
   if (req.method === 'OPTIONS') {
@@ -190,41 +240,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = authHeader.slice(7);
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    const authedUserId = user.id;
+      // Treat stale/invalid sessions as guest access instead of hard failing Ask.
+      console.warn('[api/ask] invalid bearer token; continuing as guest', {
+        traceId,
+        error: authError?.message ?? 'user_not_found',
+      });
+    } else {
+      const authedUserId = user.id;
 
-    // Usage gating — check subscription and daily ask count
-    const today = new Date().toISOString().split('T')[0];
-    const [{ data: sub }, { data: usage }] = await Promise.all([
-      supabaseAdmin
-        .from('subscriptions')
-        .select('status')
-        .eq('user_id', authedUserId)
-        .in('status', ['active', 'trialing'])
-        .maybeSingle(),
+      // Usage gating — check subscription and daily ask count
+      const today = new Date().toISOString().split('T')[0];
+      const [{ data: sub }, { data: usage }] = await Promise.all([
+        supabaseAdmin
+          .from('subscriptions')
+          .select('status')
+          .eq('user_id', authedUserId)
+          .in('status', ['active', 'trialing'])
+          .maybeSingle(),
+        supabaseAdmin
+          .from('user_ai_usage')
+          .select('ask_count')
+          .eq('user_id', authedUserId)
+          .eq('date', today)
+          .maybeSingle(),
+      ]);
+
+      isPremium = !!sub;
+
+      if (!isPremium && (usage?.ask_count ?? 0) >= 5) {
+        return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
+      }
+
+      // Increment usage (fire-and-forget)
       supabaseAdmin
         .from('user_ai_usage')
-        .select('ask_count')
-        .eq('user_id', authedUserId)
-        .eq('date', today)
-        .maybeSingle(),
-    ]);
-
-    isPremium = !!sub;
-
-    if (!isPremium && (usage?.ask_count ?? 0) >= 5) {
-      return res.status(403).json({ error: 'Daily limit reached', upgradeRequired: true });
+        .upsert(
+          { user_id: authedUserId, date: today, ask_count: (usage?.ask_count ?? 0) + 1 },
+          { onConflict: 'user_id,date' },
+        )
+        .then(() => {/* non-blocking */});
     }
-
-    // Increment usage (fire-and-forget)
-    supabaseAdmin
-      .from('user_ai_usage')
-      .upsert(
-        { user_id: authedUserId, date: today, ask_count: (usage?.ask_count ?? 0) + 1 },
-        { onConflict: 'user_id,date' },
-      )
-      .then(() => {/* non-blocking */});
   }
 
   if (!anthropic) {
@@ -336,25 +391,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       let streamedAnswer = '';
       try {
-        await streamClaudeText({
-          model: CLAUDE_PRIMARY_MODEL,
-          maxTokens,
-          system: SYSTEM_PROMPT,
-          messages,
-          onText: (delta) => {
-            streamedAnswer += delta;
-            writeSseEvent(res, 'chunk', { text: delta });
-          },
-        });
+        try {
+          await streamClaudeText({
+            model: CLAUDE_PRIMARY_MODEL,
+            maxTokens,
+            system: SYSTEM_PROMPT,
+            messages,
+            onText: (delta) => {
+              streamedAnswer += delta;
+              writeSseEvent(res, 'chunk', { text: delta });
+            },
+          });
+        } catch (streamErr: unknown) {
+          if (
+            isModelNotFoundError(streamErr) &&
+            CLAUDE_FALLBACK_MODEL !== CLAUDE_PRIMARY_MODEL
+          ) {
+            streamedAnswer = '';
+            await streamClaudeText({
+              model: CLAUDE_FALLBACK_MODEL,
+              maxTokens,
+              system: SYSTEM_PROMPT,
+              messages,
+              onText: (delta) => {
+                streamedAnswer += delta;
+                writeSseEvent(res, 'chunk', { text: delta });
+              },
+            });
+          } else {
+            throw streamErr;
+          }
+        }
 
         if (!streamedAnswer.trim()) {
           throw new Error('Anthropic stream produced empty response');
         }
 
         writeSseEvent(res, 'done', { answer: streamedAnswer, citations });
-      } catch {
+      } catch (streamErr: unknown) {
+        const reason = classifyDegradedReason(streamErr);
+        logAskDegraded({ traceId, reason, mode: 'stream', error: streamErr });
         const fallbackAnswer = streamedAnswer.trim() || buildAskFallbackAnswer();
-        writeSseEvent(res, 'done', { answer: fallbackAnswer, citations, degraded: true });
+        writeSseEvent(res, 'done', {
+          answer: fallbackAnswer,
+          citations,
+          degraded: true,
+          degradedReason: reason,
+          traceId,
+        });
       }
 
       return res.end();
@@ -365,24 +449,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message = await runClaudeCall(CLAUDE_TIMEOUT_MS, CLAUDE_PRIMARY_MODEL);
     } catch (err) {
       const messageText = err instanceof Error ? err.message : '';
-      if (!messageText.includes('Claude request timed out')) {
-        throw err;
-      }
-
-      // Retry #1: same model with a short backoff.
-      await sleep(250 + Math.floor(Math.random() * 200));
-
-      try {
-        message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_PRIMARY_MODEL);
-      } catch (retryErr) {
-        const retryMessage = retryErr instanceof Error ? retryErr.message : '';
-        if (!retryMessage.includes('Claude request timed out')) {
-          throw retryErr;
+      if (
+        isModelNotFoundError(err) &&
+        CLAUDE_FALLBACK_MODEL !== CLAUDE_PRIMARY_MODEL
+      ) {
+        message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_FALLBACK_MODEL);
+      } else {
+        if (!messageText.includes('Claude request timed out')) {
+          throw err;
         }
 
-        // Retry #2: fallback model to reduce latency during provider spikes.
-        await sleep(300 + Math.floor(Math.random() * 200));
-        message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_FALLBACK_MODEL);
+        // Retry #1: same model with a short backoff.
+        await sleep(250 + Math.floor(Math.random() * 200));
+
+        try {
+          message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_PRIMARY_MODEL);
+        } catch (retryErr) {
+          const retryMessage = retryErr instanceof Error ? retryErr.message : '';
+          if (!retryMessage.includes('Claude request timed out')) {
+            throw retryErr;
+          }
+
+          // Retry #2: fallback model to reduce latency during provider spikes.
+          await sleep(300 + Math.floor(Math.random() * 200));
+          message = await runClaudeCall(CLAUDE_RETRY_TIMEOUT_MS, CLAUDE_FALLBACK_MODEL);
+        }
       }
     }
 
@@ -393,13 +484,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '';
     if (message.includes('Claude request timed out')) {
+      const reason: AskDegradedReason = 'anthropic_timeout';
+      logAskDegraded({ traceId, reason, mode: 'json', error: err });
       return res.status(200).json({
         answer: buildAskFallbackAnswer(),
         citations: [],
         degraded: true,
+        degradedReason: reason,
+        traceId,
       });
     }
-    console.error('[/api/ask]', err);
+    console.error('[/api/ask]', { traceId, error: err });
     return res.status(500).json({ error: 'Failed to generate response' });
   }
 }
