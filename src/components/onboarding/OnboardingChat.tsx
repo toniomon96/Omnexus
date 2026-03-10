@@ -105,15 +105,15 @@ export function OnboardingChat({ userName, onComplete }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="mb-4">
+      <div className="mb-4 lg:mb-5">
         <h1 className="text-3xl font-bold text-white">Let's build your plan</h1>
         <p className="mt-2 text-slate-400">
-          Answer a few quick questions so Omnexus can design your personal program.
+          Answer a few quick questions in plain language. If you are unsure, you can say "not sure" and we will guide you.
         </p>
       </div>
 
       {/* Message thread */}
-      <div className="flex-1 overflow-y-auto space-y-3 pb-2 min-h-[280px] max-h-[380px]">
+      <div className="flex-1 overflow-y-auto space-y-3 pb-2 min-h-[320px] max-h-[440px] lg:max-h-[560px]">
         {messages.map((msg, i) => (
           <div
             key={i}
@@ -177,7 +177,7 @@ export function OnboardingChat({ userName, onComplete }: Props) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your answer…"
+          placeholder="Type your answer (or write: not sure)…"
           disabled={loading}
           className="flex-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-60"
         />

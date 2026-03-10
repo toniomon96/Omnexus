@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
-import { sendPushToUser } from './_sendPush.js';
+import { canSendNotificationNow, getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
+import { sendNotificationReliably } from './_notify.js';
 
 const MESSAGES = [
   "Time to hit the gym! Your future self will thank you 🏋️",
@@ -28,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
   try {
+    const dayKey = new Date().toISOString().slice(0, 10);
     const { data: subs } = await supabaseAdmin
       .from('push_subscriptions')
       .select('user_id');
@@ -42,16 +43,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await Promise.allSettled(
       uniqueUserIds.map(async (userId) => {
         const prefs = prefsMap.get(userId);
-        if (!prefs || !prefs.push_enabled || !prefs.training_reminders_enabled || !isPreferredHour(prefs)) {
+        if (!prefs || !prefs.push_enabled || !prefs.training_reminders_enabled || !isPreferredHour(prefs) || !canSendNotificationNow(prefs)) {
           return;
         }
-        await sendPushToUser(userId, {
-          title: 'Daily Reminder',
-          body,
-          url: '/',
-          tag: 'daily-reminder',
+        const result = await sendNotificationReliably({
+          supabaseAdmin,
+          userId,
+          eventType: 'daily_reminder',
+          dedupeKey: `daily-reminder:${userId}:${dayKey}`,
+          payload: {
+            title: 'Daily Reminder',
+            body,
+            url: '/',
+            tag: 'daily-reminder',
+          },
         });
-        sent++;
+        if (result.status === 'sent') sent++;
       }),
     );
 

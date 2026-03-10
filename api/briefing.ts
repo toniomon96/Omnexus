@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { normalizeExperience, normalizeGoal, sanitizeFreeText } from './_aiSafety.js';
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!await checkRateLimit(req, res)) return;
+  if (!await checkRateLimit(req, res, { namespace: 'omnexus_rl:briefing', limit: 20, window: '10 m' })) return;
 
   // Optional Bearer auth
   const authHeader = req.headers.authorization;
@@ -74,15 +75,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'exerciseNames is required' });
   }
 
+  const safeExerciseNames = (exerciseNames as unknown[])
+    .filter((name): name is string => typeof name === 'string')
+    .map((name) => sanitizeFreeText(name, 80))
+    .filter(Boolean)
+    .slice(0, 24);
+
+  if (safeExerciseNames.length === 0) {
+    return res.status(400).json({ error: 'exerciseNames is required' });
+  }
+
   const historyText = (recentHistory as Array<{ name: string; recent: string[] }> ?? [])
-    .map((h) => `${h.name}: ${h.recent.join(', ')}`)
+    .map((h) => `${sanitizeFreeText(h.name, 80)}: ${(h.recent ?? []).slice(0, 6).map((value) => sanitizeFreeText(value, 40)).join(', ')}`)
     .join('\n');
 
   const userMessage = [
-    `Goal: ${userContext?.goal ?? 'general fitness'}`,
-    `Experience: ${userContext?.experienceLevel ?? 'beginner'}`,
+    `Goal: ${normalizeGoal(userContext?.goal)}`,
+    `Experience: ${normalizeExperience(userContext?.experienceLevel)}`,
     '',
-    `Today's workout: ${(exerciseNames as string[]).join(', ')}`,
+    `Today's workout: ${safeExerciseNames.join(', ')}`,
     '',
     historyText ? `Recent performance:\n${historyText}` : 'No recent history available.',
   ].join('\n');
@@ -126,9 +137,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (msg.includes('timed out')) {
       return res.status(200).json({
         briefing: buildFallbackBriefing(
-          exerciseNames as string[],
-          userContext?.goal ?? 'general fitness',
-          userContext?.experienceLevel ?? 'beginner',
+          safeExerciseNames,
+          normalizeGoal(userContext?.goal),
+          normalizeExperience(userContext?.experienceLevel),
         ),
         degraded: true,
       });

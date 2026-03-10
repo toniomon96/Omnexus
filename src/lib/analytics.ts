@@ -125,3 +125,19 @@ export function trackInvitationSent() {
 export function trackPageView(path: string) {
   capture('$pageview', { $current_url: path });
 }
+
+export function trackFeatureEntry(props: {
+  source: string;
+  destination: string;
+  label?: string;
+}) {
+  capture('feature_entry_clicked', props);
+}
+
+export function trackReleaseModalEvent(props: {
+  action: 'shown' | 'dismissed' | 'cta';
+  release: string;
+  ctaTarget?: string;
+}) {
+  capture('release_modal_event', props);
+}

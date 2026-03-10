@@ -77,6 +77,17 @@ export interface NotificationPreferences {
   timezone: string;
 }
 
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  kind: 'reminder' | 'guidance' | 'insight' | 'feature' | 'training' | 'nutrition';
+  route?: string;
+  actionLabel?: string;
+  createdAt: string;
+  read: boolean;
+}
+
 // ─── Subscription ─────────────────────────────────────────────────────────────
 
 export interface SubscriptionStatus {
@@ -524,6 +535,10 @@ export interface Meal {
 }
 
 export interface MealPlan {
+  planType?: 'weight-loss' | 'weight-gain' | 'maintenance';
+  overview?: string;
+  dailyTips?: string[];
+  hydrationReminder?: string;
   meals: Meal[];
   totalCalories: number;
   totalProtein: number;

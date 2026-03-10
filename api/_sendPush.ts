@@ -8,6 +8,14 @@ export interface PushPayload {
   tag?: string;
 }
 
+export interface PushSendResult {
+  hasSubscriptions: boolean;
+  sent: number;
+  failed: number;
+  staleRemoved: number;
+  lastErrorStatus: number | null;
+}
+
 // Lazy-init so missing env vars don't crash module load
 let vapidReady = false;
 
@@ -29,18 +37,37 @@ function getAdminClient() {
   return createClient(url, key);
 }
 
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+export async function sendPushToUserWithResult(userId: string, payload: PushPayload): Promise<PushSendResult> {
   const supabaseAdmin = getAdminClient();
-  if (!supabaseAdmin || !ensureVapid()) return;
+  if (!supabaseAdmin || !ensureVapid()) {
+    return {
+      hasSubscriptions: false,
+      sent: 0,
+      failed: 0,
+      staleRemoved: 0,
+      lastErrorStatus: null,
+    };
+  }
 
   const { data: subs } = await supabaseAdmin
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth')
     .eq('user_id', userId);
 
-  if (!subs || subs.length === 0) return;
+  if (!subs || subs.length === 0) {
+    return {
+      hasSubscriptions: false,
+      sent: 0,
+      failed: 0,
+      staleRemoved: 0,
+      lastErrorStatus: null,
+    };
+  }
 
   const stale: string[] = [];
+  let sent = 0;
+  let failed = 0;
+  let lastErrorStatus: number | null = null;
 
   await Promise.allSettled(
     subs.map(async (sub) => {
@@ -49,8 +76,11 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify(payload),
         );
+        sent += 1;
       } catch (err: unknown) {
+        failed += 1;
         const status = (err as { statusCode?: number }).statusCode;
+        lastErrorStatus = typeof status === 'number' ? status : lastErrorStatus;
         if (status === 410 || status === 404) {
           stale.push(sub.endpoint);
         }
@@ -66,6 +96,18 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
       .eq('user_id', userId)
       .in('endpoint', stale);
   }
+
+  return {
+    hasSubscriptions: true,
+    sent,
+    failed,
+    staleRemoved: stale.length,
+    lastErrorStatus,
+  };
+}
+
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+  await sendPushToUserWithResult(userId, payload);
 }
 
 export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<void> {

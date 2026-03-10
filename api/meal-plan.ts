@@ -3,11 +3,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { hasPromptInjectionSignals, sanitizeFreeText } from './_aiSafety.js';
 
-const SYSTEM_PROMPT = `You are a certified sports nutritionist. Generate a one-day meal plan that meets the user's macro targets.
+const SYSTEM_PROMPT = `You are a certified sports nutritionist. Generate a one-day educational meal plan that meets the user's macro targets.
 
 Return ONLY valid JSON in this exact structure (no extra text, no markdown fences):
 {
+  "planType": "weight-loss | weight-gain | maintenance",
+  "overview": "2-3 sentence beginner-friendly explanation of today's plan",
+  "dailyTips": ["tip 1", "tip 2", "tip 3"],
+  "hydrationReminder": "Simple hydration reminder",
   "meals": [
     {
       "name": "Meal name",
@@ -30,6 +35,7 @@ Rules:
 - Meals must be realistic, whole-food based, and easy to prepare.
 - Honor any dietary preferences provided.
 - Sum of meal macros must equal (or be within 5%) of the totals.
+- Include beginner-friendly guidance and practical habit coaching.
 - Do not add any commentary outside the JSON.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -37,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!await checkRateLimit(req, res)) return;
+  if (!await checkRateLimit(req, res, { namespace: 'omnexus_rl:meal-plan', limit: 8, window: '10 m' })) return;
 
   // Optional Bearer auth
   const authHeader = req.headers.authorization;
@@ -56,15 +62,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'AI service is not configured' });
   }
 
-  const { calories, proteinG, carbsG, fatG, preferences } = req.body ?? {};
+  const { calories, proteinG, carbsG, fatG, preferences, planType } = req.body ?? {};
 
   if (!calories || !proteinG || !carbsG || !fatG) {
     return res.status(400).json({ error: 'calories, proteinG, carbsG, fatG are required' });
   }
 
+  const safePrefs = sanitizeFreeText(preferences, 500);
+  if (safePrefs && hasPromptInjectionSignals(safePrefs)) {
+    return res.status(400).json({ error: 'Unsupported instruction-like preferences. Please provide plain dietary preferences.' });
+  }
+
+  const safePlanType =
+    planType === 'weight-loss' || planType === 'weight-gain' || planType === 'maintenance'
+      ? planType
+      : 'maintenance';
+
   const userMessage = [
+    `Plan type: ${safePlanType}`,
     `Daily targets: ${calories} kcal, ${proteinG}g protein, ${carbsG}g carbs, ${fatG}g fat`,
-    preferences ? `Dietary preferences: ${preferences}` : '',
+    safePrefs ? `Dietary preferences: ${safePrefs}` : '',
+    'Add beginner guidance for hydration, meal structure, and consistency habits.',
   ].filter(Boolean).join('\n');
 
   try {
@@ -87,7 +105,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ plan });
   } catch (err: unknown) {
     console.error('[/api/meal-plan]', err);
-    const msg = err instanceof Error ? err.message : 'Failed to generate meal plan';
-    return res.status(500).json({ error: msg });
+    return res.status(500).json({ error: 'Failed to generate meal plan right now. Please try again.' });
   }
 }

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
-import { sendPushToUser } from './_sendPush.js';
+import { canSendNotificationNow, getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
+import { sendNotificationReliably } from './_notify.js';
 
 const DIGEST_PROMPT = `You are a supportive fitness coach. Based on a user's workout data from the past week, write exactly 2 sentences:
 1. A data-driven observation about their volume trend compared to the prior week, or their consistency.
@@ -75,11 +75,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const prefsMap = await getPreferencesMap(supabaseAdmin, activeUserIds);
 
   let sent = 0;
+  const weekKey = `${new Date().getUTCFullYear()}-W${Math.ceil((Date.now() / 86_400_000) / 7)}`;
 
   await Promise.allSettled(
     activeUserIds.map(async (userId) => {
       const prefs = prefsMap.get(userId);
-      if (!prefs || !prefs.push_enabled || !prefs.progress_enabled || !isPreferredHour(prefs)) {
+      if (!prefs || !prefs.push_enabled || !prefs.progress_enabled || !isPreferredHour(prefs) || !canSendNotificationNow(prefs)) {
         return;
       }
 
@@ -103,13 +104,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (block.type !== 'text') return;
 
         const body = block.text.trim();
-        await sendPushToUser(userId, {
-          title: 'Weekly Fitness Digest',
-          body: body.slice(0, 100) + (body.length > 100 ? '…' : ''),
-          url: '/insights',
-          tag: 'weekly-digest',
+        const result = await sendNotificationReliably({
+          supabaseAdmin,
+          userId,
+          eventType: 'weekly_digest',
+          dedupeKey: `weekly-digest:${userId}:${weekKey}`,
+          payload: {
+            title: 'Weekly Fitness Digest',
+            body: body.slice(0, 100) + (body.length > 100 ? '…' : ''),
+            url: '/insights',
+            tag: 'weekly-digest',
+          },
         });
-        sent++;
+        if (result.status === 'sent') sent++;
       } catch (err) {
         console.error(`[weekly-digest] Failed for user ${userId}:`, err);
       }

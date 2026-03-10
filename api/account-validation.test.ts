@@ -205,7 +205,7 @@ describe('account route validation guards', () => {
     await signup(createReq({ body: { email: 'test@example.com', password: '123' } }), res);
 
     expect(getStatusCode()).toBe(400);
-    expect(getBody()).toEqual({ error: 'Password must be at least 6 characters' });
+    expect(getBody()).toEqual({ error: 'Password must be at least 12 characters' });
   });
 
   it('checkout-status requires session_id query parameter', async () => {
@@ -382,7 +382,7 @@ describe('account route validation guards', () => {
     const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
-    await signup(createReq({ body: { email: 'test@example.com', password: 'password123' } }), res);
+    await signup(createReq({ body: { email: 'test@example.com', password: 'password1234' } }), res);
 
     expect(getStatusCode()).toBe(409);
     expect(getBody()).toEqual({ error: 'An account with this email already exists. Please sign in instead.' });
@@ -408,7 +408,7 @@ describe('account route validation guards', () => {
     const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
-    await signup(createReq({ body: { email: 'test@example.com', password: 'password123' } }), res);
+    await signup(createReq({ body: { email: 'test@example.com', password: 'password1234' } }), res);
 
     expect(getStatusCode()).toBe(500);
     expect(getBody()).toEqual({ error: 'Account creation failed. Please try again.' });
@@ -434,7 +434,7 @@ describe('account route validation guards', () => {
     const { default: signup } = await import('./signup.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
-    await signup(createReq({ body: { email: 'test@example.com', password: 'password123' } }), res);
+    await signup(createReq({ body: { email: 'test@example.com', password: 'password1234' } }), res);
 
     expect(getStatusCode()).toBe(200);
     expect(getBody()).toEqual({ userId: 'user_1', emailSent: false });

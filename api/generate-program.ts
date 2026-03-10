@@ -222,7 +222,8 @@ function buildSystemPrompt(profile: UserTrainingProfile): string {
   const hasCable = !profile.equipment.length ||
     profile.equipment.some(e => /cable|full|gym/i.test(e));
   const bodyweightOnly = profile.equipment.length > 0 &&
-    profile.equipment.every(e => /bodyweight/i.test(e));
+    profile.equipment.every(e => /bodyweight|no equipment|no gym/i.test(e));
+  const lowEquipment = profile.equipment.some(e => /bodyweight|no equipment|no gym|resistance-band|bands/i.test(e));
 
   const primaryGoal = sanitize(profile.goals[0] ?? 'general-fitness');
   const priorityText = profile.priorityMuscles?.length
@@ -253,6 +254,7 @@ function buildSystemPrompt(profile: UserTrainingProfile): string {
   const equipRestrictions: string[] = [];
   if (!hasBarbell) equipRestrictions.push('NO barbell exercises (no rack/barbell available)');
   if (!hasCable) equipRestrictions.push('NO cable exercises (no cable machine available)');
+  if (lowEquipment) equipRestrictions.push('PREFER beginner-friendly bodyweight or minimal-equipment variations whenever possible');
   if (bodyweightOnly) equipRestrictions.push('BODYWEIGHT ONLY — limit to: push-up, pull-up, dips, plank, mountain-climbers, box-jump, nordic-hamstring-curl, hanging-leg-raise, walking-lunge, goblet-squat (bodyweight), glute-bridge');
 
   // Injury accommodations

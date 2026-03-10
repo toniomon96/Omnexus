@@ -32,7 +32,10 @@ const KEYS = {
   GUEST_PROFILE: 'omnexus_guest',
   MEASUREMENTS: 'omnexus_measurements',
   WEIGHT_UNIT: 'omnexus_weight_unit',
+  EXPERIENCE_MODE: 'omnexus_experience_mode',
 } as const;
+
+export type ExperienceMode = 'guided' | 'advanced';
 
 function safeRead<T>(key: string, fallback: T): T {
   try {
@@ -151,6 +154,24 @@ export function getWeightUnit(): WeightUnit {
 
 export function setWeightUnit(unit: WeightUnit): void {
   safeWrite(KEYS.WEIGHT_UNIT, unit);
+}
+
+export function getExperienceMode(userId?: string): ExperienceMode {
+  const allModes = safeRead<Record<string, ExperienceMode>>(
+    KEYS.EXPERIENCE_MODE,
+    {},
+  );
+  if (!userId) return 'guided';
+  return allModes[userId] ?? 'guided';
+}
+
+export function setExperienceMode(userId: string, mode: ExperienceMode): void {
+  const allModes = safeRead<Record<string, ExperienceMode>>(
+    KEYS.EXPERIENCE_MODE,
+    {},
+  );
+  allModes[userId] = mode;
+  safeWrite(KEYS.EXPERIENCE_MODE, allModes);
 }
 
 // ─── Program Cursors ──────────────────────────────────────────────────────────

@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import { Activity, Trophy, Target, Users, ChevronRight } from 'lucide-react';
+import { getExperienceMode } from '../utils/localStorage';
 
 const SECTIONS = [
   {
@@ -41,6 +44,8 @@ const SECTIONS = [
 
 export function CommunityPage() {
   const navigate = useNavigate();
+  const { state } = useApp();
+  const isGuidedMode = state.user ? getExperienceMode(state.user.id) === 'guided' : true;
 
   return (
     <AppShell>
@@ -51,6 +56,29 @@ export function CommunityPage() {
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Train alongside others, climb the leaderboard, and take on team challenges.
         </p>
+
+        {isGuidedMode && (
+          <TermHelpChips
+            title="Community terms explained"
+            terms={[
+              {
+                key: 'feed',
+                label: 'Activity feed',
+                description: 'A timeline of your friends’ workouts and progress updates.',
+              },
+              {
+                key: 'leaderboard',
+                label: 'Leaderboard',
+                description: 'Weekly ranking based on training output metrics.',
+              },
+              {
+                key: 'challenge',
+                label: 'Challenge',
+                description: 'A goal-based competition you can join solo or with a team.',
+              },
+            ]}
+          />
+        )}
 
         {/* Section cards */}
         {SECTIONS.map(({ to, icon: Icon, label, description, color }) => (

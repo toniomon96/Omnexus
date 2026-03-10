@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { KeyRound, Eye, EyeOff } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../lib/passwordPolicy';
 
 async function updateUserPassword(password: string) {
   const { supabase } = await import('../lib/supabase');
@@ -21,8 +22,8 @@ export function ResetPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(passwordLengthError());
       return;
     }
     if (password !== confirm) {
@@ -65,7 +66,7 @@ export function ResetPasswordPage() {
             <Input
               label="New password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="At least 6 characters"
+              placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"

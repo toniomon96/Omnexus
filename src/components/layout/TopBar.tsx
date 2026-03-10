@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { Bell, ChevronLeft } from 'lucide-react';
 import { useApp } from '../../store/AppContext';
 import { Avatar } from '../ui/Avatar';
 import { ThemeToggle } from './ThemeToggle';
+import { getUnreadNotificationCount, subscribeToNotificationsUpdated } from '../../lib/notifications';
 
 interface TopBarProps {
   title?: string;
@@ -17,6 +18,14 @@ interface TopBarProps {
 export function TopBar({ title, showBack, backTo, right, showProfile }: TopBarProps) {
   const navigate = useNavigate();
   const { state } = useApp();
+  const [unreadCount, setUnreadCount] = useState(() => getUnreadNotificationCount());
+
+  useEffect(() => {
+    const unsubscribe = subscribeToNotificationsUpdated(() => {
+      setUnreadCount(getUnreadNotificationCount());
+    });
+    return unsubscribe;
+  }, []);
 
   // Show profile + theme toggle by default on non-detail pages (no back button, no custom right slot)
   const displayProfile = showProfile ?? (!showBack && !right);
@@ -62,6 +71,17 @@ export function TopBar({ title, showBack, backTo, right, showProfile }: TopBarPr
         {/* Default right: theme toggle + profile avatar */}
         {!right && displayProfile && (
           <div className="ml-auto flex items-center gap-1">
+            <Link
+              to="/notifications"
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Notifications"
+              title="Notifications"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-500" />
+              )}
+            </Link>
             <ThemeToggle />
             <Link
               to="/profile"

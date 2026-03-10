@@ -7,6 +7,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LogCard } from '../components/history/LogCard';
 import { VolumeChart } from '../components/history/VolumeChart';
@@ -16,6 +17,7 @@ import { Clock, List, Calendar, Play } from 'lucide-react';
 import type { MuscleGroup } from '../types';
 import { useWeightUnit } from '../hooks/useWeightUnit';
 import { formatMass, formatWeightValue } from '../utils/weightUnits';
+import { getExperienceMode } from '../utils/localStorage';
 
 function createEmptyWeeklyVolume(): Record<MuscleGroup, number[]> {
   return {
@@ -74,6 +76,8 @@ export function HistoryPage() {
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [ready, setReady] = useState(false);
   const [weeklyVolume, setWeeklyVolume] = useState<Record<MuscleGroup, number[]>>(() => createEmptyWeeklyVolume());
+  const experienceMode = state.user ? getExperienceMode(state.user.id) : 'guided';
+  const isGuidedMode = experienceMode === 'guided';
   useEffect(() => { setReady(true); }, []);
   const sessions = [...state.history.sessions].reverse();
   const totalSessions = state.history.sessions.length;
@@ -173,6 +177,29 @@ export function HistoryPage() {
                 <p className="text-xs text-slate-400 mt-0.5">Total Volume</p>
               </Card>
             </div>
+
+            {isGuidedMode && (
+              <TermHelpChips
+                title="Understand these history terms"
+                terms={[
+                  {
+                    key: 'volume',
+                    label: 'Volume',
+                    description: 'Total work done over time (sets x reps x weight).',
+                  },
+                  {
+                    key: 'pr',
+                    label: 'PR',
+                    description: 'Personal Record, your best performance so far for a specific exercise.',
+                  },
+                  {
+                    key: 'rpe',
+                    label: 'RPE',
+                    description: 'Effort score from 1-10. Higher numbers mean the set felt harder.',
+                  },
+                ]}
+              />
+            )}
 
             {/* PRs */}
             {state.history.personalRecords.length > 0 && (

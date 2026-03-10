@@ -14,6 +14,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // Sender address — set RESEND_FROM_EMAIL in Vercel env vars (must be verified domain).
 // Example: "Omnexus <no-reply@notifications.omnexus.fit>"
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'Omnexus <no-reply@notifications.omnexus.fit>';
+const MIN_PASSWORD_LENGTH = 12;
 
 function buildConfirmationEmail(confirmUrl: string): string {
   return `<!DOCTYPE html>
@@ -91,8 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Aggressive rate limiting — signup should be rare per IP
-  if (!await checkRateLimit(req, res)) return;
+  // Aggressive rate limiting — signup should be rare per IP.
+  if (!await checkRateLimit(req, res, { namespace: 'omnexus_rl:signup', limit: 8, window: '10 m' })) return;
 
   if (!supabaseAdmin) {
     return res.status(500).json({ error: 'Service not configured' });
@@ -103,8 +104,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Valid email is required' });
   }
-  if (!password || typeof password !== 'string' || password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (!password || typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
 
   const safeRedirectTo = typeof redirectTo === 'string' ? redirectTo : undefined;

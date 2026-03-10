@@ -11,8 +11,10 @@ import { ChallengeCard } from '../components/community/ChallengeCard';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import { Trophy, Plus, X, ChevronDown, Sparkles, Mail } from 'lucide-react';
 import { trackChallengeJoined, trackChallengeCreated, trackInvitationResponded } from '../lib/analytics';
+import { getExperienceMode } from '../utils/localStorage';
 
 interface CreateForm {
   name: string;
@@ -93,6 +95,7 @@ export function ChallengesPage() {
   const { toast } = useToast();
   const userId = state.user?.id ?? '';
   const user = state.user;
+  const isGuidedMode = user ? getExperienceMode(user.id) === 'guided' : true;
 
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [sharedChallenge, setSharedChallenge] = useState<AiChallenge | null>(null);
@@ -227,6 +230,29 @@ export function ChallengesPage() {
       <CommunityTabs />
 
       <div className="px-4 pb-6 mt-4 space-y-5">
+
+        {isGuidedMode && (
+          <TermHelpChips
+            title="Challenge terms explained"
+            terms={[
+              {
+                key: 'volume',
+                label: 'Volume challenge',
+                description: 'Compete on total training work done over the challenge window.',
+              },
+              {
+                key: 'streak',
+                label: 'Streak',
+                description: 'Consecutive days you complete a qualifying workout.',
+              },
+              {
+                key: 'team',
+                label: 'Team mode',
+                description: 'Everyone contributes toward one shared target instead of competing individually.',
+              },
+            ]}
+          />
+        )}
 
         {/* AI Personal Challenge */}
         {user && !user.isGuest && (

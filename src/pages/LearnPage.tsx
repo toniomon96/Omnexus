@@ -4,6 +4,7 @@ import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Button } from '../components/ui/Button';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import { GraduationCap, Sparkles, Search, BookOpen, Dumbbell, Loader2, Zap } from 'lucide-react';
 import { courses } from '../data/courses';
 import { CourseCard } from '../components/learn/CourseCard';
@@ -11,6 +12,7 @@ import { MicroLessonModal } from '../components/learn/MicroLessonModal';
 import { useLearningProgress } from '../hooks/useLearningProgress';
 import { getContentRecommendations } from '../services/learningService';
 import type { ContentRecommendation } from '../types';
+import { getExperienceMode } from '../utils/localStorage';
 
 const DIFFICULTY_ORDER: Record<string, number> = { beginner: 0, intermediate: 1, advanced: 2 };
 
@@ -34,6 +36,7 @@ export function LearnPage() {
 
   const goal = state.user?.goal;
   const level = state.user?.experienceLevel;
+  const isGuidedMode = state.user ? getExperienceMode(state.user.id) === 'guided' : true;
 
   // ── Recommended (rule-based, unchanged) ──────────────────────────────────
   const recommended = goal
@@ -147,6 +150,29 @@ export function LearnPage() {
             <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-brand-500" />
           )}
         </div>
+
+        {isGuidedMode && (
+          <TermHelpChips
+            title="Learning terms explained"
+            terms={[
+              {
+                key: 'lesson',
+                label: 'Lesson',
+                description: 'A short learning module focused on one topic.',
+              },
+              {
+                key: 'course',
+                label: 'Course',
+                description: 'A bundle of lessons grouped into a structured path.',
+              },
+              {
+                key: 'micro-lesson',
+                label: 'Micro-lesson',
+                description: 'A quick AI-generated explainer when a built-in lesson is not available.',
+              },
+            ]}
+          />
+        )}
 
         {/* Search results */}
         {searchQuery.trim() && searchResults !== null && (

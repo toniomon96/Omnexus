@@ -8,7 +8,8 @@ import { TopBar } from '../components/layout/TopBar';
 import { ProgramCard } from '../components/programs/ProgramCard';
 import { Card } from '../components/ui/Card';
 import { programs as builtInPrograms } from '../data/programs';
-import { getCustomPrograms, deleteCustomProgram } from '../utils/localStorage';
+import { exercises } from '../data/exercises';
+import { getCustomPrograms, deleteCustomProgram, getExperienceMode } from '../utils/localStorage';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
 
 async function deleteCustomProgramFromDb(id: string) {
@@ -23,17 +24,59 @@ const GOAL_TABS: { value: Goal | 'all'; label: string }[] = [
   { value: 'general-fitness', label: 'Maintain' },
 ];
 
+type EquipmentFilter = 'any' | 'no-equipment' | 'dumbbells' | 'full-gym';
+
+const EQUIPMENT_FILTERS: { value: EquipmentFilter; label: string }[] = [
+  { value: 'any', label: 'Any Equipment' },
+  { value: 'no-equipment', label: 'No Equipment' },
+  { value: 'dumbbells', label: 'Dumbbells Mostly' },
+  { value: 'full-gym', label: 'Full Gym' },
+];
+
+function getProgramEquipmentSet(program: Program): Set<string> {
+  const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+  const used = new Set<string>();
+  for (const day of program.schedule) {
+    for (const movement of day.exercises) {
+      const found = byId.get(movement.exerciseId);
+      if (!found) continue;
+      for (const item of found.equipment) used.add(item);
+    }
+  }
+  return used;
+}
+
+function matchesEquipmentFilter(program: Program, filter: EquipmentFilter): boolean {
+  if (filter === 'any') return true;
+  const used = getProgramEquipmentSet(program);
+  if (used.size === 0) return true;
+  if (filter === 'no-equipment') {
+    return [...used].every((item) => item === 'bodyweight');
+  }
+  if (filter === 'dumbbells') {
+    return [...used].every((item) => item === 'bodyweight' || item === 'dumbbell' || item === 'resistance-band');
+  }
+  if (filter === 'full-gym') {
+    return [...used].some((item) => item === 'barbell' || item === 'machine' || item === 'cable');
+  }
+  return true;
+}
+
 export function ProgramsPage() {
   const { state } = useApp();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeGoal, setActiveGoal] = useState<Goal | 'all'>('all');
+  const [equipmentFilter, setEquipmentFilter] = useState<EquipmentFilter>('any');
   const [customPrograms, setCustomPrograms] = useState<Program[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     setCustomPrograms(getCustomPrograms());
   }, []);
+
+  const experienceMode = state.user ? getExperienceMode(state.user.id) : 'guided';
+  const isGuidedMode = experienceMode === 'guided';
 
   const filtered =
     activeGoal === 'all'
@@ -45,9 +88,16 @@ export function ProgramsPage() {
       ? customPrograms
       : customPrograms.filter((p) => p.goal === activeGoal);
 
-  const draftPrograms = filteredCustom.filter((p) => p.aiLifecycleStatus === 'draft');
-  const archivedPrograms = filteredCustom.filter((p) => p.aiLifecycleStatus === 'archived');
-  const activeAndSavedPrograms = filteredCustom.filter((p) => p.aiLifecycleStatus !== 'draft' && p.aiLifecycleStatus !== 'archived');
+  const equipmentFilteredBuiltIn = filtered.filter((program) =>
+    matchesEquipmentFilter(program, equipmentFilter),
+  );
+  const equipmentFilteredCustom = filteredCustom.filter((program) =>
+    matchesEquipmentFilter(program, equipmentFilter),
+  );
+
+  const draftPrograms = equipmentFilteredCustom.filter((p) => p.aiLifecycleStatus === 'draft');
+  const archivedPrograms = equipmentFilteredCustom.filter((p) => p.aiLifecycleStatus === 'archived');
+  const activeAndSavedPrograms = equipmentFilteredCustom.filter((p) => p.aiLifecycleStatus !== 'draft' && p.aiLifecycleStatus !== 'archived');
 
   const activeProgramId = state.user?.activeProgramId;
 
@@ -70,6 +120,12 @@ export function ProgramsPage() {
     <AppShell>
       <TopBar title="Programs" />
       <div className="px-4 pb-6">
+        {isGuidedMode && (
+          <p className="pt-3 text-xs text-slate-500 dark:text-slate-400">
+            Tip: start with equipment filters below to find plans that fit your setup.
+          </p>
+        )}
+
         {!state.user?.isGuest && (
           <div className="grid grid-cols-2 gap-3 pt-3">
             <Card hover onClick={() => navigate('/programs/ai/new')}>
@@ -112,6 +168,23 @@ export function ProgramsPage() {
               ].join(' ')}
             >
               {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3">
+          {EQUIPMENT_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setEquipmentFilter(filter.value)}
+              className={[
+                'shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+                equipmentFilter === filter.value
+                  ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400',
+              ].join(' ')}
+            >
+              {filter.label}
             </button>
           ))}
         </div>
@@ -254,13 +327,20 @@ export function ProgramsPage() {
           )}
         </div>
         <div className="space-y-3">
-          {filtered.map((p) => (
+          {equipmentFilteredBuiltIn.map((p) => (
             <ProgramCard
               key={p.id}
               program={p}
               isActive={p.id === activeProgramId}
             />
           ))}
+          {equipmentFilteredBuiltIn.length === 0 && (
+            <Card>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                No built-in programs match this equipment filter yet. Try `Any Equipment` or create an AI draft.
+              </p>
+            </Card>
+          )}
         </div>
       </div>
     </AppShell>

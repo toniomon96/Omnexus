@@ -33,7 +33,9 @@ test.describe('Authentication', () => {
     });
 
     await test.step('verify error message is shown', async () => {
-      await expect(page.getByText(/invalid|incorrect|not found/i)).toBeVisible({ timeout: 10_000 });
+      await expect(
+        page.getByText(/invalid|incorrect|not found|couldn'?t find an account|reset your password|create a free account/i),
+      ).toBeVisible({ timeout: 10_000 });
     });
   });
 

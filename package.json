@@ -19,6 +19,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
+    "security:audit:prod": "npm audit --omit=dev",
+    "security:audit:all": "npm audit",
     "verify:local": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
     "verify:smoke": "npm run verify:local && npm run test:e2e:smoke",
     "verify:dev": "npm run verify:local && npm run test:e2e",

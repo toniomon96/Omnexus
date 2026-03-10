@@ -167,10 +167,10 @@ export function SetRow({
         )}
       </div>
 
-      {/* RPE tap buttons — only shown for incomplete sets */}
+      {/* Effort tap buttons — only shown for incomplete sets */}
       {!set.completed && (
         <div className="flex items-center gap-2 px-3 pb-2.5">
-          <span className="text-[10px] text-slate-400 w-[72px] shrink-0">RPE (opt.)</span>
+          <span className="text-[10px] text-slate-400 w-[138px] shrink-0">Effort score (RPE, optional)</span>
           <div className="flex gap-1">
             {[6, 7, 8, 9, 10].map((n) => (
               <button
@@ -182,7 +182,7 @@ export function SetRow({
                     ? 'bg-brand-500 text-white'
                     : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-600',
                 ].join(' ')}
-                aria-label={`RPE ${n}`}
+                aria-label={`Effort score ${n}`}
               >
                 {n}
               </button>

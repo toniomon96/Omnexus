@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { setUser, resetProgramCursors, getHistory } from '../../utils/localStorage';
 import { apiBase } from '../../lib/api';
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../../lib/passwordPolicy';
 import { useApp } from '../../store/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { startGeneration } from '../../lib/programGeneration';
@@ -103,7 +104,7 @@ export function OnboardingForm() {
     setPasswordError('');
     if (!email.trim()) { setEmailError('Please enter your email'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailError('Please enter a valid email'); return; }
-    if (password.length < 6) { setPasswordError('Password must be at least 6 characters'); return; }
+    if (password.length < MIN_PASSWORD_LENGTH) { setPasswordError(passwordLengthError()); return; }
     setStep(1);
   }
 
@@ -262,8 +263,8 @@ export function OnboardingForm() {
 
   if (emailConfirmPending) {
     return (
-      <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-12 items-center justify-center">
-        <div className="max-w-md w-full text-center space-y-6">
+      <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-4 sm:px-6 lg:px-8 py-12 items-center justify-center">
+        <div className="max-w-xl w-full text-center space-y-6">
           <div className="w-20 h-20 rounded-full bg-brand-500/15 border border-brand-500/30 flex items-center justify-center mx-auto">
             <Mail size={36} className="text-brand-400" />
           </div>
@@ -312,8 +313,8 @@ export function OnboardingForm() {
   // ─── Normal onboarding steps ─────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-6 py-8 overflow-y-auto">
-      <div className="w-full max-w-2xl mx-auto">
+    <div className="flex flex-col min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-brand-950 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 overflow-y-auto">
+      <div className="w-full max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto">
       {repairMode && (
         <div className="mb-4 space-y-3">
           <p className="rounded-lg bg-amber-900/30 border border-amber-700/40 px-4 py-2 text-xs text-amber-300 text-center">
@@ -338,14 +339,14 @@ export function OnboardingForm() {
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 lg:rounded-2xl lg:border lg:border-slate-800/70 lg:bg-slate-900/30 lg:px-8 lg:py-7">
 
         {/* Step 0 — Account */}
         {step === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-2xl">
             <div>
               <h1 className="text-3xl font-bold text-white">Create account</h1>
-              <p className="mt-2 text-slate-400">Sign up to sync your data across all devices.</p>
+              <p className="mt-2 text-slate-400">Create your account to save progress and keep your plan synced across devices.</p>
             </div>
             {submitError && (
               <p className="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">
@@ -363,17 +364,19 @@ export function OnboardingForm() {
               autoComplete="email"
               onKeyDown={e => e.key === 'Enter' && nextFromAccount()}
             />
+            <p className="-mt-4 text-xs text-slate-500">Use an email you can access for confirmation and password resets.</p>
             <div className="relative">
               <Input
                 label="Password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="At least 6 characters"
+                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 error={passwordError}
                 autoComplete="new-password"
                 onKeyDown={e => e.key === 'Enter' && nextFromAccount()}
               />
+              <p className="mt-1 text-xs text-slate-500">Use a phrase you can remember, like 3-4 words with numbers.</p>
               <button
                 type="button"
                 onClick={() => setShowPassword(v => !v)}
@@ -394,10 +397,10 @@ export function OnboardingForm() {
 
         {/* Step 1 — Name */}
         {step === 1 && (
-          <div className="space-y-6">
+          <div className="space-y-6 max-w-2xl">
             <div>
               <h1 className="text-3xl font-bold text-white">What's your name?</h1>
-              <p className="mt-2 text-slate-400">This is how Omnexus will greet you.</p>
+              <p className="mt-2 text-slate-400">This helps personalize your coaching messages.</p>
             </div>
             <Input
               label="Your name"
@@ -409,6 +412,7 @@ export function OnboardingForm() {
               onKeyDown={e => e.key === 'Enter' && nextFromName()}
               className="text-lg py-3"
             />
+            <p className="-mt-4 text-xs text-slate-500">You can use a first name or nickname.</p>
           </div>
         )}
 

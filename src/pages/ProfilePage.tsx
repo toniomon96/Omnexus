@@ -2,11 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight } from 'lucide-react';
 import { apiBase } from '../lib/api';
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../lib/passwordPolicy';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { setUser, clearAppStorage, getWeightUnit, setWeightUnit } from '../utils/localStorage';
+import {
+  setUser,
+  clearAppStorage,
+  getWeightUnit,
+  setWeightUnit,
+  getExperienceMode,
+  setExperienceMode,
+  type ExperienceMode,
+} from '../utils/localStorage';
 import type { Goal, ExperienceLevel, WeightUnit, NotificationPreferences } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -81,6 +90,9 @@ export function ProfilePage() {
   const [name, setName] = useState(currentUser?.name ?? '');
   const [goal, setGoal] = useState<Goal>(currentUser?.goal ?? 'general-fitness');
   const [level, setLevel] = useState<ExperienceLevel>(currentUser?.experienceLevel ?? 'beginner');
+  const [experienceMode, setExperienceModeState] = useState<ExperienceMode>(() =>
+    currentUser ? getExperienceMode(currentUser.id) : 'guided',
+  );
   const [weightUnit, setWeightUnitState] = useState<WeightUnit>(() => getWeightUnit());
   const { toast } = useToast();
 
@@ -195,6 +207,18 @@ export function ProfilePage() {
     toast(`Weight unit set to ${nextUnit.toUpperCase()}`, 'success');
   }
 
+  function handleExperienceModeChange(nextMode: ExperienceMode) {
+    if (!currentUser) return;
+    setExperienceMode(currentUser.id, nextMode);
+    setExperienceModeState(nextMode);
+    toast(
+      nextMode === 'guided'
+        ? 'Guided mode enabled'
+        : 'Advanced mode enabled',
+      'success',
+    );
+  }
+
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !currentUser || isGuest) return;
@@ -245,8 +269,8 @@ export function ProfilePage() {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordError('');
-    if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters.');
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setPasswordError(`${passwordLengthError()}.`);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -548,6 +572,32 @@ export function ProfilePage() {
                   className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="profile-experience-mode" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Experience Mode
+              </label>
+              <div className="relative">
+                <select
+                  id="profile-experience-mode"
+                  value={experienceMode}
+                  onChange={(e) => handleExperienceModeChange(e.target.value as ExperienceMode)}
+                  aria-label="Experience Mode"
+                  title="Experience Mode"
+                  className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 pr-8"
+                >
+                  <option value="guided">Guided (simpler labels and prompts)</option>
+                  <option value="advanced">Advanced (full training detail)</option>
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                You can switch this anytime.
+              </p>
             </div>
 
             <div>

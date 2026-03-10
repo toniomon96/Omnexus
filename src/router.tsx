@@ -58,6 +58,8 @@ const TrainPage = lazy(() => import('./pages/TrainPage').then(m => ({ default: m
 const CommunityPage = lazy(() => import('./pages/CommunityPage').then(m => ({ default: m.CommunityPage })))
 const HelpPage = lazy(() => import('./pages/HelpPage').then(m => ({ default: m.HelpPage })))
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
+const GuidedPathwaysPage = lazy(() => import('./pages/GuidedPathwaysPage').then(m => ({ default: m.GuidedPathwaysPage })))
 
 function RootLayout() {
   return (
@@ -382,6 +384,8 @@ export const router = createBrowserRouter([
           { path: '/subscription', element: <SubscriptionPage /> },
           { path: '/train', element: <TrainPage /> },
           { path: '/help', element: <HelpPage /> },
+          { path: '/notifications', element: <NotificationsPage /> },
+          { path: '/guided-pathways', element: <GuidedPathwaysPage /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },

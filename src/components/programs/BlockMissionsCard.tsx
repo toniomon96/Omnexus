@@ -23,7 +23,7 @@ const TYPE_LABEL: Record<BlockMission['type'], string> = {
   pr: 'Personal Record',
   consistency: 'Consistency',
   volume: 'Volume',
-  rpe: 'RPE Control',
+  rpe: 'Effort Control (RPE)',
 };
 
 const TYPE_COLOR: Record<BlockMission['type'], string> = {

@@ -1,0 +1,59 @@
+name: Security Ops
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+
+  audit-prod:
+    name: Production Audit Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm run security:audit:prod
+
+  audit-full-report:
+    name: Full Audit Report
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Capture full audit JSON
+        shell: bash
+        run: npm audit --json > npm-audit-full.json || true
+      - name: Upload full audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-full-${{ github.run_id }}
+          path: npm-audit-full.json
+          retention-days: 14

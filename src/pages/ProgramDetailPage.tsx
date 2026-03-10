@@ -9,9 +9,10 @@ import { DaySchedule } from '../components/programs/DaySchedule';
 import { BlockMissionsCard } from '../components/programs/BlockMissionsCard';
 import { GoalBadge, LevelBadge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import type { Program } from '../types';
 import { programs } from '../data/programs';
-import { setUser, resetProgramCursors, getCustomPrograms, setCustomPrograms } from '../utils/localStorage';
+import { setUser, resetProgramCursors, getCustomPrograms, setCustomPrograms, getExperienceMode } from '../utils/localStorage';
 import { generateMissions } from '../services/adaptService';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
 import { applyAiProgramLifecycle } from '../utils/programLifecycle';
@@ -54,6 +55,8 @@ export function ProgramDetailPage() {
   const isActive = state.user?.activeProgramId === program.id;
   const isDraft = program.aiLifecycleStatus === 'draft';
   const [roadmapOpen, setRoadmapOpen] = useState(true);
+  const experienceMode = state.user ? getExperienceMode(state.user.id) : 'guided';
+  const isGuidedMode = experienceMode === 'guided';
 
   function handleActivate() {
     if (!state.user || !program) return;
@@ -157,6 +160,29 @@ export function ProgramDetailPage() {
           </div>
         )}
 
+        {isGuidedMode && (
+          <TermHelpChips
+            title="Program terms explained"
+            terms={[
+              {
+                key: 'split',
+                label: 'Split',
+                description: 'How your workout days are organized across the week (for example, full body or upper/lower).',
+              },
+              {
+                key: 'deload',
+                label: 'Deload',
+                description: 'A lighter recovery week that helps reduce fatigue so you can keep progressing.',
+              },
+              {
+                key: 'rpe',
+                label: 'RPE',
+                description: 'Effort score from 1-10. It helps you match training intensity to your recovery.',
+              },
+            ]}
+          />
+        )}
+
         {isDraft && !isActive && (
           <div className="rounded-2xl border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
             <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
@@ -223,7 +249,7 @@ export function ProgramDetailPage() {
                             ? 'text-brand-800 dark:text-brand-200'
                             : 'text-slate-600 dark:text-slate-300',
                       ].join(' ')}>
-                        {note}
+                        {isDeload ? `${note} (lighter recovery week)` : note}
                       </p>
                     </div>
                   );

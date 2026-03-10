@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
+import { canSendNotificationNow, getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
 import { pickProgressMessages, type SessionRow } from './_progressMilestones.js';
-import { sendPushToUser } from './_sendPush.js';
+import { sendNotificationReliably } from './_notify.js';
 
 const DAY_MS = 86_400_000;
 const LOOKBACK_DAYS = 365;
@@ -32,6 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   );
 
   const nowMs = Date.now();
+  const dayKey = new Date(nowMs).toISOString().slice(0, 10);
   const recentCutoffIso = new Date(nowMs - DAY_MS).toISOString();
   const lookbackIso = new Date(nowMs - LOOKBACK_DAYS * DAY_MS).toISOString();
 
@@ -69,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await Promise.allSettled(
     userIds.map(async (userId) => {
       const prefs = prefsMap.get(userId);
-      if (!prefs || !prefs.push_enabled || !isPreferredHour(prefs)) return;
+      if (!prefs || !prefs.push_enabled || !isPreferredHour(prefs) || !canSendNotificationNow(prefs)) return;
 
       const userSessions = byUser.get(userId) ?? [];
       if (userSessions.length === 0) return;
@@ -80,24 +81,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const lastSession = userSessions[userSessions.length - 1];
       const daysSinceLast = wholeDaysBetween(nowMs, lastSession.started_at);
       if (prefs.missed_day_enabled && recentSessions.length === 0 && MISSED_DAY_CHECKPOINTS.has(daysSinceLast)) {
-        await sendPushToUser(userId, {
-          title: 'Training Day Check-In',
-          body:
-            daysSinceLast >= 7
-              ? 'It has been a while since your last session. A short workout today can restart your momentum.'
-              : 'You are close to breaking your rhythm. Get one session in today and keep the streak alive.',
-          url: '/dashboard',
-          tag: `missed-day-${daysSinceLast}`,
+        const result = await sendNotificationReliably({
+          supabaseAdmin,
+          userId,
+          eventType: 'missed_day_nudge',
+          dedupeKey: `missed-day:${userId}:${daysSinceLast}:${dayKey}`,
+          payload: {
+            title: 'Training Day Check-In',
+            body:
+              daysSinceLast >= 7
+                ? 'It has been a while since your last session. A short workout today can restart your momentum.'
+                : 'You are close to breaking your rhythm. Get one session in today and keep the streak alive.',
+            url: '/dashboard',
+            tag: `missed-day-${daysSinceLast}`,
+          },
         });
-        sent++;
+        if (result.status === 'sent') sent++;
       }
 
       const progressMessages = prefs.progress_enabled
         ? pickProgressMessages(userSessions, recentSessions, nowMs)
         : [];
       for (const message of progressMessages) {
-        await sendPushToUser(userId, message);
-        sent++;
+        const result = await sendNotificationReliably({
+          supabaseAdmin,
+          userId,
+          eventType: 'progress_milestone',
+          dedupeKey: `progress:${userId}:${message.tag ?? 'generic'}:${dayKey}`,
+          payload: message,
+        });
+        if (result.status === 'sent') sent++;
       }
     }),
   );

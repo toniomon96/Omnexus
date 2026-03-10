@@ -12,7 +12,9 @@ import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import { today as todayStr } from '../utils/dateUtils';
+import { getExperienceMode } from '../utils/localStorage';
 import {
   Plus,
   ChevronLeft,
@@ -33,6 +35,38 @@ const GOAL_DEFAULTS: Record<string, NutritionGoals> = {
   hypertrophy:      { calories: 3000, proteinG: 220, carbsG: 320, fatG: 80 },
   'fat-loss':       { calories: 2000, proteinG: 180, carbsG: 160, fatG: 65 },
   'general-fitness':{ calories: 2400, proteinG: 160, carbsG: 270, fatG: 70 },
+};
+
+type GuidedPlanType = 'weight-loss' | 'weight-gain' | 'maintenance';
+
+const PLAN_TEMPLATE_COPY: Record<GuidedPlanType, { title: string; summary: string; bullets: string[] }> = {
+  'weight-loss': {
+    title: 'Weight Loss Plan',
+    summary: 'A sustainable calorie deficit with high protein and consistent meal timing.',
+    bullets: [
+      'Calorie deficit guidance with realistic pacing',
+      'Protein-first meals to support recovery and satiety',
+      'Simple meal structure plus hydration reminders',
+    ],
+  },
+  'weight-gain': {
+    title: 'Weight Gain Plan',
+    summary: 'A lean surplus strategy focused on muscle recovery and consistent intake.',
+    bullets: [
+      'Calorie surplus guidance without extreme jumps',
+      'Protein targets for muscle growth support',
+      'Meal frequency and recovery-focused nutrition tips',
+    ],
+  },
+  maintenance: {
+    title: 'Maintenance Plan',
+    summary: 'Balanced calorie intake with habits that are easy to sustain long-term.',
+    bullets: [
+      'Balanced macro guidance for consistency',
+      'Simple weekly habits to stay on track',
+      'Hydration and meal rhythm for energy and recovery',
+    ],
+  },
 };
 
 const LS_GOALS_KEY = 'omnexus_nutrition_goals';
@@ -123,7 +157,7 @@ function CalorieSection({ current, goal }: CalorieSectionProps) {
             strokeWidth={8} strokeLinecap="round"
             strokeDasharray={CAL_CIRCUMFERENCE}
             strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.3s ease' }}
+            className="transition-all duration-500"
           />
         </svg>
         {/* Overlaid text centred in the SVG */}
@@ -154,10 +188,10 @@ interface MacroBarProps {
   unit: string;
   current: number;
   goal: number;
-  color: string;
+  fillColor: string;
 }
 
-function MacroBar({ icon, label, unit, current, goal, color }: MacroBarProps) {
+function MacroBar({ icon, label, unit, current, goal, fillColor }: MacroBarProps) {
   const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
   const over = current > goal;
   return (
@@ -172,10 +206,17 @@ function MacroBar({ icon, label, unit, current, goal, color }: MacroBarProps) {
         </span>
       </div>
       <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${over ? 'bg-red-400' : color}`}
-          style={{ width: `${pct}%` }}
-        />
+        <svg className="h-full w-full" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden>
+          <rect x="0" y="0" width="100" height="8" fill="transparent" />
+          <rect
+            x="0"
+            y="0"
+            width={pct}
+            height="8"
+            fill={over ? '#f87171' : fillColor}
+            className="transition-all duration-500"
+          />
+        </svg>
       </div>
     </div>
   );
@@ -191,6 +232,7 @@ export function NutritionPage() {
 
   const user = state.user;
   const isGuest = !!user?.isGuest;
+  const isGuidedMode = user ? getExperienceMode(user.id) === 'guided' : true;
 
   const [date, setDate] = useState(todayStr());
   const [entries, setEntries] = useState<NutritionLog[]>([]);
@@ -218,6 +260,9 @@ export function NutritionPage() {
   const [generatedPlan, setGeneratedPlan] = useState<MealPlan | null>(null);
   const [mealPlanError, setMealPlanError] = useState('');
   const [expandedMealIdx, setExpandedMealIdx] = useState<number | null>(null);
+  const [selectedPlanType, setSelectedPlanType] = useState<GuidedPlanType>(
+    user?.goal === 'fat-loss' ? 'weight-loss' : user?.goal === 'hypertrophy' ? 'weight-gain' : 'maintenance',
+  );
 
   // Quick-add and streak state
   const [recentMeals, setRecentMeals] = useState<NutritionLog[]>([]);
@@ -338,6 +383,7 @@ export function NutritionPage() {
         proteinG: goals.proteinG,
         carbsG: goals.carbsG,
         fatG: goals.fatG,
+        planType: selectedPlanType,
         preferences: mealPlanPrefs.trim() || undefined,
       });
       setGeneratedPlan(res.plan);
@@ -456,7 +502,7 @@ export function NutritionPage() {
                 unit="g"
                 current={totals.proteinG}
                 goal={goals.proteinG}
-                color="bg-red-400"
+                fillColor="#f87171"
               />
               <MacroBar
                 icon={<Wheat size={12} className="text-amber-400" />}
@@ -464,7 +510,7 @@ export function NutritionPage() {
                 unit="g"
                 current={totals.carbsG}
                 goal={goals.carbsG}
-                color="bg-amber-400"
+                fillColor="#fbbf24"
               />
               <MacroBar
                 icon={<Droplets size={12} className="text-blue-400" />}
@@ -472,11 +518,34 @@ export function NutritionPage() {
                 unit="g"
                 current={totals.fatG}
                 goal={goals.fatG}
-                color="bg-blue-400"
+                fillColor="#60a5fa"
               />
             </div>
           </div>
         </Card>
+
+        {isGuidedMode && (
+          <TermHelpChips
+            title="Nutrition terms explained"
+            terms={[
+              {
+                key: 'calories',
+                label: 'Calories',
+                description: 'Your daily energy intake from food and drinks.',
+              },
+              {
+                key: 'macros',
+                label: 'Macros',
+                description: 'Protein, carbs, and fat. These shape recovery, energy, and body-composition goals.',
+              },
+              {
+                key: 'protein',
+                label: 'Protein target',
+                description: 'Daily protein goal to support muscle recovery and appetite control.',
+              },
+            ]}
+          />
+        )}
 
         {/* Quick-add recent meals */}
         {recentMeals.length > 0 && (
@@ -523,6 +592,9 @@ export function NutritionPage() {
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Log food to track calories and macros for the day.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-500 max-w-sm">
+              New to nutrition tracking? Start with one meal and one protein target today. Consistency beats perfection.
             </p>
           </div>
         )}
@@ -639,10 +711,44 @@ export function NutritionPage() {
             <p className="text-xs text-slate-400">
               Generate a one-day meal plan matching your macro goals ({goals.calories} kcal, {goals.proteinG}g protein).
             </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Beginner tip: choose a plan style first, then keep food preferences simple. You can refine later.
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Choose a guided plan</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {(['weight-loss', 'weight-gain', 'maintenance'] as GuidedPlanType[]).map((type) => {
+                  const active = selectedPlanType === type;
+                  const copy = PLAN_TEMPLATE_COPY[type];
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setSelectedPlanType(type)}
+                      className={[
+                        'rounded-xl border px-3 py-2 text-left transition-colors',
+                        active
+                          ? 'border-brand-500 bg-brand-500/10'
+                          : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-brand-400/70',
+                      ].join(' ')}
+                    >
+                      <p className="text-xs font-semibold text-slate-100">{copy.title}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">{copy.summary}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <ul className="text-[11px] text-slate-400 space-y-1 pl-1">
+                {PLAN_TEMPLATE_COPY[selectedPlanType].bullets.map((bullet) => (
+                  <li key={bullet}>- {bullet}</li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Advanced preferences (optional)</p>
             <textarea
               value={mealPlanPrefs}
               onChange={(e) => setMealPlanPrefs(e.target.value)}
-              placeholder="Any dietary preferences or restrictions? (e.g. vegetarian, no gluten, high fiber…)"
+              placeholder="Examples: vegetarian, no gluten, low dairy, quick meals, budget-friendly"
               rows={3}
               className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
@@ -656,6 +762,24 @@ export function NutritionPage() {
           </div>
         ) : (
           <div className="space-y-3">
+            {generatedPlan.overview && (
+              <div className="rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2.5">
+                <p className="text-xs text-slate-300">{generatedPlan.overview}</p>
+              </div>
+            )}
+            {generatedPlan.dailyTips && generatedPlan.dailyTips.length > 0 && (
+              <div className="rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-300 mb-1">Beginner Coaching Tips</p>
+                <div className="space-y-1">
+                  {generatedPlan.dailyTips.slice(0, 4).map((tip) => (
+                    <p key={tip} className="text-xs text-slate-200">- {tip}</p>
+                  ))}
+                </div>
+                {generatedPlan.hydrationReminder && (
+                  <p className="text-xs text-blue-300 mt-2">{generatedPlan.hydrationReminder}</p>
+                )}
+              </div>
+            )}
             <p className="text-xs text-slate-400">
               Tap "Log This" to add a meal to today's diary.
             </p>

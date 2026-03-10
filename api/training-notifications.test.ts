@@ -44,6 +44,9 @@ function mockSupabase(subscriptions: Array<{ user_id: string }>, sessions: Sessi
     missed_day_enabled: true,
     community_enabled: true,
     progress_enabled: true,
+    quiet_hours_enabled: false,
+    quiet_hours_start_local: 22,
+    quiet_hours_end_local: 7,
     preferred_hour_local: 17,
     timezone: 'UTC',
   }));
@@ -129,8 +132,8 @@ describe('training-notifications', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const sendPushToUser = vi.fn(async () => {});
-    vi.doMock('./_sendPush.js', () => ({ sendPushToUser }));
+    const sendNotificationReliably = vi.fn(async () => ({ status: 'sent', attempts: 1 }));
+    vi.doMock('./_notify.js', () => ({ sendNotificationReliably }));
 
     const now = Date.now();
     mockSupabase(
@@ -150,12 +153,15 @@ describe('training-notifications', () => {
     await handler(createReq('Bearer expected-secret'), res);
 
     expect(getStatusCode()).toBe(200);
-    expect(sendPushToUser).toHaveBeenCalledTimes(1);
-    expect(sendPushToUser).toHaveBeenCalledWith(
-      'user-1',
+    expect(sendNotificationReliably).toHaveBeenCalledTimes(1);
+    expect(sendNotificationReliably).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Training Day Check-In',
-        tag: 'missed-day-2',
+        userId: 'user-1',
+        eventType: 'missed_day_nudge',
+        payload: expect.objectContaining({
+          title: 'Training Day Check-In',
+          tag: 'missed-day-2',
+        }),
       }),
     );
     expect(getBody()).toEqual({ sent: 1, usersEvaluated: 1 });
@@ -166,8 +172,8 @@ describe('training-notifications', () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    const sendPushToUser = vi.fn(async () => {});
-    vi.doMock('./_sendPush.js', () => ({ sendPushToUser }));
+    const sendNotificationReliably = vi.fn(async () => ({ status: 'sent', attempts: 1 }));
+    vi.doMock('./_notify.js', () => ({ sendNotificationReliably }));
 
     const now = Date.now();
     const sessions: SessionRow[] = [];
@@ -194,17 +200,86 @@ describe('training-notifications', () => {
     await handler(createReq('Bearer expected-secret'), res);
 
     expect(getStatusCode()).toBe(200);
-    expect(sendPushToUser).toHaveBeenCalledTimes(2);
-    expect(sendPushToUser).toHaveBeenNthCalledWith(
+    expect(sendNotificationReliably).toHaveBeenCalledTimes(2);
+    expect(sendNotificationReliably).toHaveBeenNthCalledWith(
       1,
-      'user-1',
-      expect.objectContaining({ title: 'Milestone Unlocked', tag: 'milestone-sessions' }),
+      expect.objectContaining({
+        userId: 'user-1',
+        eventType: 'progress_milestone',
+        payload: expect.objectContaining({ title: 'Milestone Unlocked', tag: 'milestone-sessions' }),
+      }),
     );
-    expect(sendPushToUser).toHaveBeenNthCalledWith(
+    expect(sendNotificationReliably).toHaveBeenNthCalledWith(
       2,
-      'user-1',
-      expect.objectContaining({ title: 'Volume Milestone', tag: 'milestone-volume' }),
+      expect.objectContaining({
+        userId: 'user-1',
+        eventType: 'progress_milestone',
+        payload: expect.objectContaining({ title: 'Volume Milestone', tag: 'milestone-volume' }),
+      }),
     );
     expect(getBody()).toEqual({ sent: 2, usersEvaluated: 1 });
+  });
+
+  it('does not send notifications during quiet hours', async () => {
+    process.env.CRON_SECRET = 'expected-secret';
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
+
+    const sendNotificationReliably = vi.fn(async () => ({ status: 'sent', attempts: 1 }));
+    vi.doMock('./_notify.js', () => ({ sendNotificationReliably }));
+
+    const now = Date.now();
+    const preferenceRows = [{
+      user_id: 'user-1',
+      push_enabled: true,
+      training_reminders_enabled: true,
+      missed_day_enabled: true,
+      community_enabled: true,
+      progress_enabled: true,
+      quiet_hours_enabled: true,
+      quiet_hours_start_local: 16,
+      quiet_hours_end_local: 19,
+      preferred_hour_local: 17,
+      timezone: 'UTC',
+    }];
+
+    const from = vi.fn((table: string) => {
+      if (table === 'push_subscriptions') {
+        return { select: vi.fn(async () => ({ data: [{ user_id: 'user-1' }], error: null })) };
+      }
+      if (table === 'workout_sessions') {
+        return {
+          select: vi.fn(() => ({
+            in: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                not: vi.fn(async () => ({
+                  data: [{ user_id: 'user-1', started_at: new Date(now - 2 * 86_400_000).toISOString(), total_volume_kg: 1200 }],
+                  error: null,
+                })),
+              })),
+            })),
+          })),
+        };
+      }
+      if (table === 'notification_preferences') {
+        return {
+          select: vi.fn(() => ({
+            in: vi.fn(async () => ({ data: preferenceRows, error: null })),
+          })),
+        };
+      }
+      return { select: vi.fn(async () => ({ data: [], error: null })) };
+    });
+
+    vi.doMock('@supabase/supabase-js', () => ({ createClient: () => ({ from }) }));
+
+    const { default: handler } = await import('./training-notifications.js');
+    const { res, getStatusCode, getBody } = createMockResponse();
+
+    await handler(createReq('Bearer expected-secret'), res);
+
+    expect(getStatusCode()).toBe(200);
+    expect(getBody()).toEqual({ sent: 0, usersEvaluated: 1 });
+    expect(sendNotificationReliably).not.toHaveBeenCalled();
   });
 });

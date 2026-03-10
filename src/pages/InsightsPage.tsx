@@ -4,6 +4,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { TermHelpChips } from '../components/ui/TermHelpChips';
 import { MarkdownText } from '../components/ui/MarkdownText';
 import { ArticleFeed } from '../components/insights/ArticleFeed';
 import { AdaptationCard } from '../components/insights/AdaptationCard';
@@ -15,6 +16,7 @@ import { buildInsightRequest } from '../services/insightsService';
 import { Sparkles, Loader, Shield, MessageCircle, BarChart2, Newspaper, Play } from 'lucide-react';
 import type { LearningCategory, Goal } from '../types';
 import { useWeightUnit } from '../hooks/useWeightUnit';
+import { getExperienceMode } from '../utils/localStorage';
 
 const GOAL_CATEGORY: Record<Goal, LearningCategory> = {
   'hypertrophy': 'strength-training',
@@ -41,6 +43,9 @@ export function InsightsPage() {
   const [error, setError] = useState<string | null>(null);
 
   if (!user) return null;
+
+  const experienceMode = getExperienceMode(user.id);
+  const isGuidedMode = experienceMode === 'guided';
 
   const hasHistory = sessions.some((s) => s.completedAt);
 
@@ -178,6 +183,29 @@ export function InsightsPage() {
             </Button>
           )}
         </Card>
+
+        {isGuidedMode && (
+          <TermHelpChips
+            title="Insights terms explained"
+            terms={[
+              {
+                key: 'volume',
+                label: 'Volume',
+                description: 'Total training work (sets x reps x weight) across your sessions.',
+              },
+              {
+                key: 'plateau',
+                label: 'Plateau',
+                description: 'A period where progress slows down. Adjusting training can restart progress.',
+              },
+              {
+                key: 'recovery',
+                label: 'Recovery',
+                description: 'How well your body bounces back between workouts (sleep, stress, soreness, and rest).',
+              },
+            ]}
+          />
+        )}
 
         {/* Error */}
         {error && (

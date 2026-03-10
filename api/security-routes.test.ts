@@ -113,4 +113,40 @@ describe('security route hardening', () => {
     expect(getStatusCode()).toBe(401);
     expect(getBody()).toEqual({ error: 'Authentication required' });
   });
+
+  it('rejects insecure forwarded protocol in production', async () => {
+    process.env.VERCEL_ENV = 'production';
+
+    const { res, getStatusCode, getBody } = createMockResponse();
+    const req = createReq({
+      method: 'POST',
+      headers: {
+        origin: 'https://omnexus.netlify.app',
+        'x-forwarded-proto': 'http',
+      },
+      body: { question: 'How should I train chest twice weekly?' },
+    });
+
+    await askHandler(req, res);
+
+    expect(getStatusCode()).toBe(400);
+    expect(getBody()).toEqual({ error: 'HTTPS is required' });
+  });
+
+  it('applies security headers on API responses', async () => {
+    process.env.NODE_ENV = 'test';
+
+    const { res, getHeader } = createMockResponse();
+    const req = createReq({
+      method: 'POST',
+      headers: { origin: 'http://localhost:3000' },
+      body: { question: '' },
+    });
+
+    await askHandler(req, res);
+
+    expect(getHeader('X-Content-Type-Options')).toBe('nosniff');
+    expect(getHeader('X-Frame-Options')).toBe('DENY');
+    expect(getHeader('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
 });

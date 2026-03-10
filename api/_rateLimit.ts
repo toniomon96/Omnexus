@@ -14,15 +14,29 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Dynamic imports keep the bundle small when rate limiting is disabled.
 type RatelimitInstance = { limit: (key: string) => Promise<{ success: boolean; limit: number; remaining: number; reset: number }> };
 
-let ratelimitInstance: RatelimitInstance | null = null;
+const ratelimitInstances = new Map<string, RatelimitInstance | null>();
 
-async function getRatelimit(): Promise<RatelimitInstance | null> {
-  if (ratelimitInstance !== undefined) return ratelimitInstance;
+interface RateLimitConfig {
+  namespace: string;
+  limit: number;
+  window: `${number} m` | `${number} s` | `${number} h`;
+}
+
+const DEFAULT_RATE_LIMIT: RateLimitConfig = {
+  namespace: 'omnexus_rl:default',
+  limit: 20,
+  window: '10 m',
+};
+
+async function getRatelimit(config: RateLimitConfig): Promise<RatelimitInstance | null> {
+  if (ratelimitInstances.has(config.namespace)) {
+    return ratelimitInstances.get(config.namespace) ?? null;
+  }
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
-    ratelimitInstance = null;
+    ratelimitInstances.set(config.namespace, null);
     return null;
   }
 
@@ -30,17 +44,17 @@ async function getRatelimit(): Promise<RatelimitInstance | null> {
     const { Redis } = await import('@upstash/redis');
     const { Ratelimit } = await import('@upstash/ratelimit');
     const redis = new Redis({ url, token });
-    ratelimitInstance = new Ratelimit({
+    const instance = new Ratelimit({
       redis,
-      // Sliding window: 20 AI requests per IP per 10 minutes
-      limiter: Ratelimit.slidingWindow(20, '10 m'),
-      prefix: 'omnexus_rl',
+      limiter: Ratelimit.slidingWindow(config.limit, config.window),
+      prefix: config.namespace,
     });
+    ratelimitInstances.set(config.namespace, instance);
   } catch {
-    ratelimitInstance = null;
+    ratelimitInstances.set(config.namespace, null);
   }
 
-  return ratelimitInstance;
+  return ratelimitInstances.get(config.namespace) ?? null;
 }
 
 /**
@@ -51,7 +65,14 @@ async function getRatelimit(): Promise<RatelimitInstance | null> {
 export async function checkRateLimit(
   req: VercelRequest,
   res: VercelResponse,
+  config: Partial<RateLimitConfig> = {},
 ): Promise<boolean> {
+  const resolvedConfig: RateLimitConfig = {
+    namespace: config.namespace ?? DEFAULT_RATE_LIMIT.namespace,
+    limit: config.limit ?? DEFAULT_RATE_LIMIT.limit,
+    window: config.window ?? DEFAULT_RATE_LIMIT.window,
+  };
+
   const isProduction = process.env.VERCEL_ENV === 'production';
   const hasUpstashConfig = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -60,7 +81,7 @@ export async function checkRateLimit(
     return false;
   }
 
-  const rl = await getRatelimit();
+  const rl = await getRatelimit(resolvedConfig);
   if (!rl) return true; // Development fallback only (production handled above)
 
   // Use the real IP from Vercel's forwarded header

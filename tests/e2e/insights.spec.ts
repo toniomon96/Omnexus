@@ -17,31 +17,24 @@ test.describe('Insights — guest', () => {
     await expect(page.getByRole('heading', { name: /ai-powered insights/i })).toBeVisible({ timeout: 5_000 });
   });
 
-  test('shows Analyze My Training button', async ({ page }) => {
+  test('shows account CTA for guests', async ({ page }) => {
     await page.goto('/insights');
-    // Wait for page heading before asserting content
-    await page.getByRole('heading', { name: /ai-powered insights/i }).waitFor({ timeout: 5_000 }).catch(() => {});
-    // Guest either sees account CTA (Create Account / Sign In), or old empty-state/analyze variants.
-    const hasAnalyzeButton = await page.getByRole('button', { name: /analyze my training/i }).isVisible({ timeout: 3_000 }).catch(() => false);
-    const hasStartButton = await page.getByRole('button', { name: /start a workout/i }).isVisible({ timeout: 3_000 }).catch(() => false);
-    const hasCreateAccount = await page.getByRole('button', { name: /create account/i }).isVisible({ timeout: 3_000 }).catch(() => false);
-    const hasSignIn = await page.getByRole('button', { name: /sign in/i }).isVisible({ timeout: 3_000 }).catch(() => false);
-    const hasEmptyText = await page.getByText(/insights appear after you complete workouts/i).isVisible({ timeout: 3_000 }).catch(() => false);
-    expect(hasAnalyzeButton || hasStartButton || hasEmptyText || hasCreateAccount || hasSignIn).toBe(true);
+    await expect(page.getByRole('button', { name: /create account/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /sign in/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /analyze my training/i })).toHaveCount(0);
   });
 
-  test('shows quick follow-up questions', async ({ page }) => {
+  test('guest follow-up section shows coaching CTA copy', async ({ page }) => {
     await page.goto('/insights');
-    await expect(
-      page.getByText(/how can i improve my recovery/i).first()
-    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/follow-up coaching from insights is available with an account/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/how can i improve my recovery/i)).toHaveCount(0);
   });
 
-  test('quick question navigates to /ask with prefill', async ({ page }) => {
+  test('guest CTA can navigate to onboarding', async ({ page }) => {
     await page.goto('/insights');
-    await page.getByText(/how can i improve my recovery/i).first().click();
-    await page.waitForURL('/ask');
-    await expect(page).toHaveURL('/ask');
+    await page.getByRole('button', { name: /create account/i }).first().click();
+    await page.waitForURL('**/onboarding');
+    await expect(page).toHaveURL(/\/onboarding/);
   });
 
   test('shows safety disclaimer', async ({ page }) => {
@@ -76,8 +69,8 @@ test.describe('Insights — guest', () => {
       localStorage.setItem('fit_history', JSON.stringify(history));
     });
     await page.goto('/insights');
-    await expect(page.getByRole('button', { name: /create account/i })).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /create account/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /sign in/i }).first()).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /analyze my training/i })).toHaveCount(0);
     await expect(page.getByText(/could not reach the insights service right now/i)).toHaveCount(0);
     await expect(page.getByText(/vercel dev|npm run dev/i)).toHaveCount(0);

@@ -125,7 +125,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
             {avgRpe !== null && (
               <div className="flex items-center gap-1 text-xs text-slate-400">
                 <Gauge size={12} />
-                {avgRpe} RPE
+                Effort {avgRpe} (RPE)
               </div>
             )}
             {expanded ? (
@@ -240,7 +240,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
                           ].join(' ')}
                         >
                           {formatWeightValue(s.weight, weightUnit)}{weightUnit}x{s.reps}
-                          {s.rpe != null && ` @${s.rpe}`}
+                          {s.rpe != null && ` Effort:${s.rpe}`}
                           {s.isPersonalRecord && ' 🏆'}
                         </span>
                       );
