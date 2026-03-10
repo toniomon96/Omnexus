@@ -2,6 +2,8 @@
 
 This document is the exact list of things you still need to do manually outside the repo.
 
+Security-specific platform operations are tracked in `docs/PLATFORM_SECURITY_OPS.md`.
+
 If you only do work that the coding agent cannot do for you, this is your list.
 
 ---
