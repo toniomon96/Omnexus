@@ -102,4 +102,43 @@ describe('setCorsHeaders', () => {
     expect(ok).toBe(true);
     expect(getHeader('Access-Control-Allow-Origin')).toBe('https://app.omnexus.fit');
   });
+
+  it('allows same-origin requests in Vercel preview environment', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.VERCEL_ENV = 'preview';
+
+    const { res, getHeader } = createMockResponse();
+    const req = {
+      headers: {
+        origin: 'https://fitness-app-git-polish-v1-lau-143489-toniomontez-2122s-projects.vercel.app',
+        host: 'fitness-app-git-polish-v1-lau-143489-toniomontez-2122s-projects.vercel.app',
+      },
+    } as unknown as VercelRequest;
+
+    const ok = setCorsHeaders(req, res);
+
+    expect(ok).toBe(true);
+    expect(getHeader('Access-Control-Allow-Origin')).toBe(
+      'https://fitness-app-git-polish-v1-lau-143489-toniomontez-2122s-projects.vercel.app',
+    );
+  });
+
+  it('rejects cross-origin requests in Vercel preview environment', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.VERCEL_ENV = 'preview';
+
+    const { res, getStatusCode, getBody } = createMockResponse();
+    const req = {
+      headers: {
+        origin: 'https://evil.example.com',
+        host: 'fitness-app-git-polish-v1-lau-143489-toniomontez-2122s-projects.vercel.app',
+      },
+    } as unknown as VercelRequest;
+
+    const ok = setCorsHeaders(req, res);
+
+    expect(ok).toBe(false);
+    expect(getStatusCode()).toBe(403);
+    expect(getBody()).toEqual({ error: 'Origin not allowed' });
+  });
 });
