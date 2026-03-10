@@ -98,7 +98,7 @@ describe('checkout-status hardening', () => {
     vi.doMock('@supabase/supabase-js', () => ({ createClient: () => supabaseMock }));
     vi.doMock('./_stripe.js', () => ({ getStripeConfig: () => ({ stripe: {}, webhookSecret: 'whsec' }) }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq({ headers: { origin: 'http://localhost:3000' } }), res);
@@ -116,7 +116,7 @@ describe('checkout-status hardening', () => {
     vi.doMock('@supabase/supabase-js', () => ({ createClient: () => supabaseMock }));
     vi.doMock('./_stripe.js', () => ({ getStripeConfig: () => ({ error: 'Missing STRIPE_SECRET_KEY', stripe: null }) }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq(), res);
@@ -134,7 +134,7 @@ describe('checkout-status hardening', () => {
     vi.doMock('@supabase/supabase-js', () => ({ createClient: () => supabaseMock }));
     vi.doMock('./_stripe.js', () => ({ getStripeConfig: () => ({ stripe: { checkout: { sessions: { retrieve: vi.fn() } } } }) }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq(), res);
@@ -168,7 +168,7 @@ describe('checkout-status hardening', () => {
       }),
     }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq(), res);
@@ -202,7 +202,7 @@ describe('checkout-status hardening', () => {
       }),
     }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq(), res);
@@ -245,7 +245,7 @@ describe('checkout-status hardening', () => {
       }),
     }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq(), res);
@@ -278,7 +278,7 @@ describe('checkout-status hardening', () => {
       }),
     }));
 
-    const { default: checkoutStatus } = await import('./checkout-status');
+    const { default: checkoutStatus } = await import('./checkout-status.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await checkoutStatus(createReq(), res);

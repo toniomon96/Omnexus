@@ -26,7 +26,7 @@ export function TopBar({ title, showBack, backTo, right, showProfile }: TopBarPr
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-900/95 pt-safe">
+    <header className="sticky top-0 z-30 -mx-0 lg:-mx-6 border-b border-slate-200 bg-white/95 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-900/95 pt-safe">
       <div className="flex h-14 items-center gap-3 px-4">
         {showBack && (backTo ? (
           <a

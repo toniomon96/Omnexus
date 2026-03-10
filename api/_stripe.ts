@@ -42,7 +42,12 @@ export async function findStripeCustomerByEmail(
   userId?: string,
 ): Promise<string | null> {
   const existing = await stripe.customers.list({ email, limit: 10 });
-  const candidates = existing.data.filter((customer) => !('deleted' in customer && customer.deleted));
+  const candidates = existing.data.filter(
+    (customer) => {
+      const deleted = (customer as unknown as { deleted?: unknown }).deleted;
+      return deleted !== true;
+    },
+  );
 
   if (userId) {
     const exact = candidates.find((customer) => customer.metadata?.userId === userId);

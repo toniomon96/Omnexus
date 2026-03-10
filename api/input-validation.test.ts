@@ -49,7 +49,7 @@ describe('input validation guards', () => {
   });
 
   it('generate-lesson requires topic', async () => {
-    const { default: generateLesson } = await import('./generate-lesson');
+    const { default: generateLesson } = await import('./generate-lesson.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await generateLesson(createReq({ body: {} }), res);
@@ -59,7 +59,7 @@ describe('input validation guards', () => {
   });
 
   it('generate-lesson rejects oversized topic', async () => {
-    const { default: generateLesson } = await import('./generate-lesson');
+    const { default: generateLesson } = await import('./generate-lesson.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await generateLesson(createReq({ body: { topic: 'a'.repeat(201) } }), res);
@@ -69,7 +69,7 @@ describe('input validation guards', () => {
   });
 
   it('recommend-content requires query', async () => {
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq({ body: {} }), res);
@@ -79,7 +79,7 @@ describe('input validation guards', () => {
   });
 
   it('recommend-content rejects oversized query', async () => {
-    const { default: recommendContent } = await import('./recommend-content');
+    const { default: recommendContent } = await import('./recommend-content.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await recommendContent(createReq({ body: { query: 'q'.repeat(501) } }), res);
@@ -91,7 +91,7 @@ describe('input validation guards', () => {
   it('meal-plan requires macro fields', async () => {
     process.env.ANTHROPIC_API_KEY = 'test-key';
 
-    const { default: mealPlan } = await import('./meal-plan');
+    const { default: mealPlan } = await import('./meal-plan.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await mealPlan(createReq({ body: { calories: 2200, proteinG: 160 } }), res);
@@ -117,7 +117,7 @@ describe('input validation guards', () => {
       createClient: () => supabaseMock,
     }));
 
-    const { default: reportBug } = await import('./report-bug');
+    const { default: reportBug } = await import('./report-bug.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await reportBug(createReq({ body: { description: '   ' } }), res);

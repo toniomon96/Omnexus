@@ -105,7 +105,7 @@ describe('training route validation guards', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
     mockAuthenticatedSupabase();
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(createReq({ body: {} }), res);
@@ -119,7 +119,7 @@ describe('training route validation guards', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
     mockAuthenticatedSupabase();
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     const exerciseSets = Array.from({ length: 21 }, (_, i) => ({
@@ -139,7 +139,7 @@ describe('training route validation guards', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
     mockAuthenticatedSupabase();
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(
@@ -160,7 +160,7 @@ describe('training route validation guards', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
     mockAuthenticatedSupabase();
 
-    const { default: generateMissions } = await import('./generate-missions');
+    const { default: generateMissions } = await import('./generate-missions.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await generateMissions(createReq({ body: {} }), res);
@@ -170,7 +170,7 @@ describe('training route validation guards', () => {
   });
 
   it('adapt rejects missing bearer auth', async () => {
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(createReq({ headers: { origin: 'http://localhost:3000' }, body: { exerciseSets: [] } }), res);
@@ -184,7 +184,7 @@ describe('training route validation guards', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
     mockInvalidTokenSupabase();
 
-    const { default: adapt } = await import('./adapt');
+    const { default: adapt } = await import('./adapt.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await adapt(
@@ -205,7 +205,7 @@ describe('training route validation guards', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
     mockInvalidTokenSupabase();
 
-    const { default: generateMissions } = await import('./generate-missions');
+    const { default: generateMissions } = await import('./generate-missions.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await generateMissions(createReq({ body: { programId: 'prog_1' } }), res);
@@ -251,7 +251,7 @@ describe('training route validation guards', () => {
       },
     }));
 
-    const { default: generateMissions } = await import('./generate-missions');
+    const { default: generateMissions } = await import('./generate-missions.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await generateMissions(

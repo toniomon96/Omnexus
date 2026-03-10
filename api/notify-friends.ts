@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { getPreferencesMap } from './_notificationPrefs.js';
 import { sendPushToUsers } from './_sendPush.js';
 import { setCorsHeaders } from './_cors.js';
 
@@ -41,13 +42,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (friendIds.length === 0) return res.status(200).json({ sent: 0 });
 
+  const prefsMap = await getPreferencesMap(supabaseAdmin, friendIds);
+  const eligibleFriendIds = friendIds.filter((id) => {
+    const pref = prefsMap.get(id);
+    return !!pref?.push_enabled && !!pref?.community_enabled;
+  });
+
+  if (eligibleFriendIds.length === 0) return res.status(200).json({ sent: 0 });
+
   const userName = profileResult.data?.name ?? 'Your friend';
-  await sendPushToUsers(friendIds, {
+  await sendPushToUsers(eligibleFriendIds, {
     title: 'Friend Activity',
     body: `${userName} just completed a workout 💪`,
     url: '/feed',
     tag: 'friend-workout',
   });
 
-  return res.status(200).json({ sent: friendIds.length });
+  return res.status(200).json({ sent: eligibleFriendIds.length });
 }

@@ -22,6 +22,7 @@ import type {
   AiChallenge,
   ChallengeParticipant,
   ChallengeInvitation,
+  NotificationPreferences,
 } from '../types';
 
 let supabasePromise: Promise<(typeof import('./supabase'))['supabase']> | null = null;
@@ -229,6 +230,52 @@ export async function getProfileById(userId: string): Promise<ProfileRecord | nu
   }
 
   return data ?? null;
+}
+
+export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from('notification_preferences')
+    .select('push_enabled, training_reminders_enabled, missed_day_enabled, community_enabled, progress_enabled, preferred_hour_local, timezone')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`[getNotificationPreferences] ${error.message}`);
+  }
+
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+  return {
+    pushEnabled: data?.push_enabled ?? true,
+    trainingRemindersEnabled: data?.training_reminders_enabled ?? true,
+    missedDayEnabled: data?.missed_day_enabled ?? true,
+    communityEnabled: data?.community_enabled ?? true,
+    progressEnabled: data?.progress_enabled ?? true,
+    preferredHourLocal: data?.preferred_hour_local ?? 18,
+    timezone: data?.timezone ?? timezone,
+  };
+}
+
+export async function upsertNotificationPreferences(
+  userId: string,
+  prefs: NotificationPreferences,
+): Promise<void> {
+  const supabase = await getSupabase();
+  const { error } = await supabase.from('notification_preferences').upsert({
+    user_id: userId,
+    push_enabled: prefs.pushEnabled,
+    training_reminders_enabled: prefs.trainingRemindersEnabled,
+    missed_day_enabled: prefs.missedDayEnabled,
+    community_enabled: prefs.communityEnabled,
+    progress_enabled: prefs.progressEnabled,
+    preferred_hour_local: prefs.preferredHourLocal,
+    timezone: prefs.timezone,
+  });
+
+  if (error) {
+    throw new Error(`[upsertNotificationPreferences] ${error.message}`);
+  }
 }
 
 // ─── Community: Friendships ───────────────────────────────────────────────────

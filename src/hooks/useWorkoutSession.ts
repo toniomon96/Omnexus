@@ -291,6 +291,11 @@ export function useWorkoutSession() {
               method: 'POST',
               headers: { Authorization: `Bearer ${session.access_token}` },
             }).catch(() => {});
+
+            fetch(`${apiBase}/api/notify-progress`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            }).catch(() => {});
           }
         }).catch(() => {});
 

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
 import { sendPushToUser } from './_sendPush.js';
 
 const DIGEST_PROMPT = `You are a supportive fitness coach. Based on a user's workout data from the past week, write exactly 2 sentences:
@@ -71,10 +72,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (activeUserIds.length === 0) return res.status(200).json({ sent: 0 });
 
+  const prefsMap = await getPreferencesMap(supabaseAdmin, activeUserIds);
+
   let sent = 0;
 
   await Promise.allSettled(
     activeUserIds.map(async (userId) => {
+      const prefs = prefsMap.get(userId);
+      if (!prefs || !prefs.push_enabled || !prefs.progress_enabled || !isPreferredHour(prefs)) {
+        return;
+      }
+
       const { thisWeek, lastWeek, count } = userMap[userId];
       const trend =
         lastWeek === 0

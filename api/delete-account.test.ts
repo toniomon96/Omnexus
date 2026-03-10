@@ -178,7 +178,7 @@ describe('delete-account route hardening', () => {
       createClient: () => supabase,
     }));
 
-    const { default: deleteAccount } = await import('./delete-account');
+    const { default: deleteAccount } = await import('./delete-account.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await deleteAccount(
@@ -200,7 +200,7 @@ describe('delete-account route hardening', () => {
       createClient: () => supabase,
     }));
 
-    const { default: deleteAccount } = await import('./delete-account');
+    const { default: deleteAccount } = await import('./delete-account.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await deleteAccount(createReq(), res);
@@ -219,7 +219,7 @@ describe('delete-account route hardening', () => {
       createClient: () => supabase,
     }));
 
-    const { default: deleteAccount } = await import('./delete-account');
+    const { default: deleteAccount } = await import('./delete-account.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await deleteAccount(createReq(), res);
@@ -240,7 +240,7 @@ describe('delete-account route hardening', () => {
       createClient: () => supabase,
     }));
 
-    const { default: deleteAccount } = await import('./delete-account');
+    const { default: deleteAccount } = await import('./delete-account.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await deleteAccount(createReq(), res);
@@ -261,7 +261,7 @@ describe('delete-account route hardening', () => {
       createClient: () => supabase,
     }));
 
-    const { default: deleteAccount } = await import('./delete-account');
+    const { default: deleteAccount } = await import('./delete-account.js');
     const { res, getStatusCode, getBody } = createMockResponse();
 
     await deleteAccount(createReq(), res);

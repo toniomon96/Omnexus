@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
 import { sendPushToUser } from './_sendPush.js';
 
 const MESSAGES = [
@@ -34,20 +35,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!subs || subs.length === 0) return res.status(200).json({ sent: 0 });
 
     const uniqueUserIds = [...new Set(subs.map((s) => s.user_id as string))];
+    const prefsMap = await getPreferencesMap(supabaseAdmin, uniqueUserIds);
     const body = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
 
+    let sent = 0;
     await Promise.allSettled(
-      uniqueUserIds.map((userId) =>
-        sendPushToUser(userId, {
+      uniqueUserIds.map(async (userId) => {
+        const prefs = prefsMap.get(userId);
+        if (!prefs || !prefs.push_enabled || !prefs.training_reminders_enabled || !isPreferredHour(prefs)) {
+          return;
+        }
+        await sendPushToUser(userId, {
           title: 'Daily Reminder',
           body,
           url: '/',
           tag: 'daily-reminder',
-        }),
-      ),
+        });
+        sent++;
+      }),
     );
 
-    return res.status(200).json({ sent: uniqueUserIds.length });
+    return res.status(200).json({ sent });
   } catch (err) {
     console.error('[/api/daily-reminder]', err);
     return res.status(500).json({ error: 'Failed to send reminders' });
