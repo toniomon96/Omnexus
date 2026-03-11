@@ -11,8 +11,9 @@ test.describe('Measurements', () => {
 
     await expect(page.getByText(/guest entries stay on this device/i)).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: /^weight$/i }).click();
+    await expect(page.getByRole('heading', { name: /add entry/i })).toBeVisible({ timeout: 5_000 });
 
-    await page.getByTestId('measurement-value-input').fill('80.5');
+    await page.locator('input[type="number"]').first().fill('80.5');
     await page.locator('input[type="date"]').fill('2025-03-15');
     await page.getByRole('button', { name: /add entry/i }).click();
 

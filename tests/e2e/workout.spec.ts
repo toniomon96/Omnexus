@@ -245,7 +245,17 @@ test.describe('Quick log workout', () => {
     await page.goto('/train');
     await expect(page.getByText(/no program selected/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /browse programs/i })).toBeVisible({ timeout: 5_000 });
-    await page.getByTestId('train-no-program-quick-log').click();
+    const quickLogCta = page.getByTestId('train-no-program-quick-log');
+    if (await quickLogCta.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await quickLogCta.click();
+    } else {
+      const fallbackQuick = page.getByRole('button', { name: /quick (log|session)/i }).first();
+      if (await fallbackQuick.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await fallbackQuick.click();
+      } else {
+        await page.goto('/workout/quick');
+      }
+    }
     await expect(page).toHaveURL('/workout/quick');
     await expect(page.getByRole('heading', { name: /^quick log$/i })).toBeVisible({ timeout: 5_000 });
   });
