@@ -30,6 +30,9 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    touch-action: manipulation;
   }
 
   html.dark {

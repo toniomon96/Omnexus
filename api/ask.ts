@@ -246,11 +246,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = authHeader.slice(7);
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
-      // Treat stale/invalid sessions as guest access instead of hard failing Ask.
-      console.warn('[api/ask] invalid bearer token; continuing as guest', {
+      console.warn('[api/ask] invalid bearer token; request rejected', {
         traceId,
         error: authError?.message ?? 'user_not_found',
       });
+      return res.status(401).json({ error: 'Invalid or expired session token' });
     } else {
       const authedUserId = user.id;
 
