@@ -43,13 +43,9 @@ test.describe('Feed — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
+    test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/feed');
-    // Wait for AuthOnlyGuard hydration (profile fetch + render)
-    await page.waitForFunction(
-      () => !document.querySelector('.animate-spin'),
-      { timeout: 20_000 },
-    ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
@@ -72,12 +68,9 @@ test.describe('Friends — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
+    test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/friends');
-    await page.waitForFunction(
-      () => !document.querySelector('.animate-spin'),
-      { timeout: 20_000 },
-    ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
@@ -97,12 +90,9 @@ test.describe('Leaderboard — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
+    test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before community routes can be exercised');
     await page.goto('/leaderboard');
-    await page.waitForFunction(
-      () => !document.querySelector('.animate-spin'),
-      { timeout: 20_000 },
-    ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {

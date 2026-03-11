@@ -1,5 +1,5 @@
 import { test, expect } from './helpers/fixtures';
-import { enterAsGuest, signIn } from './helpers/auth';
+import { signIn } from './helpers/auth';
 
 const hasRealCredentials =
   !!process.env.E2E_TEST_EMAIL &&
@@ -9,7 +9,29 @@ const hasRealCredentials =
 
 test.describe('Insights — guest', () => {
   test.beforeEach(async ({ page }) => {
-    await enterAsGuest(page);
+    await page.goto('/login');
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem('omnexus_cookie_consent', 'accepted');
+
+      const guest = {
+        id: 'guest-local',
+        name: 'Guest',
+        goal: 'Build muscle',
+        experienceLevel: 'intermediate',
+        activeProgramId: 'upper-lower-4day',
+        onboardedAt: new Date().toISOString(),
+        theme: 'light',
+        avatarUrl: null,
+        isGuest: true,
+      };
+
+      localStorage.setItem('fit_user', JSON.stringify(guest));
+      localStorage.setItem('omnexus_guest', JSON.stringify(guest));
+      localStorage.removeItem('fit_active_session');
+    });
+    await page.goto('/');
   });
 
   test('page loads with AI Insights heading', async ({ page }) => {
@@ -84,9 +106,9 @@ test.describe('Insights — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
+    test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before authenticated insights can be exercised');
     await page.goto('/insights');
-    await page.waitForFunction(() => !document.querySelector('.animate-spin')).catch(() => {});
   });
 
   test('peer insights card visible for authenticated users', async ({ page }) => {

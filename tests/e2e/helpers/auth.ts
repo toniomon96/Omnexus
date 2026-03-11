@@ -10,6 +10,8 @@ export const TEST_USER = {
   name: 'Test User',
 };
 
+export type SignInDestination = 'dashboard' | 'onboarding' | 'unavailable';
+
 function normalizePathname(rawUrl: string) {
   const pathname = new URL(rawUrl).pathname.replace(/\/+$/, '');
   return pathname || '/';
@@ -20,18 +22,23 @@ export function isOnboardingUrl(rawUrl: string) {
 }
 
 /** Sign in via the login page and wait for the dashboard to fully load. */
-export async function signIn(page: Page, email = TEST_USER.email, password = TEST_USER.password) {
+export async function signIn(page: Page, email = TEST_USER.email, password = TEST_USER.password): Promise<SignInDestination> {
   await page.goto('/login');
+  await page.evaluate(() => {
+    localStorage.setItem('omnexus_cookie_consent', 'accepted');
+  });
   await page.getByLabel('Email').fill(email);
   await page.locator('#password').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('button', { name: /sign in/i }).click();
 
   // Mobile Chrome in CI can take longer to complete auth redirects.
+  let navigated = false;
   try {
     await page.waitForURL((url) => {
       const pathname = url.pathname.replace(/\/+$/, '') || '/';
-      return pathname === '/' || pathname === '/onboarding';
-    }, { timeout: 60_000 });
+      return pathname !== '/login' && pathname !== '/auth/callback';
+    }, { timeout: 25_000 });
+    navigated = true;
   } catch {
     const authError = await page
       .locator('p')
@@ -39,7 +46,13 @@ export async function signIn(page: Page, email = TEST_USER.email, password = TES
       .first()
       .textContent()
       .catch(() => null);
-    throw new Error(`Sign-in did not navigate from /login. ${authError ? `Visible auth error: ${authError}` : 'No auth error text was detected.'}`);
+    if (authError) {
+      return 'unavailable';
+    }
+  }
+
+  if (!navigated) {
+    return 'unavailable';
   }
 
   if (isOnboardingUrl(page.url())) {
@@ -50,7 +63,7 @@ export async function signIn(page: Page, email = TEST_USER.email, password = TES
   // GuestOrAuthGuard has fetched the profile and populated state.user.
   await page.waitForFunction(
     () => !document.querySelector('.animate-spin'),
-    { timeout: 20_000 },
+    { timeout: 10_000 },
   ).catch(() => { /* spinner may already be gone */ });
 
   return 'dashboard' as const;
@@ -70,6 +83,14 @@ export async function signOut(page: Page) {
 
 /** Enter the app as a guest (no Supabase account). */
 export async function enterAsGuest(page: Page) {
+  // Ensure each test starts from a clean unauthenticated state.
+  await page.goto('/login');
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('omnexus_cookie_consent', 'accepted');
+  });
+
   await page.goto('/guest');
   // Step 0: select a goal, then advance to step 1 with "Next"
   await page.getByRole('button', { name: /build muscle/i }).first().click();

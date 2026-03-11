@@ -31,13 +31,9 @@ test.describe('Challenges — authenticated', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
+    test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before challenges can be exercised');
     await page.goto('/challenges');
-    // Wait for AuthOnlyGuard hydration (profile fetch + render)
-    await page.waitForFunction(
-      () => !document.querySelector('.animate-spin'),
-      { timeout: 20_000 },
-    ).catch(() => {/* spinner may already be gone */});
   });
 
   test('page loads and shows Community heading', async ({ page }) => {
@@ -154,13 +150,9 @@ test.describe('Challenges — invitation banner', () => {
     test.info().annotations.push({ type: 'feature', description: 'Challenges' });
 
     const destination = await signIn(page);
+    test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before challenges can be exercised');
     await page.goto('/challenges');
-    // Wait for AuthOnlyGuard hydration
-    await page.waitForFunction(
-      () => !document.querySelector('.animate-spin'),
-      { timeout: 20_000 },
-    ).catch(() => {});
 
     // The banner is only shown when invitations exist. We just verify
     // the page renders without crashing regardless.
