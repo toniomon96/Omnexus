@@ -31,13 +31,13 @@ export async function signIn(page: Page, email = TEST_USER.email, password = TES
   await page.locator('#password').fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
 
-  // Mobile Chrome in CI can take longer to complete auth redirects.
+  // Fail fast in CI/mobile instead of consuming the full test timeout budget.
   let navigated = false;
   try {
     await page.waitForURL((url) => {
       const pathname = url.pathname.replace(/\/+$/, '') || '/';
       return pathname !== '/login' && pathname !== '/auth/callback';
-    }, { timeout: 25_000 });
+    }, { timeout: 8_000 });
     navigated = true;
   } catch {
     const authError = await page
