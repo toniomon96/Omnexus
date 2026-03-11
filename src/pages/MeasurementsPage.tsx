@@ -15,6 +15,8 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import MeasurementChart from '../components/measurements/MeasurementChart';
 import { today } from '../utils/dateUtils';
+import { useWeightUnit } from '../hooks/useWeightUnit';
+import { toDisplayWeight, toStoredWeight } from '../utils/weightUnits';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -30,7 +32,7 @@ const METRICS: { key: MeasurementMetric; label: string }[] = [
 ];
 
 const UNIT_MAP: Record<MeasurementMetric, MeasurementUnit> = {
-  weight:      'kg',
+  weight:      'lbs',
   'body-fat':  '%',
   waist:       'cm',
   chest:       'cm',
@@ -65,6 +67,7 @@ async function deleteMeasurementFromDb(id: string, userId: string) {
 
 export function MeasurementsPage() {
   const { state } = useApp();
+  const weightUnit = useWeightUnit();
 
   const { toast } = useToast();
 
@@ -95,26 +98,77 @@ export function MeasurementsPage() {
     load();
   }, [selectedMetric, userId]);
 
-  const unit = UNIT_MAP[selectedMetric];
+  const unit: MeasurementUnit = selectedMetric === 'weight' ? weightUnit : UNIT_MAP[selectedMetric];
+
+  const metricCopy: Record<MeasurementMetric, { label: string; placeholder: string; hint: string }> = {
+    weight: {
+      label: `Enter your body weight (${unit})`,
+      placeholder: unit === 'lbs' ? 'Example: 180' : 'Example: 82',
+      hint: 'Track at the same time of day for cleaner trends.',
+    },
+    'body-fat': {
+      label: 'Enter your body-fat percentage (%)',
+      placeholder: 'Example: 22',
+      hint: 'Use the same device/method each time for consistency.',
+    },
+    waist: {
+      label: 'Enter your waist measurement (cm)',
+      placeholder: 'Example: 86',
+      hint: 'Measure at your navel, relaxed stance, after exhale.',
+    },
+    chest: {
+      label: 'Enter your chest measurement (cm)',
+      placeholder: 'Example: 102',
+      hint: 'Wrap tape around the fullest part of your chest.',
+    },
+    'left-arm': {
+      label: 'Enter your left arm measurement (cm)',
+      placeholder: 'Example: 34',
+      hint: 'Measure midpoint between shoulder and elbow.',
+    },
+    'right-arm': {
+      label: 'Enter your right arm measurement (cm)',
+      placeholder: 'Example: 34',
+      hint: 'Keep arm relaxed and use consistent tape tension.',
+    },
+    hips: {
+      label: 'Enter your hip measurement (cm)',
+      placeholder: 'Example: 97',
+      hint: 'Measure around the widest point of your hips.',
+    },
+    thighs: {
+      label: 'Enter your thigh measurement (cm)',
+      placeholder: 'Example: 56',
+      hint: 'Measure at the same point on each leg every time.',
+    },
+  };
+
+  function toDisplayMeasurement(entry: Measurement): number {
+    if (entry.metric !== 'weight') return entry.value;
+    const storedKg = entry.unit === 'lbs' ? toStoredWeight(entry.value, 'lbs') : entry.value;
+    return toDisplayWeight(storedKg, weightUnit);
+  }
 
   async function handleAdd() {
     const num = parseFloat(value);
     if (isNaN(num) || num <= 0 || !userId) return;
     setSaving(true);
     try {
+      const storedValue = selectedMetric === 'weight' ? toStoredWeight(num, weightUnit) : num;
+      const storedUnit: MeasurementUnit = selectedMetric === 'weight' ? 'kg' : unit;
       const added = isGuest
         ? saveStoredMeasurement({
             userId,
             metric: selectedMetric,
-            value: num,
-            unit,
+            value: storedValue,
+            unit: storedUnit,
             measuredAt: date,
           })
         : await addMeasurementToDb({
             userId,
             metric: selectedMetric,
-            value: num,
-            unit,
+            value: storedValue,
+            unit: storedUnit,
             measuredAt: date,
           });
       if (added) {
@@ -146,7 +200,7 @@ export function MeasurementsPage() {
     }
   }
 
-  const chartData = entries.map((e) => ({ date: e.measuredAt, value: e.value }));
+  const chartData = entries.map((e) => ({ date: e.measuredAt, value: toDisplayMeasurement(e) }));
 
   return (
     <AppShell>
@@ -188,7 +242,9 @@ export function MeasurementsPage() {
                 type="number"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder={`Value (${unit})`}
+                label={metricCopy[selectedMetric].label}
+                placeholder={metricCopy[selectedMetric].placeholder}
+                hint={metricCopy[selectedMetric].hint}
                 min={0}
                 step={0.1}
               />
@@ -232,7 +288,9 @@ export function MeasurementsPage() {
                 <div key={entry.id} className="flex items-center justify-between border-b border-slate-200 py-1.5 last:border-0 dark:border-slate-800">
                   <span className="text-sm text-slate-500 dark:text-slate-400">{entry.measuredAt}</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-200">
-                    {entry.value} {entry.unit}
+                    {selectedMetric === 'weight'
+                      ? `${Math.round(toDisplayMeasurement(entry) * 10) / 10} ${weightUnit}`
+                      : `${entry.value} ${entry.unit}`}
                   </span>
                   <button
                     onClick={() => handleDelete(entry.id)}
@@ -249,7 +307,7 @@ export function MeasurementsPage() {
 
         {entries.length === 0 && !loading && (
           <p className="text-center text-sm text-slate-600 dark:text-slate-400">
-            No entries yet. Add your first {METRICS.find((m) => m.key === selectedMetric)?.label.toLowerCase()} measurement.
+            No entries yet. Add your first {METRICS.find((m) => m.key === selectedMetric)?.label.toLowerCase()} entry to start tracking trends over time.
           </p>
         )}
       </div>

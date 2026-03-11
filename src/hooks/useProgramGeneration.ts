@@ -23,7 +23,18 @@ export function useProgramGeneration(): UseProgramGenerationResult {
     // Sync from localStorage in case another tab updated it
     setGenState(getGenerationState());
     const unsub = subscribeToGeneration(setGenState);
-    return unsub;
+
+    function onStorage(event: StorageEvent) {
+      if (event.key === 'omnexus_program_generation') {
+        setGenState(getGenerationState());
+      }
+    }
+
+    window.addEventListener('storage', onStorage);
+    return () => {
+      unsub();
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   return {

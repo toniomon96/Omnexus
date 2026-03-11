@@ -6,7 +6,7 @@ import { getExerciseNameMap } from '../lib/staticCatalogs';
 export async function buildInsightRequest(
   sessions: WorkoutSession[],
   user: User,
-  weightUnit: WeightUnit = 'kg',
+  weightUnit: WeightUnit = 'lbs',
 ): Promise<InsightRequest | null> {
   // Limit to last 28 days, most recent first, max 20 sessions
   const cutoff = new Date();

@@ -25,6 +25,7 @@ const SPLIT_LABELS: Record<string, string> = {
 };
 
 const GENERATING_MESSAGES = [
+  'Building your personalized plan... this usually takes about 5-10 seconds.',
   'Analyzing your training profile…',
   'Designing your periodized split…',
   'Writing your 8-week program…',

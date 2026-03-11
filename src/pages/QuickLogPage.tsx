@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { v4 as uuid } from 'uuid';
 import { Zap, Save, X, Check } from 'lucide-react';
 import { useWorkoutSession } from '../hooks/useWorkoutSession';
@@ -15,12 +15,23 @@ import { Card } from '../components/ui/Card';
 export function QuickLogPage() {
   const { startQuickWorkout } = useWorkoutSession();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templates] = useState<WorkoutTemplate[]>(() => getWorkoutTemplates());
+
+  useEffect(() => {
+    const preselectedExerciseId = (location.state as { preselectedExerciseId?: string } | null)?.preselectedExerciseId;
+    if (!preselectedExerciseId) return;
+
+    setSelectedIds((prev) => (prev.includes(preselectedExerciseId) ? prev : [...prev, preselectedExerciseId]));
+
+    // Remove one-time state so browser back/forward doesn't repeatedly re-add.
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
 
   const filtered = useMemo(() =>
     exercises.filter((ex) =>

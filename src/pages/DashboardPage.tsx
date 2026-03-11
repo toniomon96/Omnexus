@@ -77,6 +77,7 @@ export function DashboardPage() {
   const { status: genStatus, programId: generatedProgramId, generationState } = useProgramGeneration();
   const repairedMissingProgramRef = useRef(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [retryingGeneration, setRetryingGeneration] = useState(false);
 
   const user = state.user;
 
@@ -168,11 +169,17 @@ export function DashboardPage() {
     ? state.history.sessions[state.history.sessions.length - 1]
     : null;
 
-  function retryGeneration() {
+  async function retryGeneration() {
     if (!user) return;
+    if (retryingGeneration || genStatus === 'generating') return;
     const stored = getGenerationState();
     if (!stored) return;
-    void restartProgramGeneration(user.id, stored.profile);
+    setRetryingGeneration(true);
+    try {
+      await restartProgramGeneration(user.id, stored.profile);
+    } finally {
+      setRetryingGeneration(false);
+    }
   }
 
   function dismissWhatsNew() {
@@ -260,19 +267,20 @@ export function DashboardPage() {
             <AlertCircle size={18} className="text-red-500 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-red-700 dark:text-red-300">
-                Program generation failed
+                We had trouble generating your program.
               </p>
               <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">
-                We couldn't build your program. Tap retry to try again.
+                Tap retry and we'll try again. This usually takes about 5-10 seconds.
               </p>
             </div>
             <button
               type="button"
               onClick={retryGeneration}
+              disabled={retryingGeneration}
               className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
             >
-              <RefreshCw size={13} />
-              Retry
+              <RefreshCw size={13} className={retryingGeneration ? 'animate-spin' : ''} />
+              {retryingGeneration ? 'Retrying...' : 'Retry'}
             </button>
           </div>
         )}
@@ -357,7 +365,7 @@ export function DashboardPage() {
               </div>
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
-              Building your program in the background…
+              Building your personalized plan... this usually takes about 5-10 seconds.
             </p>
           </Card>
         )}
@@ -452,7 +460,7 @@ export function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { to: '/measurements', icon: Ruler, label: 'Measurements' },
               { to: '/tools/plate-calculator', icon: Calculator, label: 'Plate Calculator' },
@@ -466,11 +474,11 @@ export function DashboardPage() {
                   trackFeatureEntry({ source: 'dashboard_explore_more', destination: to, label });
                   navigate(to);
                 }}
-                className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-left hover:border-brand-300 dark:hover:border-brand-700 transition-colors"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-left hover:border-brand-300 dark:hover:border-brand-700 transition-colors min-h-[52px]"
               >
                 <div className="flex items-center gap-2">
                   <Icon size={14} className="text-slate-500" />
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{label}</span>
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-snug">{label}</span>
                 </div>
               </button>
             ))}

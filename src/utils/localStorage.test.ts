@@ -213,8 +213,8 @@ describe('Theme storage', () => {
 });
 
 describe('Weight unit storage', () => {
-  it('defaults to kg', () => {
-    expect(getWeightUnit()).toBe('kg');
+  it('defaults to lbs', () => {
+    expect(getWeightUnit()).toBe('lbs');
   });
 
   it('stores and retrieves weight unit', () => {
@@ -222,9 +222,9 @@ describe('Weight unit storage', () => {
     expect(getWeightUnit()).toBe('lbs');
   });
 
-  it('falls back to kg for invalid stored values', () => {
+  it('falls back to lbs for invalid stored values', () => {
     localStorageMock.setItem('omnexus_weight_unit', JSON.stringify('stone'));
-    expect(getWeightUnit()).toBe('kg');
+    expect(getWeightUnit()).toBe('lbs');
   });
 });
 

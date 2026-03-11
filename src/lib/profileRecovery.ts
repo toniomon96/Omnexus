@@ -3,7 +3,14 @@ import type { ExperienceLevel, Goal, User } from '../types';
 import { apiBase } from './api';
 import { getProfileById } from './dbHydration';
 import { markTutorialSeen } from './tutorial';
-import { getGuestProfile, getTheme } from '../utils/localStorage';
+import { getGuestProfile, getTheme, setWeightUnit } from '../utils/localStorage';
+
+function syncWeightUnitFromMetadata(session: Session): void {
+  const raw = session.user.user_metadata?.weight_unit;
+  if (raw === 'kg' || raw === 'lbs') {
+    setWeightUnit(raw);
+  }
+}
 
 function fallbackName(session: Session) {
   const guestProfile = getGuestProfile();
@@ -72,6 +79,8 @@ async function createFallbackProfile(session: Session) {
 }
 
 export async function ensureProfileUser(session: Session): Promise<User | null> {
+  syncWeightUnitFromMetadata(session);
+
   const existing = await getProfileById(session.user.id);
   if (existing) {
     return mapProfileToUser(existing);

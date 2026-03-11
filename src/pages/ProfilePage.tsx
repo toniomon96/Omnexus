@@ -71,6 +71,11 @@ async function updatePasswordInAuth(password: string) {
   return supabase.auth.updateUser({ password });
 }
 
+async function updateWeightUnitInAuthProfile(unit: WeightUnit) {
+  const { supabase } = await import('../lib/supabase');
+  return supabase.auth.updateUser({ data: { weight_unit: unit } });
+}
+
 async function getSessionAccessToken() {
   const { supabase } = await import('../lib/supabase');
   const {
@@ -155,6 +160,14 @@ export function ProfilePage() {
   }, [isGuest, currentUser]);
 
   useEffect(() => {
+    const metadataUnit = authUser?.user_metadata?.weight_unit;
+    if (metadataUnit === 'kg' || metadataUnit === 'lbs') {
+      setWeightUnit(metadataUnit);
+      setWeightUnitState(metadataUnit);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
     if (isGuest || !currentUser || !pushEnabled || !prefsDirty) return;
 
     const timer = setTimeout(() => {
@@ -204,6 +217,11 @@ export function ProfilePage() {
   function handleWeightUnitChange(nextUnit: WeightUnit) {
     setWeightUnit(nextUnit);
     setWeightUnitState(nextUnit);
+    if (!isGuest) {
+      void updateWeightUnitInAuthProfile(nextUnit).catch(() => {
+        toast('Saved locally. Cloud sync will retry later.', 'error');
+      });
+    }
     toast(`Weight unit set to ${nextUnit.toUpperCase()}`, 'success');
   }
 

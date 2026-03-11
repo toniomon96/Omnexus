@@ -149,7 +149,7 @@ export function setTheme(theme: 'dark' | 'light'): void {
 
 export function getWeightUnit(): WeightUnit {
   const stored = safeRead<WeightUnit | null>(KEYS.WEIGHT_UNIT, null);
-  return stored === 'lbs' ? 'lbs' : 'kg';
+  return stored === 'kg' ? 'kg' : 'lbs';
 }
 
 export function setWeightUnit(unit: WeightUnit): void {
