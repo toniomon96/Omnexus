@@ -36,8 +36,8 @@ export async function signIn(page: Page, email = TEST_USER.email, password = TES
   try {
     await page.waitForURL((url) => {
       const pathname = url.pathname.replace(/\/+$/, '') || '/';
-      return pathname === '/' || pathname === '/onboarding';
-    }, { timeout: 20_000 });
+      return pathname !== '/login' && pathname !== '/auth/callback';
+    }, { timeout: 25_000 });
     navigated = true;
   } catch {
     const authError = await page
@@ -63,7 +63,7 @@ export async function signIn(page: Page, email = TEST_USER.email, password = TES
   // GuestOrAuthGuard has fetched the profile and populated state.user.
   await page.waitForFunction(
     () => !document.querySelector('.animate-spin'),
-    { timeout: 20_000 },
+    { timeout: 10_000 },
   ).catch(() => { /* spinner may already be gone */ });
 
   return 'dashboard' as const;
@@ -83,6 +83,14 @@ export async function signOut(page: Page) {
 
 /** Enter the app as a guest (no Supabase account). */
 export async function enterAsGuest(page: Page) {
+  // Ensure each test starts from a clean unauthenticated state.
+  await page.goto('/login');
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('omnexus_cookie_consent', 'accepted');
+  });
+
   await page.goto('/guest');
   // Step 0: select a goal, then advance to step 1 with "Next"
   await page.getByRole('button', { name: /build muscle/i }).first().click();

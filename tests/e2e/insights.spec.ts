@@ -87,7 +87,6 @@ test.describe('Insights — authenticated', () => {
     test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
     test.skip(destination === 'onboarding', 'Test account still requires onboarding before authenticated insights can be exercised');
     await page.goto('/insights');
-    await page.waitForFunction(() => !document.querySelector('.animate-spin')).catch(() => {});
   });
 
   test('peer insights card visible for authenticated users', async ({ page }) => {

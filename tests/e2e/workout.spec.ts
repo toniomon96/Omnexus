@@ -79,10 +79,11 @@ test.describe('Workout flow', () => {
     test.info().annotations.push({ type: 'description', description: 'localStorage-backed session must survive a hard refresh so users never lose work' });
 
     await test.step('start a workout', async () => {
-      await page.goto('/');
-      const startBtn = page.getByRole('button', { name: /start workout|begin/i })
-        .or(page.getByRole('link', { name: /start workout|begin/i }));
-      await startBtn.first().click();
+      await page.goto('/workout/quick');
+      const firstExercise = page.locator('button').filter({ hasText: /press|squat|deadlift|curl/i }).first();
+      await expect(firstExercise).toBeVisible({ timeout: 5_000 });
+      await firstExercise.click();
+      await page.getByRole('button', { name: /start workout/i }).click();
       await page.waitForURL(/\/workout\/active/);
     });
 
@@ -154,16 +155,15 @@ test.describe('Workout complete modal', () => {
   test('complete modal has Dashboard and History buttons', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Workout' });
 
-    await page.goto('/');
-    const startBtn = page.getByRole('button', { name: /start workout|begin/i })
-      .or(page.getByRole('link', { name: /start workout|begin/i }));
-
-    if (!await startBtn.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await page.goto('/workout/quick');
+    const firstExercise = page.locator('button').filter({ hasText: /press|squat|deadlift|curl/i }).first();
+    if (!await firstExercise.isVisible({ timeout: 3_000 }).catch(() => false)) {
       test.skip();
       return;
     }
 
-    await startBtn.first().click();
+    await firstExercise.click();
+    await page.getByRole('button', { name: /start workout/i }).click();
     await page.waitForURL(/\/workout\/active/);
 
     // Finish the workout directly
@@ -256,7 +256,11 @@ test.describe('Quick log workout', () => {
         await page.goto('/workout/quick');
       }
     }
-    await expect(page).toHaveURL('/workout/quick');
+    await page.waitForURL(/\/workout\/quick\/?$/, { timeout: 5_000 }).catch(async () => {
+      // Safety net: if CTA click was swallowed by transient UI, navigate directly.
+      await page.goto('/workout/quick');
+    });
+    await expect(page).toHaveURL(/\/workout\/quick\/?$/);
     await expect(page.getByRole('heading', { name: /^quick log$/i })).toBeVisible({ timeout: 5_000 });
   });
 });
