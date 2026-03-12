@@ -19,7 +19,7 @@ All API endpoints are Vercel serverless functions in `/api/`. They run on Node.j
 |---|---|
 | `POST /api/signup` | No |
 | `POST /api/signin` | No |
-| `POST /api/setup-profile` | No (verifies user exists via admin SDK) |
+| `POST /api/setup-profile` | **Yes** — Bearer JWT |
 | `POST /api/ask` | No |
 | `POST /api/insights` | **Yes** — Bearer JWT |
 | `POST /api/onboard` | No |
@@ -149,6 +149,12 @@ When the profile is complete:
 
 Generates a complete 8-week training program as JSON using Claude, tailored to the user's `UserTrainingProfile`. Returns a valid `Program` object that the client saves as a custom program.
 
+The endpoint now uses a staged integrity pipeline:
+1. AI generation and JSON extraction
+2. Structural normalization (days, exercise count, schemes, progression notes)
+3. Quality gates (pull vs push balance, lower-body volume floor, core/conditioning presence, 8-week progression coverage)
+4. Automatic fallback program if integrity checks fail
+
 **Request**
 
 ```http
@@ -187,11 +193,17 @@ Content-Type: application/json
 }
 ```
 
-**Server-side validation:** All exercise IDs in the schedule are validated against the known exercise catalogue. If Claude outputs an invalid ID or invalid enum value (goal/experienceLevel), a hardcoded fallback full-body program is returned instead — the endpoint never returns a 4xx/5xx for generation failures.
+**Server-side validation and normalization:**
+- Exercise IDs are validated against the known exercise catalogue.
+- Invalid or weak set schemes are clamped to safe bounds (sets, rest, optional RPE).
+- Day count is normalized to the requested training frequency.
+- Missing progression details are backfilled to preserve week-by-week coaching continuity.
+
+If normalized output still fails quality integrity checks, a hardcoded fallback full-body program is returned instead. The endpoint never returns a generation failure 4xx/5xx.
 
 **Fallback:** Even on Claude API errors, a usable fallback program is returned with `HTTP 200`.
 
-**Model:** `claude-sonnet-4-6` · `max_tokens: 4096`
+**Model:** `claude-sonnet-4-6` · `max_tokens: 8000`
 
 ---
 
@@ -351,14 +363,15 @@ Caching is handled **client-side** in `localStorage` with a 6-hour TTL per categ
 
 ## POST /api/setup-profile
 
-Creates the user's profile row in `profiles` using the Supabase Admin SDK, bypassing Row Level Security. Called immediately after `supabase.auth.signUp()` during onboarding.
+Creates the authenticated user's profile row in `profiles` using the Supabase Admin SDK, bypassing Row Level Security.
 
-This endpoint exists because when email confirmation is enabled, no client session exists after `signUp()` — so `auth.uid()` is null and direct client inserts would fail the RLS check.
+This endpoint is fail-closed: it requires a valid bearer token and only allows creating a profile for the token's user ID.
 
 **Request**
 
 ```http
 POST /api/setup-profile
+Authorization: Bearer <supabase-access-token>
 Content-Type: application/json
 ```
 
@@ -380,7 +393,7 @@ Content-Type: application/json
 | `experienceLevel` | `string` | Yes |
 | `activeProgramId` | `string` | No |
 
-The server verifies `userId` exists in `auth.users` before inserting. Duplicate key (`23505`) returns `200` silently.
+The server verifies the bearer token and enforces `token.user.id === userId`. Duplicate key (`23505`) returns `200` silently.
 
 **Response 200**
 
@@ -393,7 +406,8 @@ The server verifies `userId` exists in `auth.users` before inserting. Duplicate 
 | Status | Cause |
 |---|---|
 | `400` | Missing required fields |
-| `401` | `userId` not found in auth.users |
+| `401` | Missing/invalid Bearer token |
+| `403` | Bearer token user does not match `userId` |
 | `405` | Non-POST request |
 | `500` | Supabase insert failure |
 
@@ -540,19 +554,33 @@ Content-Disposition: attachment; filename="omnexus-data-2026-02-25.json"
 
 Permanently deletes the authenticated user's account and all associated data. GDPR Article 17 (right to erasure).
 
+Deletion is fail-closed and fail-fast: if any cleanup step fails, auth user deletion is skipped and the endpoint returns `500` with the failed step names.
+
 **Deletion order** (respects foreign-key constraints):
 1. `challenge_participants`
-2. `friendships` (both `requester_id` and `addressee_id`)
-3. `push_subscriptions`
-4. `personal_records`
-5. `workout_sessions`
-6. `nutrition_logs`
-7. `measurements`
-8. `learning_progress`
-9. `custom_programs`
-10. `challenges` (created by user)
-11. `profiles`
-12. `auth.users` via `supabaseAdmin.auth.admin.deleteUser()`
+2. `challenge_invitations` (both `from_user_id` and `to_user_id`)
+3. `friendships` (both `requester_id` and `addressee_id`)
+4. `feed_reactions`
+5. `personal_records`
+6. `workout_sessions`
+7. `learning_progress`
+8. `custom_programs`
+9. `workout_templates`
+10. `nutrition_logs`
+11. `subscriptions`
+12. `user_ai_usage`
+13. `training_profiles`
+14. `measurements`
+15. `block_missions`
+16. `ai_challenges`
+17. `notification_preferences`
+18. `notification_events`
+19. `push_subscriptions`
+20. `auth_login_attempts` (by email)
+21. `challenges` (created by user)
+22. `avatars` bucket objects (user folder)
+23. `profiles`
+24. `auth.users` via `supabaseAdmin.auth.admin.deleteUser()`
 
 **Request**
 
@@ -575,7 +603,7 @@ After receiving `200`, the client calls `localStorage.clear()` then `supabase.au
 |---|---|
 | `401` | Missing/invalid Bearer token |
 | `405` | Non-DELETE request |
-| `500` | Supabase delete failure |
+| `500` | Any cleanup step fails, or auth user deletion fails |
 
 ---
 

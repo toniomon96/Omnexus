@@ -42,6 +42,27 @@ const EXERCISE_IDS = [
 ];
 
 const VALID_IDS = new Set(EXERCISE_IDS);
+const VALID_GOALS = new Set(['hypertrophy', 'fat-loss', 'general-fitness']);
+const VALID_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
+const VALID_DAY_TYPES = new Set(['full-body', 'upper', 'lower', 'push', 'pull', 'legs', 'cardio', 'rest']);
+
+const PUSH_IDS = new Set([
+  'barbell-bench-press', 'dumbbell-bench-press', 'incline-dumbbell-press', 'incline-barbell-press',
+  'cable-chest-fly', 'push-up', 'dips', 'overhead-press', 'dumbbell-shoulder-press', 'arnold-press',
+]);
+const PULL_IDS = new Set([
+  'barbell-row', 'dumbbell-row', 'lat-pulldown', 'pull-up', 'seated-cable-row', 'face-pull', 't-bar-row',
+]);
+const LOWER_IDS = new Set([
+  'barbell-back-squat', 'goblet-squat', 'leg-press', 'leg-extension', 'walking-lunge', 'bulgarian-split-squat',
+  'step-up', 'romanian-deadlift', 'deadlift', 'hip-thrust', 'glute-bridge', 'leg-curl', 'nordic-hamstring-curl',
+  'standing-calf-raise',
+]);
+const CORE_OR_CARDIO_IDS = new Set([
+  'plank', 'hanging-leg-raise', 'ab-wheel-rollout', 'cable-crunch', 'kettlebell-swing', 'box-jump', 'mountain-climbers',
+]);
+
+const DEFAULT_EXERCISE_PROGRESS = 'W1: 3x10 @RPE7 | W2: 4x8 @RPE7 | W3: 4x8 @RPE8 | W4: Deload 2x10 @RPE6 | W5: 4x8 @RPE8 | W6: 4x6 @RPE8 | W7: 5x5 @RPE9 | W8: Test or deload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,8 +122,8 @@ function validateProgram(p: unknown): p is GeneratedProgram {
   if (!p || typeof p !== 'object') return false;
   const prog = p as Record<string, unknown>;
   if (!Array.isArray(prog.schedule) || prog.schedule.length === 0) return false;
-  if (!['hypertrophy', 'fat-loss', 'general-fitness'].includes(prog.goal as string)) return false;
-  if (!['beginner', 'intermediate', 'advanced'].includes(prog.experienceLevel as string)) return false;
+  if (!VALID_GOALS.has(prog.goal as string)) return false;
+  if (!VALID_LEVELS.has(prog.experienceLevel as string)) return false;
   for (const day of prog.schedule as unknown[]) {
     if (!day || typeof day !== 'object') return false;
     const d = day as Record<string, unknown>;
@@ -116,11 +137,227 @@ function validateProgram(p: unknown): p is GeneratedProgram {
   return true;
 }
 
+function inferExperienceLevel(profile: UserTrainingProfile): string {
+  return profile.trainingAgeYears === 0
+    ? 'beginner'
+    : profile.trainingAgeYears <= 2
+      ? 'intermediate'
+      : 'advanced';
+}
+
+function clampDays(daysPerWeek: number): number {
+  return Math.min(Math.max(Number(daysPerWeek) || 4, 2), 6);
+}
+
+function exerciseCountRange(profile: UserTrainingProfile): { min: number; max: number } {
+  if (profile.sessionDurationMinutes <= 45) return { min: 4, max: 5 };
+  if (profile.sessionDurationMinutes <= 60) return { min: 5, max: 6 };
+  if (profile.sessionDurationMinutes <= 75) return { min: 6, max: 7 };
+  return { min: 7, max: 8 };
+}
+
+function normalizeScheme(raw: unknown, fallback?: SetScheme): SetScheme {
+  const source = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const fallbackValue = fallback ?? { sets: 3, reps: '8-12', restSeconds: 90, rpe: 7 };
+
+  const setsValue = Number(source.sets);
+  const sets = Number.isFinite(setsValue) ? Math.min(Math.max(Math.round(setsValue), 1), 6) : fallbackValue.sets;
+
+  const reps = typeof source.reps === 'string' && source.reps.trim().length > 0
+    ? source.reps.trim().slice(0, 24)
+    : fallbackValue.reps;
+
+  const restValue = Number(source.restSeconds);
+  const restSeconds = Number.isFinite(restValue)
+    ? Math.min(Math.max(Math.round(restValue), 30), 300)
+    : fallbackValue.restSeconds;
+
+  const rpeValue = Number(source.rpe);
+  const rpe = Number.isFinite(rpeValue)
+    ? Math.min(Math.max(Math.round(rpeValue), 6), 9)
+    : fallbackValue.rpe;
+
+  return rpe === undefined
+    ? { sets, reps, restSeconds }
+    : { sets, reps, restSeconds, rpe };
+}
+
+function normalizeWeeklyProgressionNotes(notes: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(notes)) return fallback;
+
+  const normalized = notes
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  if (normalized.length < 8) return fallback;
+  if (!/week\s*4|w4|deload/i.test(normalized[3] ?? '')) return fallback;
+  return normalized;
+}
+
+function normalizeProgramCandidate(raw: GeneratedProgram, profile: UserTrainingProfile, fallback: GeneratedProgram): GeneratedProgram {
+  const targetDays = clampDays(profile.daysPerWeek);
+  const { min, max } = exerciseCountRange(profile);
+
+  const fallbackExercisesById = new Map<string, ProgramExercise>();
+  for (const day of fallback.schedule) {
+    for (const exercise of day.exercises) {
+      if (!fallbackExercisesById.has(exercise.exerciseId)) {
+        fallbackExercisesById.set(exercise.exerciseId, exercise);
+      }
+    }
+  }
+
+  const schedule: TrainingDay[] = [];
+
+  for (let i = 0; i < targetDays; i++) {
+    const candidateDay = raw.schedule?.[i] as Record<string, unknown> | undefined;
+    const fallbackDay = fallback.schedule[i % fallback.schedule.length]!;
+
+    const dayType = typeof candidateDay?.type === 'string' && VALID_DAY_TYPES.has(candidateDay.type)
+      ? candidateDay.type
+      : fallbackDay.type;
+
+    const dayLabel = typeof candidateDay?.label === 'string' && candidateDay.label.trim().length > 0
+      ? candidateDay.label.trim().slice(0, 80)
+      : fallbackDay.label;
+
+    const normalizedExercises: ProgramExercise[] = [];
+    const seen = new Set<string>();
+
+    const sourceExercises = Array.isArray(candidateDay?.exercises)
+      ? candidateDay.exercises as unknown[]
+      : [];
+
+    for (const rawExercise of sourceExercises) {
+      if (!rawExercise || typeof rawExercise !== 'object') continue;
+      const record = rawExercise as Record<string, unknown>;
+      if (typeof record.exerciseId !== 'string' || !VALID_IDS.has(record.exerciseId)) continue;
+      if (seen.has(record.exerciseId)) continue;
+
+      const fallbackExercise = fallbackExercisesById.get(record.exerciseId);
+      const scheme = normalizeScheme(record.scheme, fallbackExercise?.scheme);
+      const notes = typeof record.notes === 'string' && /W1:.*W8:/i.test(record.notes)
+        ? record.notes.trim().slice(0, 500)
+        : fallbackExercise?.notes ?? DEFAULT_EXERCISE_PROGRESS;
+
+      normalizedExercises.push({
+        exerciseId: record.exerciseId,
+        scheme,
+        notes,
+      });
+      seen.add(record.exerciseId);
+
+      if (normalizedExercises.length >= max) break;
+    }
+
+    for (const fallbackExercise of fallbackDay.exercises) {
+      if (normalizedExercises.length >= min) break;
+      if (seen.has(fallbackExercise.exerciseId)) continue;
+      normalizedExercises.push({
+        exerciseId: fallbackExercise.exerciseId,
+        scheme: normalizeScheme(fallbackExercise.scheme),
+        notes: fallbackExercise.notes ?? DEFAULT_EXERCISE_PROGRESS,
+      });
+      seen.add(fallbackExercise.exerciseId);
+    }
+
+    schedule.push({
+      label: dayLabel,
+      type: dayType,
+      exercises: normalizedExercises.slice(0, max),
+    });
+  }
+
+  const goal = VALID_GOALS.has(raw.goal) ? raw.goal : (profile.goals[0] ?? fallback.goal);
+  const experienceLevel = VALID_LEVELS.has(raw.experienceLevel) ? raw.experienceLevel : inferExperienceLevel(profile);
+
+  const rawTags = Array.isArray(raw.tags)
+    ? raw.tags.filter((tag): tag is string => typeof tag === 'string').map((tag) => tag.trim()).filter(Boolean)
+    : [];
+
+  const tags = rawTags.length > 0
+    ? Array.from(new Set(rawTags)).slice(0, 8)
+    : ['ai-generated', goal, experienceLevel];
+
+  return {
+    id: '',
+    name: typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim().slice(0, 120) : fallback.name,
+    goal,
+    experienceLevel,
+    description: typeof raw.description === 'string' && raw.description.trim().length > 0
+      ? raw.description.trim().slice(0, 500)
+      : fallback.description,
+    trainingPhilosophy: typeof raw.trainingPhilosophy === 'string' && raw.trainingPhilosophy.trim().length > 0
+      ? raw.trainingPhilosophy.trim().slice(0, 700)
+      : fallback.trainingPhilosophy,
+    weeklyProgressionNotes: normalizeWeeklyProgressionNotes(raw.weeklyProgressionNotes, fallback.weeklyProgressionNotes ?? []),
+    daysPerWeek: targetDays,
+    estimatedDurationWeeks: 8,
+    schedule,
+    tags,
+    isCustom: true,
+    isAiGenerated: true,
+    aiLifecycleStatus: 'draft',
+  };
+}
+
+function assessProgramIntegrity(program: GeneratedProgram, profile: UserTrainingProfile): { ok: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+
+  if (!validateProgram(program)) {
+    reasons.push('schema_validation_failed');
+    return { ok: false, reasons };
+  }
+
+  const { min } = exerciseCountRange(profile);
+  if (program.schedule.length !== clampDays(profile.daysPerWeek)) {
+    reasons.push('schedule_length_mismatch');
+  }
+
+  if (!program.weeklyProgressionNotes || program.weeklyProgressionNotes.length !== 8) {
+    reasons.push('weekly_progression_missing');
+  }
+
+  let pushSets = 0;
+  let pullSets = 0;
+  let lowerSets = 0;
+  let coreOrCardioSets = 0;
+
+  for (const day of program.schedule) {
+    if (day.exercises.length < min) {
+      reasons.push('insufficient_daily_exercise_count');
+    }
+
+    for (const exercise of day.exercises) {
+      if (!exercise.notes || !/W1:.*W8:/i.test(exercise.notes)) {
+        reasons.push('progression_notes_missing');
+      }
+
+      const setCount = Math.max(1, exercise.scheme.sets);
+      if (PUSH_IDS.has(exercise.exerciseId)) pushSets += setCount;
+      if (PULL_IDS.has(exercise.exerciseId)) pullSets += setCount;
+      if (LOWER_IDS.has(exercise.exerciseId)) lowerSets += setCount;
+      if (CORE_OR_CARDIO_IDS.has(exercise.exerciseId)) coreOrCardioSets += setCount;
+    }
+  }
+
+  if (pullSets < pushSets) reasons.push('pull_balance_failed');
+  if (lowerSets < Math.max(4, clampDays(profile.daysPerWeek) * 2)) reasons.push('lower_body_volume_low');
+  if (coreOrCardioSets === 0) reasons.push('core_or_conditioning_missing');
+
+  return {
+    ok: reasons.length === 0,
+    reasons: Array.from(new Set(reasons)),
+  };
+}
+
 // ─── Fallback program (used if Claude fails) ──────────────────────────────────
 
 function buildFallback(profile: UserTrainingProfile): GeneratedProgram {
   const goal = (profile.goals[0] ?? 'general-fitness') as string;
-  const days = Math.min(Math.max(profile.daysPerWeek, 2), 5);
+  const days = clampDays(profile.daysPerWeek);
   const level = profile.trainingAgeYears === 0
     ? 'beginner'
     : profile.trainingAgeYears <= 2
@@ -197,6 +434,7 @@ function buildFallback(profile: UserTrainingProfile): GeneratedProgram {
     tags: ['ai-generated', 'full-body', goal],
     isCustom: true,
     isAiGenerated: true,
+    aiLifecycleStatus: 'draft',
   };
 }
 
@@ -517,12 +755,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (block.type !== 'text') throw new Error('Unexpected Claude response type');
 
     let program: GeneratedProgram | null = null;
+    const fallbackProgram = buildFallback(profile);
 
     try {
       const raw = extractProgramJsonCandidate(block.text);
       const parsed = JSON.parse(raw) as GeneratedProgram;
-      if (validateProgram(parsed)) {
-        program = { ...parsed, isCustom: true, isAiGenerated: true };
+      if (parsed && typeof parsed === 'object') {
+        const normalized = normalizeProgramCandidate(parsed, profile, fallbackProgram);
+        const integrity = assessProgramIntegrity(normalized, profile);
+
+        if (integrity.ok) {
+          program = normalized;
+        } else {
+          console.warn('[/api/generate-program] Integrity checks failed — using fallback:', integrity.reasons);
+        }
       } else {
         console.warn('[/api/generate-program] Validation failed — using fallback');
         if (process.env.NODE_ENV !== 'production') {
@@ -538,7 +784,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (!program) {
-      program = buildFallback(profile);
+      program = fallbackProgram;
     }
 
     if (countAgainstQuota && supabaseAdmin && usageAuthUserId) {

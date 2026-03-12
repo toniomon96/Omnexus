@@ -78,6 +78,42 @@ describe('account route validation guards', () => {
     expect(getBody()).toEqual({ error: 'Missing required fields' });
   });
 
+  it('setup-profile requires bearer token', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
+
+    const supabaseMock = {
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
+      },
+      from: vi.fn(() => ({
+        insert: vi.fn(async () => ({ error: null })),
+      })),
+    };
+
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: () => supabaseMock,
+    }));
+
+    const { default: setupProfile } = await import('./setup-profile.js');
+    const { res, getStatusCode, getBody } = createMockResponse();
+
+    await setupProfile(
+      createReq({
+        body: {
+          userId: 'user_1',
+          name: 'Tester',
+          goal: 'hypertrophy',
+          experienceLevel: 'beginner',
+        },
+      }),
+      res,
+    );
+
+    expect(getStatusCode()).toBe(401);
+    expect(getBody()).toEqual({ error: 'Missing bearer token' });
+  });
+
   it('setup-profile rejects invalid goal enum', async () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
