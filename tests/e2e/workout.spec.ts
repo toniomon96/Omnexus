@@ -96,7 +96,7 @@ test.describe('Workout flow', () => {
     await page.goto('/train');
     await page.waitForURL('/train');
     await expect(page.getByText(/new to workout logging\?/i)).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/start workout.*guided session/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/start with the main action above/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('active workout beginner helper can be dismissed and stays hidden after reload', async ({ page }) => {
@@ -237,7 +237,7 @@ test.describe('Quick log workout', () => {
     });
 
     await page.goto('/train');
-    await expect(page.getByText(/no program selected/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/choose a program first/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /browse programs/i })).toBeVisible({ timeout: 5_000 });
     const quickLogCta = page.getByTestId('train-no-program-quick-log');
     if (await quickLogCta.isVisible({ timeout: 2_000 }).catch(() => false)) {

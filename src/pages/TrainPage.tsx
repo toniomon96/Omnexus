@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
@@ -26,13 +26,18 @@ import {
   Route,
   Apple,
 } from 'lucide-react';
-import { trackFeatureEntry } from '../lib/analytics';
+import { trackFeatureEntry, trackPrimaryTrainingActionEvent } from '../lib/analytics';
+import {
+  getTrainingPrimaryActionTarget,
+  resolveTrainingPrimaryActionState,
+} from '../lib/trainingPrimaryAction';
 
 export function TrainPage() {
   const { state } = useApp();
   const navigate = useNavigate();
   const { session: activeSession } = useWorkoutSession();
   const [exerciseNames, setExerciseNames] = useState<Record<string, string>>({});
+  const primaryActionTrackedRef = useRef<string | null>(null);
 
   const user = state.user;
   if (!user) return null;
@@ -43,6 +48,11 @@ export function TrainPage() {
   const recentSessions = state.history.sessions.slice(0, 3);
   const isFirstWorkout = state.history.sessions.length === 0;
   const isGuidedMode = getExperienceMode(user.id) === 'guided';
+  const primaryActionState = resolveTrainingPrimaryActionState({
+    hasActiveSession: Boolean(activeSession),
+    hasProgramWorkout: Boolean(program && nextWorkout),
+    canChooseProgram: !program,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +76,45 @@ export function TrainPage() {
     };
   }, [nextWorkout]);
 
+  useEffect(() => {
+    if (!primaryActionState) return;
+    const trackingKey = `${user.id}:${primaryActionState}:${isGuidedMode}`;
+    if (primaryActionTrackedRef.current === trackingKey) return;
+
+    trackPrimaryTrainingActionEvent({
+      surface: 'train',
+      action: 'shown',
+      state: primaryActionState,
+      target: getTrainingPrimaryActionTarget(primaryActionState),
+      isGuidedMode,
+    });
+    primaryActionTrackedRef.current = trackingKey;
+  }, [primaryActionState, isGuidedMode, user.id]);
+
+  function handleTrainPrimaryAction(target: 'resume_workout' | 'start_workout' | 'browse_programs') {
+    trackPrimaryTrainingActionEvent({
+      surface: 'train',
+      action: 'clicked',
+      state: target === 'resume_workout'
+        ? 'active_session'
+        : target === 'start_workout'
+        ? 'program_ready'
+        : 'no_program',
+      target,
+      isGuidedMode,
+    });
+
+    if (target === 'resume_workout') {
+      navigate('/workout/active');
+      return;
+    }
+    if (target === 'start_workout') {
+      navigate('/briefing');
+      return;
+    }
+    navigate('/programs');
+  }
+
   return (
     <AppShell>
       <TopBar title="Train" />
@@ -76,6 +125,108 @@ export function TrainPage() {
           <ProgramContextBar program={program} />
         )}
 
+        {/* Primary action */}
+        {activeSession && (
+          <Card className="border-brand-400 bg-brand-50 dark:bg-brand-900/20" data-testid="train-primary-action-card">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300">
+                  Next step
+                </p>
+                <div className="mt-2 flex items-center gap-2.5">
+                  <AlertCircle size={18} className="text-brand-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                      Resume your active workout
+                    </p>
+                    <p className="text-xs text-brand-700/80 dark:text-brand-300/80 mt-0.5">
+                      Your session is already in progress. Finish this before starting something else.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Button size="sm" data-testid="train-primary-action-button" onClick={() => handleTrainPrimaryAction('resume_workout')}>
+                <Play size={14} />
+                Resume
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Today's workout */}
+        {nextWorkout && !activeSession && (
+          <Card className="overflow-hidden p-0" data-testid="train-primary-action-card">
+            <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-700/60">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Next step
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                    {nextWorkout.day.label}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Start your guided session first. Quick Session stays available if you want something flexible instead.
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
+              </div>
+            </div>
+            <div className="space-y-4 px-4 py-4">
+              <div className="flex flex-wrap gap-1.5">
+              {nextWorkout.day.exercises.slice(0, 5).map(ex => (
+                <span
+                  key={ex.exerciseId}
+                  className="text-xs px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300 capitalize"
+                >
+                  {exerciseNames[ex.exerciseId] ?? ex.exerciseId.replace(/-/g, ' ')}
+                </span>
+              ))}
+              {nextWorkout.day.exercises.length > 5 && (
+                <span className="text-xs px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400">
+                  +{nextWorkout.day.exercises.length - 5} more
+                </span>
+              )}
+            </div>
+              <div className="space-y-2">
+                <Button onClick={() => handleTrainPrimaryAction('start_workout')} data-testid="train-primary-action-button">
+                  <Play size={15} />
+                  Start workout
+                </Button>
+                <Button variant="secondary" onClick={() => navigate('/workout/quick')} data-testid="train-secondary-action-button">
+                  <Zap size={15} />
+                  Quick Session Instead
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* No program — prompt to set one up */}
+        {!program && !activeSession && (
+          <Card className="py-8 text-center" data-testid="train-primary-action-card">
+            <Dumbbell size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Next step
+            </p>
+            <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
+              Choose a program first
+            </p>
+            <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+              Pick a plan if you want day-by-day guidance. Quick Session is still here when you need a flexible workout right now.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button onClick={() => handleTrainPrimaryAction('browse_programs')} data-testid="train-primary-action-button">
+                Browse Programs
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/workout/quick')} data-testid="train-no-program-quick-log">
+                <Zap size={15} />
+                Quick Session Instead
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Beginner guide */}
         {isFirstWorkout && !activeSession && (
           <Card className="border-brand-300/60 bg-brand-50/70 dark:bg-brand-900/20">
@@ -83,11 +234,11 @@ export function TrainPage() {
               <CircleHelp size={18} className="text-brand-500 mt-0.5 shrink-0" />
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">New to workout logging?</p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">Start here: pick one option below, log each set, then tap Finish when done.</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">Start with the main action above, then use Quick Session only when you want a flexible workout.</p>
                 <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal ml-4">
-                  <li>Tap <span className="font-semibold">Start workout</span> for a guided session.</li>
-                  <li>Or tap <span className="font-semibold">Quick Log</span> to build your own session.</li>
-                  <li>In each exercise, enter weight and reps, then tap the check button.</li>
+                  <li>Use <span className="font-semibold">Start workout</span> for your guided session when a program is ready.</li>
+                  <li>Use <span className="font-semibold">Quick Session</span> when you want to build your own workout.</li>
+                  <li>Enter weight and reps for each set, then tap the check button.</li>
                 </ol>
               </div>
             </div>
@@ -115,140 +266,6 @@ export function TrainPage() {
               },
             ]}
           />
-        )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => {
-              trackFeatureEntry({ source: 'train_card', destination: '/guided-pathways', label: 'guided_pathways' });
-              navigate('/guided-pathways');
-            }}
-            className="w-full text-left"
-          >
-            <Card hover>
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <Route size={18} className="text-brand-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Beginner Guided Pathways</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Choose goals like No Gym, Build Consistency, or Stay Active While Busy.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              trackFeatureEntry({ source: 'train_card', destination: '/nutrition', label: 'nutrition_starter' });
-              navigate('/nutrition');
-            }}
-            className="w-full text-left"
-          >
-            <Card hover>
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <Apple size={18} className="text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Start a Nutrition Plan</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Get beginner-friendly nutrition guidance and realistic daily steps.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </button>
-        </div>
-
-        {/* Resume active workout banner */}
-        {activeSession && (
-          <Card className="border-brand-400 bg-brand-50 dark:bg-brand-900/20">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <AlertCircle size={18} className="text-brand-500 shrink-0" />
-                <p className="text-sm font-medium text-brand-700 dark:text-brand-300">
-                  Workout in progress
-                </p>
-              </div>
-              <Button size="sm" onClick={() => navigate('/workout/active')}>
-                <Play size={14} />
-                Resume
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Today's workout */}
-        {nextWorkout && !activeSession && (
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-700/60">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Today's Workout
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
-                    {nextWorkout.day.label}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
-              </div>
-            </div>
-            <div className="space-y-4 px-4 py-4">
-              <div className="flex flex-wrap gap-1.5">
-              {nextWorkout.day.exercises.slice(0, 5).map(ex => (
-                <span
-                  key={ex.exerciseId}
-                  className="text-xs px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300 capitalize"
-                >
-                  {exerciseNames[ex.exerciseId] ?? ex.exerciseId.replace(/-/g, ' ')}
-                </span>
-              ))}
-              {nextWorkout.day.exercises.length > 5 && (
-                <span className="text-xs px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400">
-                  +{nextWorkout.day.exercises.length - 5} more
-                </span>
-              )}
-            </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button onClick={() => navigate('/briefing')}>
-                  <Play size={15} />
-                  Start workout
-                </Button>
-                <Button variant="secondary" onClick={() => navigate('/workout/quick')}>
-                  <Zap size={15} />
-                  Quick Log
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* No program — prompt to set one up */}
-        {!program && !activeSession && (
-          <Card className="py-8 text-center">
-            <Dumbbell size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-            <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
-              No program selected
-            </p>
-            <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-              Start a quick workout now, or choose a program for guided day-by-day training.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button onClick={() => navigate('/workout/quick')} data-testid="train-no-program-quick-log">
-                <Zap size={15} />
-                Quick Log
-              </Button>
-              <Button variant="secondary" onClick={() => navigate('/programs')}>
-                Browse Programs
-              </Button>
-            </div>
-          </Card>
         )}
 
         {/* Tools */}
@@ -325,6 +342,54 @@ export function TrainPage() {
             </p>
           </div>
         )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => {
+              trackFeatureEntry({ source: 'train_card', destination: '/guided-pathways', label: 'guided_pathways' });
+              navigate('/guided-pathways');
+            }}
+            className="w-full text-left"
+          >
+            <Card hover>
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                  <Route size={18} className="text-brand-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Beginner Guided Pathways</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Choose goals like No Gym, Build Consistency, or Stay Active While Busy.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              trackFeatureEntry({ source: 'train_card', destination: '/nutrition', label: 'nutrition_starter' });
+              navigate('/nutrition');
+            }}
+            className="w-full text-left"
+          >
+            <Card hover>
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <Apple size={18} className="text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Start a Nutrition Plan</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Get beginner-friendly nutrition guidance and realistic daily steps.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </button>
+        </div>
 
       </div>
     </AppShell>

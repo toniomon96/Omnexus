@@ -61,4 +61,29 @@ describe('analytics helpers', () => {
       },
     });
   });
+
+  it('captures primary training action analytics events', async () => {
+    const { trackPrimaryTrainingActionEvent } = await import('./analytics');
+
+    trackPrimaryTrainingActionEvent({
+      surface: 'dashboard',
+      action: 'shown',
+      state: 'program_ready',
+      target: 'start_workout',
+      isGuidedMode: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      event: 'primary_training_action_event',
+      properties: {
+        surface: 'dashboard',
+        action: 'shown',
+        state: 'program_ready',
+        target: 'start_workout',
+        isGuidedMode: true,
+      },
+    });
+  });
 });

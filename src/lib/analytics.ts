@@ -161,3 +161,13 @@ export function trackHydrationRecoveryEvent(props: {
 }) {
   capture('hydration_recovery_event', props);
 }
+
+export function trackPrimaryTrainingActionEvent(props: {
+  surface: 'dashboard' | 'train';
+  action: 'shown' | 'clicked';
+  state: 'active_session' | 'program_ready' | 'no_program';
+  target: 'resume_workout' | 'start_workout' | 'browse_programs';
+  isGuidedMode: boolean;
+}) {
+  capture('primary_training_action_event', props);
+}

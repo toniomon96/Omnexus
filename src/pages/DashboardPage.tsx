@@ -38,7 +38,11 @@ import { clearGenerationState, getGenerationState } from '../lib/programGenerati
 import { formatDuration } from '../utils/dateUtils';
 import { applyAiProgramLifecycle } from '../utils/programLifecycle';
 import { setCustomPrograms } from '../utils/localStorage';
-import { trackFeatureEntry, trackReleaseModalEvent } from '../lib/analytics';
+import { trackFeatureEntry, trackPrimaryTrainingActionEvent, trackReleaseModalEvent } from '../lib/analytics';
+import {
+  getTrainingPrimaryActionTarget,
+  resolveTrainingPrimaryActionState,
+} from '../lib/trainingPrimaryAction';
 
 const WHATS_NEW_RELEASE = 'guided-release-2026-03-10';
 const WHATS_NEW_KEY = `omnexus_whats_new_seen_${WHATS_NEW_RELEASE}`;
@@ -76,6 +80,7 @@ export function DashboardPage() {
   const { session: activeSession } = useWorkoutSession();
   const { status: genStatus, programId: generatedProgramId, generationState } = useProgramGeneration();
   const repairedMissingProgramRef = useRef(false);
+  const primaryActionTrackedRef = useRef<string | null>(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [retryingGeneration, setRetryingGeneration] = useState(false);
 
@@ -152,6 +157,11 @@ export function DashboardPage() {
   const week = program ? getProgramWeekCursor(program.id) : 1;
   const experienceMode = getExperienceMode(user.id);
   const isGuidedMode = experienceMode === 'guided';
+  const primaryActionState = resolveTrainingPrimaryActionState({
+    hasActiveSession: Boolean(activeSession),
+    hasProgramWorkout: Boolean(program && nextWorkout),
+    canChooseProgram: !program && genStatus !== 'generating' && genStatus !== 'error',
+  });
 
   const sessionDates = state.history.sessions.map(s => s.startedAt);
   const completedSessions = state.history.sessions.filter((s) => s.completedAt);
@@ -168,6 +178,21 @@ export function DashboardPage() {
   const lastSession = state.history.sessions.length > 0
     ? state.history.sessions[state.history.sessions.length - 1]
     : null;
+
+  useEffect(() => {
+    if (!primaryActionState) return;
+    const trackingKey = `${user.id}:${primaryActionState}:${isGuidedMode}`;
+    if (primaryActionTrackedRef.current === trackingKey) return;
+
+    trackPrimaryTrainingActionEvent({
+      surface: 'dashboard',
+      action: 'shown',
+      state: primaryActionState,
+      target: getTrainingPrimaryActionTarget(primaryActionState),
+      isGuidedMode,
+    });
+    primaryActionTrackedRef.current = trackingKey;
+  }, [primaryActionState, isGuidedMode, user.id]);
 
   async function retryGeneration() {
     if (!user) return;
@@ -202,6 +227,31 @@ export function DashboardPage() {
     trackReleaseModalEvent({ action: 'cta', release: WHATS_NEW_RELEASE, ctaTarget: route });
     trackFeatureEntry({ source: 'whats_new_modal', destination: route });
     navigate(route);
+  }
+
+  function handleDashboardPrimaryAction(target: 'resume_workout' | 'start_workout' | 'browse_programs') {
+    trackPrimaryTrainingActionEvent({
+      surface: 'dashboard',
+      action: 'clicked',
+      state: target === 'resume_workout'
+        ? 'active_session'
+        : target === 'start_workout'
+        ? 'program_ready'
+        : 'no_program',
+      target,
+      isGuidedMode,
+    });
+
+    if (target === 'resume_workout') {
+      navigate('/workout/active');
+      return;
+    }
+    if (target === 'browse_programs') {
+      navigate('/programs');
+      return;
+    }
+
+    navigate('/workout/active');
   }
 
   return (
@@ -306,17 +356,27 @@ export function DashboardPage() {
           </div>
         )}
 
-        {/* ── Resume active workout ─────────────────────────────────── */}
+        {/* ── Primary next step ─────────────────────────────────────── */}
         {activeSession && (
-          <Card className="border-brand-400 bg-brand-50 dark:bg-brand-900/20">
+          <Card className="border-brand-400 bg-brand-50 dark:bg-brand-900/20" data-testid="dashboard-primary-action-card">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <AlertCircle size={18} className="text-brand-500 shrink-0" />
-                <p className="text-sm font-medium text-brand-700 dark:text-brand-300">
-                  Workout in progress
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300">
+                  Next step
                 </p>
+                <div className="mt-2 flex items-center gap-2.5">
+                  <AlertCircle size={18} className="text-brand-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                      Resume your active workout
+                    </p>
+                    <p className="text-xs text-brand-700/80 dark:text-brand-300/80 mt-0.5">
+                      Your session is still open. Pick up where you left off.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <Button size="sm" onClick={() => navigate('/workout/active')}>
+              <Button size="sm" data-testid="dashboard-primary-action-button" onClick={() => handleDashboardPrimaryAction('resume_workout')}>
                 <Play size={14} />
                 Resume
               </Button>
@@ -330,48 +390,10 @@ export function DashboardPage() {
             program={program}
             day={nextWorkout.day}
             dayIndex={nextWorkout.dayIndex}
+            headingLabel="Next Step"
+            onPrimaryActionClick={() => handleDashboardPrimaryAction('start_workout')}
           />
         )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button type="button" onClick={() => {
-            trackFeatureEntry({ source: 'dashboard_card', destination: '/guided-pathways', label: 'guided_pathways' });
-            navigate('/guided-pathways');
-          }} className="w-full text-left">
-            <Card hover className="h-full border-brand-400/30 bg-brand-50/40 dark:bg-brand-900/10">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <Route size={16} className="text-brand-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Guided Pathways</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    New to fitness? Pick a simple path and start with clear next actions.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </button>
-
-          <button type="button" onClick={() => {
-            trackFeatureEntry({ source: 'dashboard_card', destination: '/nutrition', label: 'nutrition_starter' });
-            navigate('/nutrition');
-          }} className="w-full text-left">
-            <Card hover className="h-full border-emerald-400/30 bg-emerald-50/40 dark:bg-emerald-900/10">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <Apple size={16} className="text-emerald-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Nutrition Starter</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Build a beginner-friendly meal plan with practical daily tips.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </button>
-        </div>
 
         {/* ── Subtle generating placeholder (no spinner card) ──────── */}
         {!activeSession && !program && genStatus === 'generating' && (
@@ -393,16 +415,19 @@ export function DashboardPage() {
 
         {/* ── No program — prompt to get started ───────────────────── */}
         {!activeSession && !program && genStatus !== 'generating' && genStatus !== 'error' && (
-          <Card className="py-6 text-center">
+          <Card className="py-6 text-center" data-testid="dashboard-primary-action-card">
             <Dumbbell size={28} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Next step
+            </p>
             <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
-              Pick your training setup
+              Choose a program first
             </p>
             <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-              Choose a program for guided sessions, or jump into Quick Log if you want to train right now.
+              Guided training works best when you pick a plan first. Quick Session stays available if you need something flexible today.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button onClick={() => navigate('/programs')}>Browse Programs</Button>
+              <Button onClick={() => handleDashboardPrimaryAction('browse_programs')} data-testid="dashboard-primary-action-button">Browse Programs</Button>
               <Button
                 variant="secondary"
                 onClick={() => navigate('/workout/quick')}
@@ -474,6 +499,47 @@ export function DashboardPage() {
 
         {/* ── Weekly recap ──────────────────────────────────────────── */}
         {!isGuidedMode && <WeeklyRecapCard sessions={state.history.sessions} />}
+
+        {/* ── Secondary discovery actions ───────────────────────────── */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button type="button" onClick={() => {
+            trackFeatureEntry({ source: 'dashboard_card', destination: '/guided-pathways', label: 'guided_pathways' });
+            navigate('/guided-pathways');
+          }} className="w-full text-left">
+            <Card hover className="h-full border-brand-400/30 bg-brand-50/40 dark:bg-brand-900/10">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                  <Route size={16} className="text-brand-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Guided Pathways</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    New to fitness? Pick a simple path and start with clear next actions.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </button>
+
+          <button type="button" onClick={() => {
+            trackFeatureEntry({ source: 'dashboard_card', destination: '/nutrition', label: 'nutrition_starter' });
+            navigate('/nutrition');
+          }} className="w-full text-left">
+            <Card hover className="h-full border-emerald-400/30 bg-emerald-50/40 dark:bg-emerald-900/10">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <Apple size={16} className="text-emerald-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Nutrition Starter</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Build a beginner-friendly meal plan with practical daily tips.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </button>
+        </div>
 
         {/* ── Feature discovery (surfaces less-visible tools) ───────── */}
         <Card>

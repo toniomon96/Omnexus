@@ -13,9 +13,17 @@ interface TodayCardProps {
   program: Program | null;
   day: TrainingDay | null;
   dayIndex: number;
+  headingLabel?: string;
+  onPrimaryActionClick?: () => void;
 }
 
-export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
+export function TodayCard({
+  program,
+  day,
+  dayIndex,
+  headingLabel = "Today's Plan",
+  onPrimaryActionClick,
+}: TodayCardProps) {
   const { state } = useApp();
   const { startWorkout } = useWorkoutSession();
   const navigate = useNavigate();
@@ -82,6 +90,7 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
 
   function handleStartWorkout() {
     if (!program) return;
+    onPrimaryActionClick?.();
     startWorkout(program, dayIndex);
     navigate('/workout/active');
   }
@@ -92,7 +101,7 @@ export function TodayCard({ program, day, dayIndex }: TodayCardProps) {
       <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-slate-100 dark:border-slate-700/60">
         <Calendar size={13} className="text-slate-400" />
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          Today's Plan
+          {headingLabel}
         </p>
       </div>
 

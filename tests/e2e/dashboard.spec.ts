@@ -87,7 +87,8 @@ test.describe('Dashboard — guest', () => {
 
     await page.goto('/');
 
-    await expect(page.getByText(/pick your training setup/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/choose a program first/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('dashboard-primary-action-button')).toHaveText(/browse programs/i);
 
     await page.getByRole('button', { name: /browse programs/i }).click();
     await expect(page).toHaveURL('/programs');
