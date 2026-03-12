@@ -1,6 +1,77 @@
 import { test, expect } from './helpers/fixtures';
 import { enterAsGuest } from './helpers/auth';
 
+async function resetGuestDashboardState(page: Parameters<typeof test>[0]['page'], options?: { withCompletedSession?: boolean }) {
+  const withCompletedSession = Boolean(options?.withCompletedSession);
+
+  await page.context().clearCookies();
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(({ includeCompletedSession }) => {
+    const guestUser = {
+      id: 'guest_e2e',
+      name: 'Guest',
+      goal: 'hypertrophy',
+      experienceLevel: 'intermediate',
+      activeProgramId: 'hyp-intermediate-4day',
+      onboardedAt: '2026-03-01T12:00:00.000Z',
+      theme: 'dark',
+      isGuest: true,
+    };
+
+    const history = { sessions: [], personalRecords: [] as unknown[] };
+    if (includeCompletedSession) {
+      const now = new Date();
+      const completedAt = now.toISOString();
+      const startedAt = new Date(now.getTime() - 35 * 60 * 1000).toISOString();
+      history.sessions.push({
+        id: 'e2e_weekly_progress_session',
+        programId: 'hyp-intermediate-4day',
+        trainingDayIndex: 0,
+        startedAt,
+        completedAt,
+        durationSeconds: 2100,
+        totalVolumeKg: 3200,
+        syncStatus: 'saved_on_device',
+        syncStatusUpdatedAt: completedAt,
+        exercises: [
+          {
+            exerciseId: 'barbell-bench-press',
+            sets: [
+              { setNumber: 1, weight: 135, reps: 8, completed: true, timestamp: completedAt },
+            ],
+          },
+        ],
+      });
+    }
+
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    window.localStorage.setItem('omnexus_cookie_consent', 'accepted');
+    window.localStorage.setItem('fit_user', JSON.stringify(guestUser));
+    window.localStorage.setItem('omnexus_guest', JSON.stringify(guestUser));
+    window.localStorage.setItem('fit_history', JSON.stringify(history));
+    window.localStorage.setItem('omnexus_learning_progress', JSON.stringify({
+      completedLessons: [],
+      completedModules: [],
+      completedCourses: [],
+      quizScores: {},
+      lastActivityAt: '',
+    }));
+    window.localStorage.setItem('omnexus_weight_unit', JSON.stringify('lbs'));
+    window.localStorage.setItem('fit_theme', JSON.stringify('dark'));
+    window.localStorage.setItem('omnexus_experience_mode', JSON.stringify({ guest_e2e: 'guided' }));
+  }, { includeCompletedSession: withCompletedSession });
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const isLoading = Boolean(document.querySelector('.animate-spin'));
+    const hasGuestProfile = Boolean(window.localStorage.getItem('omnexus_guest'));
+    const hasGuestUser = Boolean(window.localStorage.getItem('fit_user'));
+    return path === '/' && !isLoading && hasGuestProfile && hasGuestUser;
+  }, { timeout: 10_000 });
+}
+
 // Regression test: "No program found" bug when generation completes before hydration
 // Seeds localStorage with a completed generation state + matching program, then
 // verifies the View link on the dashboard actually loads the program detail page.
@@ -68,46 +139,7 @@ test.describe('Dashboard — guest', () => {
   });
 
   test('shows weekly progress module when workout history exists', async ({ page }) => {
-    await page.addInitScript(() => {
-      const rawHistory = localStorage.getItem('fit_history');
-      const history = rawHistory ? JSON.parse(rawHistory) : { sessions: [], personalRecords: [] };
-      const now = new Date();
-      const completedAt = now.toISOString();
-      const startedAt = new Date(now.getTime() - 35 * 60 * 1000).toISOString();
-
-      const alreadySeeded = Array.isArray(history.sessions)
-        && history.sessions.some((session: { id?: string }) => session.id === 'e2e_weekly_progress_session');
-      if (alreadySeeded) return;
-
-      history.sessions.push({
-        id: 'e2e_weekly_progress_session',
-        programId: 'hyp-intermediate-4day',
-        trainingDayIndex: 0,
-        startedAt,
-        completedAt,
-        durationSeconds: 2100,
-        totalVolumeKg: 3200,
-        syncStatus: 'saved_on_device',
-        syncStatusUpdatedAt: completedAt,
-        exercises: [
-          {
-            exerciseId: 'barbell-bench-press',
-            sets: [
-              { setNumber: 1, weight: 135, reps: 8, completed: true, timestamp: completedAt },
-            ],
-          },
-        ],
-      });
-
-      localStorage.setItem('fit_history', JSON.stringify(history));
-    });
-
-    await page.goto('/');
-    await page.waitForFunction(() => {
-      const path = window.location.pathname.replace(/\/+$/, '') || '/';
-      const isLoading = Boolean(document.querySelector('.animate-spin'));
-      return path === '/' && !isLoading;
-    }, { timeout: 10_000 });
+    await resetGuestDashboardState(page, { withCompletedSession: true });
 
     await expect(page.getByTestId('dashboard-weekly-progress-module')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('dashboard-weekly-progress-primary-action')).toBeVisible({ timeout: 10_000 });
@@ -161,12 +193,7 @@ test.describe('Dashboard — guest', () => {
   });
 
   test('displays streak section', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForFunction(() => {
-      const path = window.location.pathname.replace(/\/+$/, '') || '/';
-      const isLoading = Boolean(document.querySelector('.animate-spin'));
-      return path === '/' && !isLoading;
-    }, { timeout: 10_000 });
+    await resetGuestDashboardState(page);
     // StreakDisplay renders even at 0 — look for the streak area or day dots
     await expect(
       page.getByText(/streak|day/i).first(),
