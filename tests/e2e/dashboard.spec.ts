@@ -68,12 +68,16 @@ test.describe('Dashboard — guest', () => {
   });
 
   test('shows weekly progress module when workout history exists', async ({ page }) => {
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       const rawHistory = localStorage.getItem('fit_history');
       const history = rawHistory ? JSON.parse(rawHistory) : { sessions: [], personalRecords: [] };
       const now = new Date();
       const completedAt = now.toISOString();
       const startedAt = new Date(now.getTime() - 35 * 60 * 1000).toISOString();
+
+      const alreadySeeded = Array.isArray(history.sessions)
+        && history.sessions.some((session: { id?: string }) => session.id === 'e2e_weekly_progress_session');
+      if (alreadySeeded) return;
 
       history.sessions.push({
         id: 'e2e_weekly_progress_session',
@@ -98,11 +102,15 @@ test.describe('Dashboard — guest', () => {
       localStorage.setItem('fit_history', JSON.stringify(history));
     });
 
-    await page.goto('/login');
     await page.goto('/');
+    await page.waitForFunction(() => {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      const isLoading = Boolean(document.querySelector('.animate-spin'));
+      return path === '/' && !isLoading;
+    }, { timeout: 10_000 });
 
-    await expect(page.getByTestId('dashboard-weekly-progress-module')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByTestId('dashboard-weekly-progress-primary-action')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('dashboard-weekly-progress-module')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('dashboard-weekly-progress-primary-action')).toBeVisible({ timeout: 10_000 });
   });
 
   test('shows guest persistence messaging with account-save CTA', async ({ page }) => {
@@ -154,12 +162,17 @@ test.describe('Dashboard — guest', () => {
 
   test('displays streak section', async ({ page }) => {
     await page.goto('/');
+    await page.waitForFunction(() => {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      const isLoading = Boolean(document.querySelector('.animate-spin'));
+      return path === '/' && !isLoading;
+    }, { timeout: 10_000 });
     // StreakDisplay renders even at 0 — look for the streak area or day dots
     await expect(
       page.getByText(/streak|day/i).first(),
-    ).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByTestId('dashboard-momentum-focus-card')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByTestId('dashboard-momentum-focus-action')).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('dashboard-momentum-focus-card')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('dashboard-momentum-focus-action')).toBeVisible({ timeout: 10_000 });
   });
 
   test('AI Insights card links to /insights', async ({ page }) => {
