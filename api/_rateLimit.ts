@@ -11,10 +11,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  * In production, missing vars fail closed with HTTP 500.
  */
 
-// Dynamic imports keep the bundle small when rate limiting is disabled.
+// Dynamic imports keep the bundle small when Upstash is unavailable.
 type RatelimitInstance = { limit: (key: string) => Promise<{ success: boolean; limit: number; remaining: number; reset: number }> };
 
 const ratelimitInstances = new Map<string, RatelimitInstance | null>();
+const memoryRatelimitInstances = new Map<string, RatelimitInstance>();
 
 interface RateLimitConfig {
   namespace: string;
@@ -57,6 +58,56 @@ async function getRatelimit(config: RateLimitConfig): Promise<RatelimitInstance 
   return ratelimitInstances.get(config.namespace) ?? null;
 }
 
+function parseWindowMs(window: RateLimitConfig['window']): number {
+  const [countRaw, unitRaw] = window.split(' ');
+  const count = Number(countRaw);
+  const unit = unitRaw.trim();
+  if (!Number.isFinite(count) || count <= 0) return 10 * 60 * 1000;
+  if (unit === 's') return count * 1000;
+  if (unit === 'h') return count * 60 * 60 * 1000;
+  return count * 60 * 1000;
+}
+
+function getMemoryRatelimit(config: RateLimitConfig): RatelimitInstance {
+  const existing = memoryRatelimitInstances.get(config.namespace);
+  if (existing) return existing;
+
+  const windowMs = parseWindowMs(config.window);
+  const buckets = new Map<string, { count: number; resetAt: number }>();
+
+  const instance: RatelimitInstance = {
+    async limit(key: string) {
+      const now = Date.now();
+      const bucketKey = `${config.namespace}:${key}`;
+      const current = buckets.get(bucketKey);
+
+      if (!current || now >= current.resetAt) {
+        const resetAt = now + windowMs;
+        buckets.set(bucketKey, { count: 1, resetAt });
+        return {
+          success: true,
+          limit: config.limit,
+          remaining: Math.max(config.limit - 1, 0),
+          reset: Math.ceil(resetAt / 1000),
+        };
+      }
+
+      current.count += 1;
+      const remaining = Math.max(config.limit - current.count, 0);
+
+      return {
+        success: current.count <= config.limit,
+        limit: config.limit,
+        remaining,
+        reset: Math.ceil(current.resetAt / 1000),
+      };
+    },
+  };
+
+  memoryRatelimitInstances.set(config.namespace, instance);
+  return instance;
+}
+
 /**
  * Check rate limit for the incoming request.
  * Returns `true` if the request is allowed to proceed, `false` if it was blocked
@@ -81,8 +132,7 @@ export async function checkRateLimit(
     return false;
   }
 
-  const rl = await getRatelimit(resolvedConfig);
-  if (!rl) return true; // Development fallback only (production handled above)
+  const rl = (await getRatelimit(resolvedConfig)) ?? getMemoryRatelimit(resolvedConfig);
 
   // Use the real IP from Vercel's forwarded header
   const ip =

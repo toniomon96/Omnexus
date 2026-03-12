@@ -48,4 +48,31 @@ describe('checkRateLimit', () => {
     expect(getStatusCode()).toBe(500);
     expect(getBody()).toEqual({ error: 'Rate limiting is not configured' });
   });
+
+  it('enforces limits in non-production via in-memory fallback', async () => {
+    process.env.VERCEL_ENV = 'development';
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const req = { headers: {}, socket: { remoteAddress: '127.0.0.1' } } as unknown as VercelRequest;
+
+    const first = createMockResponse();
+    const firstAllowed = await checkRateLimit(req, first.res, {
+      namespace: 'test:memory-rl',
+      limit: 1,
+      window: '10 m',
+    });
+
+    const second = createMockResponse();
+    const secondAllowed = await checkRateLimit(req, second.res, {
+      namespace: 'test:memory-rl',
+      limit: 1,
+      window: '10 m',
+    });
+
+    expect(firstAllowed).toBe(true);
+    expect(secondAllowed).toBe(false);
+    expect(second.getStatusCode()).toBe(429);
+    expect(second.getBody()).toEqual({ error: 'Too many requests. Please try again in a few minutes.' });
+  });
 });

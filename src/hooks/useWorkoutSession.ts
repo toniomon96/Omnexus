@@ -16,6 +16,12 @@ import { advanceProgramCursor } from '../utils/programUtils';
 import { trackWorkoutCompleted } from '../lib/analytics';
 import { getSessionPersonalRecords } from '../utils/workoutSync';
 
+function safeInitialSetCount(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 3;
+  return Math.min(Math.max(Math.round(numeric), 1), 8);
+}
+
 // ─── Block mission progress helper ────────────────────────────────────────────
 
 async function updateBlockMissions(
@@ -139,23 +145,35 @@ export function useWorkoutSession() {
   const startWorkout = useCallback(
     (program: Program, dayIndex: number) => {
       const trainingDay = program.schedule[dayIndex];
-      if (!trainingDay) return;
+      if (!trainingDay) {
+        toast('That workout day could not be loaded. Please pick another day.', 'error');
+        return;
+      }
 
-      const session: WorkoutSession = {
-        id: uuid(),
-        programId: program.id,
-        trainingDayIndex: dayIndex,
-        startedAt: new Date().toISOString(),
-        exercises: trainingDay.exercises.map((pe) => ({
-          exerciseId: pe.exerciseId,
-          sets: Array.from({ length: pe.scheme.sets }, (_, i) => ({
+      const normalizedExercises = trainingDay.exercises
+        .filter((exercise) => typeof exercise.exerciseId === 'string' && exercise.exerciseId.length > 0)
+        .map((exercise) => ({
+          exerciseId: exercise.exerciseId,
+          sets: Array.from({ length: safeInitialSetCount(exercise.scheme?.sets) }, (_, i) => ({
             setNumber: i + 1,
             weight: 0,
             reps: 0,
             completed: false,
             timestamp: '',
           })),
-        })),
+        }));
+
+      if (normalizedExercises.length === 0) {
+        toast('This workout day is invalid. Regenerate your program draft and try again.', 'error');
+        return;
+      }
+
+      const session: WorkoutSession = {
+        id: uuid(),
+        programId: program.id,
+        trainingDayIndex: dayIndex,
+        startedAt: new Date().toISOString(),
+        exercises: normalizedExercises,
         totalVolumeKg: 0,
       };
 

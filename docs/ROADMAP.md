@@ -199,8 +199,8 @@ docs: update ROADMAP with v3 B2B section
 5. Hotfixes: branch from `main` → PR → fast-merge with approver sign-off
 
 ### P0 Engineering Backlog (Must fix before v1.4 ships)
-- [ ] Cron endpoints (`/api/cron-*`) fail-closed when `CRON_SECRET` is absent
-- [ ] `.nvmrc` + `engines` in `package.json` — lock Node to 20.x LTS
-- [ ] CORS reject (403) on unknown origin — don't just warn
-- [ ] Rate limit middleware active in all environments
-- [ ] `Content-Security-Policy` on API responses
+- [x] Cron endpoints (`/api/cron-*`) fail-closed when `CRON_SECRET` is absent
+- [x] `.nvmrc` + `engines` in `package.json` — lock Node to 20.x LTS
+- [x] CORS reject (403) on unknown origin — don't just warn
+- [x] Rate limit middleware active in all environments
+- [x] `Content-Security-Policy` on API responses

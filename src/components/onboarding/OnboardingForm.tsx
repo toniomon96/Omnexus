@@ -183,26 +183,27 @@ export function OnboardingForm() {
         console.error('[OnboardingForm] Background generation error:', err);
       });
 
-      // 4. Create profile row (no activeProgramId yet — will be set on generation complete)
-      const profileHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (sessionAccessToken) profileHeaders['Authorization'] = `Bearer ${sessionAccessToken}`;
+      // 4. Create profile row only when we have an authenticated session token.
+      // For email-confirmation-first signup, profile is safely created after login via profile recovery.
+      if (sessionAccessToken) {
+        const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionAccessToken}`,
+          },
+          body: JSON.stringify({ userId, name: name.trim(), goal: primaryGoal, experienceLevel }),
+        });
 
-      const profileRes = await fetch(`${apiBase}/api/setup-profile`, {
-        method: 'POST',
-        headers: profileHeaders,
-        body: JSON.stringify({ userId, name: name.trim(), goal: primaryGoal, experienceLevel }),
-      });
-
-      if (!profileRes.ok) {
-        const body = await profileRes.json().catch(() => ({})) as { error?: string };
-        if (!repairMode) await signOutAuthSession();
-        const serverErr = body.error ?? '';
-        setSubmitError(profileRes.status === 401
-          ? 'An account with this email already exists. Please sign in instead.'
-          : serverErr || 'Profile setup failed. Please try again.');
-        if (!repairMode) setStep(0);
-        setGenerating(false);
-        return;
+        if (!profileRes.ok) {
+          const body = await profileRes.json().catch(() => ({})) as { error?: string };
+          if (!repairMode) await signOutAuthSession();
+          const serverErr = body.error ?? '';
+          setSubmitError(serverErr || 'Profile setup failed. Please try again.');
+          if (!repairMode) setStep(0);
+          setGenerating(false);
+          return;
+        }
       }
 
       // 5. Store training profile (best-effort — used for generation resume on reload)
