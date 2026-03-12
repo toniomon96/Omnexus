@@ -300,6 +300,7 @@ In Supabase Dashboard → Authentication → URL Configuration:
 | `docs/V1_ENHANCEMENT_SPRINT_PLAN.md` | Sprint-by-sprint execution plan for the V1 refinement cycle |
 | `docs/SPRINT_1_BACKLOG.md` | Executable Sprint 1 backlog with epics, stories, acceptance criteria, and test guidance |
 | `docs/SPRINT_1_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 1 implementation |
+| `docs/SPRINT_1_QA_CHECKLIST.md` | Manual verification checklist for Sprint 1 reliability and release-confidence signoff |
 | `docs/SPRINT_2_BACKLOG.md` | Executable Sprint 2 backlog for Dashboard and Train core-loop clarity work |
 | `docs/SPRINT_2_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 2 implementation |
 | `docs/SPRINT_3_BACKLOG.md` | Executable Sprint 3 backlog for motivation, retention, and post-workout reinforcement |

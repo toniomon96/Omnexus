@@ -129,6 +129,7 @@ Execution backlog:
 
 - [Sprint 1 backlog](SPRINT_1_BACKLOG.md)
 - [Sprint 1 issue drafts](SPRINT_1_ISSUE_DRAFTS.md)
+- [Sprint 1 QA checklist](SPRINT_1_QA_CHECKLIST.md)
 
 ## Sprint 2: Core Loop Clarity
 
@@ -239,7 +240,7 @@ Execution backlog:
 Duration: 2 weeks
 
 Status:
-Started in repo as of 2026-03-12. Shared AI error normalization, a unified degraded-state/retry panel, fallback analytics instrumentation, Ask/Insights next-step cohesion, explicit AI draft-ready handoff flows, and degraded-path spot tests are implemented across primary AI surfaces. Remaining scope is manual QA/release-owner signoff.
+Implementation complete in repo as of 2026-03-12. Shared AI error normalization, a unified degraded-state/retry panel, fallback analytics instrumentation, Ask/Insights next-step cohesion, explicit AI draft-ready handoff flows, and degraded-path spot tests are implemented across primary AI surfaces. Remaining scope is manual QA and release-owner signoff.
 
 Goal:
 Improve AI trust, clarity, and integration without expanding surface area.

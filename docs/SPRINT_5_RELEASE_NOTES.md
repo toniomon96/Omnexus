@@ -43,6 +43,10 @@ Sprint 5 focused on launch quality and release confidence rather than net-new fe
 
 Record only issues explicitly accepted by QA, Product, and Release owners.
 
+Current decision:
+
+- No known issues are accepted for launch as of 2026-03-12.
+
 | ID | Area | Impact | Workaround | Owner | Fix target |
 |---|---|---|---|---|---|
 | KI-001 | None currently accepted | n/a | n/a | n/a | n/a |

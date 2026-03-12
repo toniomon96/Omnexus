@@ -66,8 +66,8 @@ List only issues that are explicitly accepted for launch.
 
 | ID | Area | Impact | Workaround | Owner | Fix target |
 |---|---|---|---|---|---|
+| KI-000 | None accepted as of 2026-03-12 | n/a | n/a | Release owner | Re-evaluate at release PR approval |
 | KI-001 | | | | | |
-| KI-002 | | | | | |
 
 ## Release Notes Approval
 
