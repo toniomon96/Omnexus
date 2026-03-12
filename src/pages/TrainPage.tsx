@@ -28,7 +28,9 @@ import {
 } from 'lucide-react';
 import { trackFeatureEntry, trackPrimaryTrainingActionEvent } from '../lib/analytics';
 import {
+  getTrainingPrimaryActionLabel,
   getTrainingPrimaryActionTarget,
+  QUICK_SESSION_LABEL,
   resolveTrainingPrimaryActionState,
 } from '../lib/trainingPrimaryAction';
 
@@ -147,7 +149,7 @@ export function TrainPage() {
               </div>
               <Button size="sm" data-testid="train-primary-action-button" onClick={() => handleTrainPrimaryAction('resume_workout')}>
                 <Play size={14} />
-                Resume
+                {getTrainingPrimaryActionLabel('resume_workout')}
               </Button>
             </div>
           </Card>
@@ -166,7 +168,7 @@ export function TrainPage() {
                     {nextWorkout.day.label}
                   </p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Start your guided session first. Quick Session stays available if you want something flexible instead.
+                    Start your guided session first. {QUICK_SESSION_LABEL} stays available if you want something flexible instead.
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
@@ -191,11 +193,11 @@ export function TrainPage() {
               <div className="space-y-2">
                 <Button onClick={() => handleTrainPrimaryAction('start_workout')} data-testid="train-primary-action-button">
                   <Play size={15} />
-                  Start workout
+                  {getTrainingPrimaryActionLabel('start_workout')}
                 </Button>
                 <Button variant="secondary" onClick={() => navigate('/workout/quick')} data-testid="train-secondary-action-button">
                   <Zap size={15} />
-                  Quick Session Instead
+                  {QUICK_SESSION_LABEL}
                 </Button>
               </div>
             </div>
@@ -213,15 +215,15 @@ export function TrainPage() {
               Choose a program first
             </p>
             <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-              Pick a plan if you want day-by-day guidance. Quick Session is still here when you need a flexible workout right now.
+              Pick a plan if you want day-by-day guidance. {QUICK_SESSION_LABEL} is still here when you need a flexible workout right now.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button onClick={() => handleTrainPrimaryAction('browse_programs')} data-testid="train-primary-action-button">
-                Browse Programs
+                {getTrainingPrimaryActionLabel('browse_programs')}
               </Button>
               <Button variant="secondary" onClick={() => navigate('/workout/quick')} data-testid="train-no-program-quick-log">
                 <Zap size={15} />
-                Quick Session Instead
+                {QUICK_SESSION_LABEL}
               </Button>
             </div>
           </Card>
@@ -234,10 +236,10 @@ export function TrainPage() {
               <CircleHelp size={18} className="text-brand-500 mt-0.5 shrink-0" />
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">New to workout logging?</p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">Start with the main action above, then use Quick Session only when you want a flexible workout.</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">Start with the main action above, then use {QUICK_SESSION_LABEL} only when you want a flexible workout.</p>
                 <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal ml-4">
-                  <li>Use <span className="font-semibold">Start workout</span> for your guided session when a program is ready.</li>
-                  <li>Use <span className="font-semibold">Quick Session</span> when you want to build your own workout.</li>
+                  <li>Use <span className="font-semibold">{getTrainingPrimaryActionLabel('start_workout')}</span> for your guided session when a program is ready.</li>
+                  <li>Use <span className="font-semibold">{QUICK_SESSION_LABEL}</span> when you want to build your own workout.</li>
                   <li>Enter weight and reps for each set, then tap the check button.</li>
                 </ol>
               </div>
@@ -251,7 +253,7 @@ export function TrainPage() {
             terms={[
               {
                 key: 'quick-log',
-                label: 'Quick Session',
+                label: QUICK_SESSION_LABEL,
                 description: 'Start a workout without a full program when you want flexibility.',
               },
               {

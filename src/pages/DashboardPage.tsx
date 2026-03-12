@@ -40,7 +40,9 @@ import { applyAiProgramLifecycle } from '../utils/programLifecycle';
 import { setCustomPrograms } from '../utils/localStorage';
 import { trackFeatureEntry, trackPrimaryTrainingActionEvent, trackReleaseModalEvent } from '../lib/analytics';
 import {
+  getTrainingPrimaryActionLabel,
   getTrainingPrimaryActionTarget,
+  QUICK_SESSION_LABEL,
   resolveTrainingPrimaryActionState,
 } from '../lib/trainingPrimaryAction';
 
@@ -378,7 +380,7 @@ export function DashboardPage() {
               </div>
               <Button size="sm" data-testid="dashboard-primary-action-button" onClick={() => handleDashboardPrimaryAction('resume_workout')}>
                 <Play size={14} />
-                Resume
+                {getTrainingPrimaryActionLabel('resume_workout')}
               </Button>
             </div>
           </Card>
@@ -424,16 +426,16 @@ export function DashboardPage() {
               Choose a program first
             </p>
             <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-              Guided training works best when you pick a plan first. Quick Session stays available if you need something flexible today.
+              Guided training works best when you pick a plan first. {QUICK_SESSION_LABEL} stays available if you need something flexible today.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button onClick={() => handleDashboardPrimaryAction('browse_programs')} data-testid="dashboard-primary-action-button">Browse Programs</Button>
+              <Button onClick={() => handleDashboardPrimaryAction('browse_programs')} data-testid="dashboard-primary-action-button">{getTrainingPrimaryActionLabel('browse_programs')}</Button>
               <Button
                 variant="secondary"
                 onClick={() => navigate('/workout/quick')}
                 data-testid="dashboard-no-program-quick-log"
               >
-                Quick Log
+                {QUICK_SESSION_LABEL}
               </Button>
             </div>
           </Card>
@@ -501,15 +503,24 @@ export function DashboardPage() {
         {!isGuidedMode && <WeeklyRecapCard sessions={state.history.sessions} />}
 
         {/* ── Secondary discovery actions ───────────────────────────── */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Explore later</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Optional paths after you handle today's training.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => {
             trackFeatureEntry({ source: 'dashboard_card', destination: '/guided-pathways', label: 'guided_pathways' });
             navigate('/guided-pathways');
           }} className="w-full text-left">
-            <Card hover className="h-full border-brand-400/30 bg-brand-50/40 dark:bg-brand-900/10">
+            <Card hover className="h-full border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/30">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <Route size={16} className="text-brand-500" />
+                <div className="w-9 h-9 rounded-xl bg-slate-200/80 flex items-center justify-center shrink-0 dark:bg-slate-800">
+                  <Route size={16} className="text-slate-600 dark:text-slate-300" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">Guided Pathways</p>
@@ -525,10 +536,10 @@ export function DashboardPage() {
             trackFeatureEntry({ source: 'dashboard_card', destination: '/nutrition', label: 'nutrition_starter' });
             navigate('/nutrition');
           }} className="w-full text-left">
-            <Card hover className="h-full border-emerald-400/30 bg-emerald-50/40 dark:bg-emerald-900/10">
+            <Card hover className="h-full border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/30">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <Apple size={16} className="text-emerald-500" />
+                <div className="w-9 h-9 rounded-xl bg-slate-200/80 flex items-center justify-center shrink-0 dark:bg-slate-800">
+                  <Apple size={16} className="text-slate-600 dark:text-slate-300" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">Nutrition Starter</p>
@@ -539,6 +550,7 @@ export function DashboardPage() {
               </div>
             </Card>
           </button>
+        </div>
         </div>
 
         {/* ── Feature discovery (surfaces less-visible tools) ───────── */}

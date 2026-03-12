@@ -12,6 +12,14 @@ Make the next best action obvious on Dashboard and Train so users stop hesitatin
 Prerequisite:
 Sprint 1 implementation is complete in the repo, with final Actions validation and manual QA signoff still owned by release execution.
 
+Current implementation status:
+
+- Story 1.1 is implemented in repo: Dashboard now resolves one dominant next step for active-session, program-ready, and no-program states.
+- Story 2.1 is implemented in repo: Train now resolves one dominant next step for active-session, program-ready, and no-program states.
+- Story 2.2 is partially implemented in repo: no-program CTA ordering and copy are aligned across Dashboard and Train, with final release-owner verification still pending.
+- Story 3.2 is implemented in repo: dominant CTA shown and clicked analytics exist for Dashboard and Train.
+- Remaining Sprint 2 work is concentrated in Story 1.2 and Story 3.1 follow-through beyond the primary action surfaces.
+
 ## Sprint Goal
 
 By the end of Sprint 2:

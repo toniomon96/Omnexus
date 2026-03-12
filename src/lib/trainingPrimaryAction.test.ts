@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getTrainingPrimaryActionLabel,
   getTrainingPrimaryActionTarget,
+  QUICK_SESSION_LABEL,
   resolveTrainingPrimaryActionState,
 } from './trainingPrimaryAction';
 
@@ -41,5 +43,12 @@ describe('trainingPrimaryAction', () => {
     expect(getTrainingPrimaryActionTarget('active_session')).toBe('resume_workout');
     expect(getTrainingPrimaryActionTarget('program_ready')).toBe('start_workout');
     expect(getTrainingPrimaryActionTarget('no_program')).toBe('browse_programs');
+  });
+
+  it('uses consistent CTA labels across surfaces', () => {
+    expect(getTrainingPrimaryActionLabel('resume_workout')).toBe('Resume Workout');
+    expect(getTrainingPrimaryActionLabel('start_workout')).toBe('Start Workout');
+    expect(getTrainingPrimaryActionLabel('browse_programs')).toBe('Browse Programs');
+    expect(QUICK_SESSION_LABEL).toBe('Quick Session');
   });
 });

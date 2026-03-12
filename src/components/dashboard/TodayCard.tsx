@@ -4,6 +4,7 @@ import { useApp } from '../../store/AppContext';
 import type { Program, TrainingDay } from '../../types';
 import { useWorkoutSession } from '../../hooks/useWorkoutSession';
 import { findNextLessonSummary, getExerciseNameMap, type NextLessonSummary } from '../../lib/staticCatalogs';
+import { getTrainingPrimaryActionLabel } from '../../lib/trainingPrimaryAction';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
@@ -160,7 +161,7 @@ export function TodayCard({
 
             <Button onClick={handleStartWorkout} fullWidth size="sm" data-testid="today-card-start-workout">
               <Play size={13} />
-              Start Workout
+              {getTrainingPrimaryActionLabel('start_workout')}
             </Button>
           </div>
         )}

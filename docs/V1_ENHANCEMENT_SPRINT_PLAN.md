@@ -135,7 +135,7 @@ Execution backlog:
 Duration: 2 weeks
 
 Status:
-Ready for execution after Sprint 1 verification signoff.
+In progress in repo as of 2026-03-12. Primary CTA hierarchy, dominant CTA analytics, and cross-surface training label alignment are implemented; remaining Sprint 2 work is secondary-surface polish, guided-language cleanup outside Dashboard and Train, and release-owner verification.
 
 Goal:
 Make the app's primary next action obvious on Dashboard and Train.
