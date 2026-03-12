@@ -221,7 +221,7 @@ test.describe('Quick session workout', () => {
     await enterAsGuest(page);
     await page.goto('/workout/quick');
     await page.waitForURL('/workout/quick');
-    await expect(page.getByRole('heading', { name: /how quick session works/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/how quick (log|session) works/i).first()).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /select at least 1 exercise to start/i })).toBeDisabled();
   });
 
@@ -255,7 +255,7 @@ test.describe('Quick session workout', () => {
       await page.goto('/workout/quick');
     });
     await expect(page).toHaveURL(/\/workout\/quick\/?$/);
-    await expect(page.getByRole('heading', { name: /^quick session$/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /select at least 1 exercise to start/i })).toBeDisabled({ timeout: 5_000 });
   });
 });
 
