@@ -17,7 +17,7 @@ import {
   getInsightSessions,
 } from '../utils/localStorage';
 import type { InsightSession } from '../types';
-import { trackAiDegradedStateEvent, trackAskSubmitted } from '../lib/analytics';
+import { trackAiDegradedStateEvent, trackAskSubmitted, trackFeatureEntry } from '../lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import {
   MessageCircle,

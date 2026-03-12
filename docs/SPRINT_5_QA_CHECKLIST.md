@@ -75,3 +75,11 @@ List only issues that are explicitly accepted for launch.
 - QA owner approved release notes summary.
 - Product owner approved known-issues language.
 - Release owner confirmed notes match deployed behavior.
+
+## Automated Evidence Snapshot
+
+- Date: 2026-03-12
+- `npm run lint`: pass
+- `npm run typecheck`: pass
+- `npm run verify:local`: pass
+- Notes: local gate includes lint, typecheck, vitest coverage run, and production build.

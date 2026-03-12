@@ -50,6 +50,7 @@ Record only issues explicitly accepted by QA, Product, and Release owners.
 ## Verification summary
 
 - Code diagnostics: no errors in edited launch/readiness files.
+- Local verification gate passed on 2026-03-12 (`npm run verify:local`), including lint, typecheck, unit coverage, and production build.
 - CI/runbook policy docs synchronized with workflow behavior.
 - Final manual QA/signoff remains tracked in `docs/SPRINT_5_QA_CHECKLIST.md`.
 

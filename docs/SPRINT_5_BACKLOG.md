@@ -18,7 +18,8 @@ Current status:
 - Story 2.1 release gate hardening is implemented; CI and release docs now use explicit preview vs production verification command mapping.
 - Story 2.2 rollback and incident response readiness docs are implemented with explicit release-day role and handoff expectations.
 - Story 3.1 and 3.2 signoff/known-issues/release-notes artifacts are implemented; final owner approvals are pending.
-- Remaining launch risk is concentrated in manual QA completeness, release signoff discipline, and known-issues transparency.
+- Local gate evidence is clean (`npm run verify:local` passed with lint/typecheck/test coverage/build).
+- Remaining launch risk is limited to manual QA completeness, release signoff discipline, and known-issues acceptance decisions.
 
 ## Sprint Goal
 
