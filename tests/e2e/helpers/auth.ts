@@ -102,18 +102,18 @@ export async function signOut(page: Page) {
 }
 
 async function seedGuestState(page: Page) {
-  await page.goto('/login');
-  await page.evaluate(({ guestUser, history, learningProgress }) => {
-    localStorage.clear();
-    sessionStorage.clear();
-    localStorage.setItem('omnexus_cookie_consent', 'accepted');
-    localStorage.setItem('fit_user', JSON.stringify(guestUser));
-    localStorage.setItem('omnexus_guest', JSON.stringify(guestUser));
-    localStorage.setItem('fit_history', JSON.stringify(history));
-    localStorage.setItem('omnexus_learning_progress', JSON.stringify(learningProgress));
-    localStorage.setItem('omnexus_weight_unit', JSON.stringify('lbs'));
-    localStorage.setItem('fit_theme', JSON.stringify('dark'));
-    localStorage.setItem('omnexus_experience_mode', JSON.stringify({ [guestUser.id]: 'guided' }));
+  await page.context().clearCookies();
+  await page.addInitScript(({ guestUser, history, learningProgress }) => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    window.localStorage.setItem('omnexus_cookie_consent', 'accepted');
+    window.localStorage.setItem('fit_user', JSON.stringify(guestUser));
+    window.localStorage.setItem('omnexus_guest', JSON.stringify(guestUser));
+    window.localStorage.setItem('fit_history', JSON.stringify(history));
+    window.localStorage.setItem('omnexus_learning_progress', JSON.stringify(learningProgress));
+    window.localStorage.setItem('omnexus_weight_unit', JSON.stringify('lbs'));
+    window.localStorage.setItem('fit_theme', JSON.stringify('dark'));
+    window.localStorage.setItem('omnexus_experience_mode', JSON.stringify({ [guestUser.id]: 'guided' }));
   }, {
     guestUser: DEFAULT_GUEST_USER,
     history: EMPTY_HISTORY,
@@ -124,7 +124,19 @@ async function seedGuestState(page: Page) {
 /** Enter the app as a guest (no Supabase account). */
 export async function enterAsGuest(page: Page) {
   await seedGuestState(page);
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.waitForURL('/');
-  await page.getByTestId('dashboard-guest-persistence-card').waitFor({ timeout: 10_000 });
+  await page.waitForFunction(() => {
+    const hasGuestProfile = Boolean(window.localStorage.getItem('omnexus_guest'));
+    const hasGuestUser = Boolean(window.localStorage.getItem('fit_user'));
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const isLoading = Boolean(document.querySelector('.animate-spin'));
+    const bodyText = document.body?.innerText ?? '';
+
+    return hasGuestProfile
+      && hasGuestUser
+      && path !== '/login'
+      && !isLoading
+      && bodyText.trim().length > 0;
+  }, { timeout: 10_000 });
 }

@@ -9,7 +9,7 @@ export function GuestBanner() {
   if (!state.user?.isGuest) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between gap-3 bg-amber-500 px-4 py-2">
+    <div data-testid="guest-banner" className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between gap-3 bg-amber-500 px-4 py-2">
       <div className="flex items-center gap-2 min-w-0">
         <CloudOff size={14} className="text-amber-900 shrink-0" />
         <p className="text-xs font-medium text-amber-900 truncate">
