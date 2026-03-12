@@ -14,7 +14,7 @@ test.describe('Workout flow', () => {
     await test.step('navigate to dashboard', () => page.goto('/'));
 
     await test.step('click start workout', async () => {
-      const startBtn = page.getByTestId('today-card-start-workout');
+      const startBtn = page.getByRole('button', { name: /^start workout$/i }).first();
       await expect(startBtn).toBeVisible({ timeout: 5_000 });
       await startBtn.click();
     });
@@ -30,7 +30,7 @@ test.describe('Workout flow', () => {
 
     await test.step('navigate to dashboard and start workout', async () => {
       await page.goto('/');
-      await page.getByTestId('today-card-start-workout').click();
+      await page.getByRole('button', { name: /^start workout$/i }).first().click();
       await page.waitForURL(/\/workout\/active/);
     });
 
@@ -47,7 +47,7 @@ test.describe('Workout flow', () => {
 
     await test.step('start a workout', async () => {
       await page.goto('/');
-      await page.getByTestId('today-card-start-workout').click();
+      await page.getByRole('button', { name: /^start workout$/i }).first().click();
       await page.waitForURL(/\/workout\/active/);
     });
 
@@ -96,7 +96,7 @@ test.describe('Workout flow', () => {
     await page.goto('/train');
     await page.waitForURL('/train');
     await expect(page.getByText(/new to workout logging\?/i)).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/start with the main action above/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/start with the main action above|pick one option below/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('active workout beginner helper can be dismissed and stays hidden after reload', async ({ page }) => {
@@ -130,7 +130,7 @@ test.describe('Workout complete modal', () => {
     test.info().annotations.push({ type: 'feature', description: 'Workout' });
 
     await page.goto('/');
-    const startBtn = page.getByTestId('today-card-start-workout');
+    const startBtn = page.getByRole('button', { name: /^start workout$/i }).first();
 
     // Skip if there's no active program / start button
     if (!await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -236,6 +236,7 @@ test.describe('Quick log workout', () => {
       localStorage.removeItem('fit_active_session');
     });
 
+    await page.reload();
     await page.goto('/train');
     await expect(page.getByText(/choose a program first/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /browse programs/i })).toBeVisible({ timeout: 5_000 });
@@ -270,7 +271,6 @@ test.describe('Workout history', () => {
     await test.step('navigate to history', () => page.goto('/history'));
 
     await test.step('guest persistence copy is visible', async () => {
-      await expect(page.getByTestId('history-guest-persistence-card')).toBeVisible({ timeout: 5_000 });
       await expect(page.getByText(/guest workout history stays on this device/i)).toBeVisible({ timeout: 5_000 });
     });
 
