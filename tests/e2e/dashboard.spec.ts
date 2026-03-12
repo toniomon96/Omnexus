@@ -67,6 +67,44 @@ test.describe('Dashboard — guest', () => {
     await enterAsGuest(page);
   });
 
+  test('shows weekly progress module when workout history exists', async ({ page }) => {
+    await page.evaluate(() => {
+      const rawHistory = localStorage.getItem('fit_history');
+      const history = rawHistory ? JSON.parse(rawHistory) : { sessions: [], personalRecords: [] };
+      const now = new Date();
+      const completedAt = now.toISOString();
+      const startedAt = new Date(now.getTime() - 35 * 60 * 1000).toISOString();
+
+      history.sessions.push({
+        id: 'e2e_weekly_progress_session',
+        programId: 'hyp-intermediate-4day',
+        trainingDayIndex: 0,
+        startedAt,
+        completedAt,
+        durationSeconds: 2100,
+        totalVolumeKg: 3200,
+        syncStatus: 'saved_on_device',
+        syncStatusUpdatedAt: completedAt,
+        exercises: [
+          {
+            exerciseId: 'barbell-bench-press',
+            sets: [
+              { setNumber: 1, weight: 135, reps: 8, completed: true, timestamp: completedAt },
+            ],
+          },
+        ],
+      });
+
+      localStorage.setItem('fit_history', JSON.stringify(history));
+    });
+
+    await page.goto('/login');
+    await page.goto('/');
+
+    await expect(page.getByTestId('dashboard-weekly-progress-module')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('dashboard-weekly-progress-primary-action')).toBeVisible({ timeout: 5_000 });
+  });
+
   test('shows guest persistence messaging with account-save CTA', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: /^save progress$/i }).first()).toBeVisible({ timeout: 5_000 });
@@ -120,6 +158,8 @@ test.describe('Dashboard — guest', () => {
     await expect(
       page.getByText(/streak|day/i).first(),
     ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('dashboard-momentum-focus-card')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('dashboard-momentum-focus-action')).toBeVisible({ timeout: 5_000 });
   });
 
   test('AI Insights card links to /insights', async ({ page }) => {

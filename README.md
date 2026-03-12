@@ -302,6 +302,9 @@ In Supabase Dashboard → Authentication → URL Configuration:
 | `docs/SPRINT_1_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 1 implementation |
 | `docs/SPRINT_2_BACKLOG.md` | Executable Sprint 2 backlog for Dashboard and Train core-loop clarity work |
 | `docs/SPRINT_2_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 2 implementation |
+| `docs/SPRINT_3_BACKLOG.md` | Executable Sprint 3 backlog for motivation, retention, and post-workout reinforcement |
+| `docs/SPRINT_3_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 3 implementation |
+| `docs/SPRINT_3_QA_CHECKLIST.md` | Manual verification checklist for Sprint 3 motivation and retention signoff |
 | `docs/SDLC_EXECUTION_PLAYBOOK.md` | TDD, VCS, QA, rollout, and delivery standards for enhancement work |
 | `docs/PLATFORM_SETUP_CHECKLIST.md` | Exact manual admin steps for GitHub, Vercel, Supabase, and Stripe |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, data models, Supabase schema |

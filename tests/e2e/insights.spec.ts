@@ -64,6 +64,12 @@ test.describe('Insights — guest', () => {
     await expect(page.getByText(/educational information only/i)).toBeVisible({ timeout: 5_000 });
   });
 
+  test('shows an explicit next-step recommendation card', async ({ page }) => {
+    await page.goto('/insights');
+    await expect(page.getByTestId('insights-next-step-card')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('insights-next-step-action')).toBeVisible({ timeout: 5_000 });
+  });
+
   test('shows Latest Research section', async ({ page }) => {
     await page.goto('/insights');
     await expect(page.getByText(/latest research/i).first()).toBeVisible({ timeout: 5_000 });

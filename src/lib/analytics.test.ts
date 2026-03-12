@@ -39,6 +39,81 @@ describe('analytics helpers', () => {
     });
   });
 
+  it('captures weekly progress module analytics events', async () => {
+    const { trackWeeklyProgressModuleEvent } = await import('./analytics');
+
+    trackWeeklyProgressModuleEvent({
+      action: 'clicked',
+      sessionsThisWeek: 2,
+      weeklyGoal: 3,
+      hasMetGoal: false,
+      destination: '/train',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      event: 'weekly_progress_module_event',
+      properties: {
+        action: 'clicked',
+        sessionsThisWeek: 2,
+        weeklyGoal: 3,
+        hasMetGoal: false,
+        destination: '/train',
+      },
+    });
+  });
+
+  it('captures workout completion next-step analytics events', async () => {
+    const { trackWorkoutCompletionNextStepEvent } = await import('./analytics');
+
+    trackWorkoutCompletionNextStepEvent({
+      action: 'clicked',
+      target: 'next_session',
+      hasAdaptation: true,
+      isQuickSession: false,
+      hasPersonalRecords: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      event: 'workout_completion_next_step_event',
+      properties: {
+        action: 'clicked',
+        target: 'next_session',
+        hasAdaptation: true,
+        isQuickSession: false,
+        hasPersonalRecords: true,
+      },
+    });
+  });
+
+  it('captures insights recommendation analytics events', async () => {
+    const { trackInsightRecommendationEvent } = await import('./analytics');
+
+    trackInsightRecommendationEvent({
+      action: 'shown',
+      destination: '/train',
+      hasHistory: true,
+      hasInsight: false,
+      isGuest: false,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      event: 'insight_recommendation_event',
+      properties: {
+        action: 'shown',
+        destination: '/train',
+        hasHistory: true,
+        hasInsight: false,
+        isGuest: false,
+      },
+    });
+  });
+
   it('captures hydration recovery analytics events', async () => {
     const { trackHydrationRecoveryEvent } = await import('./analytics');
 

@@ -186,6 +186,9 @@ Execution backlog:
 
 Duration: 2 weeks
 
+Status:
+Implementation complete in repo as of 2026-03-12. Post-workout reinforcement, weekly momentum framing, insight-to-action recommendations, and Sprint 3 retention analytics are implemented. Manual QA and release-owner verification remain signoff tasks.
+
 Goal:
 Connect completed work to progress, insights, and the next workout.
 
@@ -224,6 +227,12 @@ Exit criteria:
 
 - Users see a clear reason to come back this week.
 - Insights and adaptation visibly influence subsequent training behavior.
+
+Execution backlog:
+
+- [Sprint 3 backlog](SPRINT_3_BACKLOG.md)
+- [Sprint 3 issue drafts](SPRINT_3_ISSUE_DRAFTS.md)
+- [Sprint 3 QA checklist](SPRINT_3_QA_CHECKLIST.md)
 
 ## Sprint 4: AI Quality and Product Cohesion
 

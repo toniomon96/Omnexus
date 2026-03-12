@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -17,6 +17,8 @@ import { Sparkles, Loader, Shield, MessageCircle, BarChart2, Newspaper, Play } f
 import type { LearningCategory, Goal } from '../types';
 import { useWeightUnit } from '../hooks/useWeightUnit';
 import { getExperienceMode } from '../utils/localStorage';
+import { getWeekStart } from '../utils/dateUtils';
+import { trackFeatureEntry, trackInsightRecommendationEvent } from '../lib/analytics';
 
 const GOAL_CATEGORY: Record<Goal, LearningCategory> = {
   'hypertrophy': 'strength-training',
@@ -30,6 +32,12 @@ const QUICK_QUESTIONS = [
   'What should I focus on to break through a plateau?',
 ];
 
+interface InsightNextStepRecommendation {
+  label: string;
+  description: string;
+  destination: '/train' | '/history' | '/ask' | '/onboarding';
+}
+
 export function InsightsPage() {
   const { state } = useApp();
   const { user: authUser } = useAuth();
@@ -41,13 +49,84 @@ export function InsightsPage() {
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const recommendationTrackedRef = useRef<string | null>(null);
 
   if (!user) return null;
+  const userId = user.id;
+  const isGuestUser = Boolean(user.isGuest);
 
-  const experienceMode = getExperienceMode(user.id);
+  const experienceMode = getExperienceMode(userId);
   const isGuidedMode = experienceMode === 'guided';
 
   const hasHistory = sessions.some((s) => s.completedAt);
+  const weekStart = getWeekStart();
+  const sessionsThisWeek = sessions.filter((s) => s.completedAt && s.startedAt >= weekStart).length;
+
+  const recommendation: InsightNextStepRecommendation = user.isGuest
+    ? {
+        label: 'Create account to unlock personalized next steps',
+        description: 'Insights-driven recommendations require your workout history in an account.',
+        destination: '/onboarding' as const,
+      }
+    : !hasHistory
+    ? {
+        label: 'Start your next workout',
+        description: 'Complete a few sessions so Insights can generate personalized guidance.',
+        destination: '/train' as const,
+      }
+    : insight
+    ? {
+        label: 'Turn this into a focused Ask',
+        description: 'Use Ask Omnexus to get one concrete plan for your next session based on this analysis.',
+        destination: '/ask' as const,
+      }
+    : sessionsThisWeek < 3
+    ? {
+        label: 'Plan your next workout this week',
+        description: 'Use Train to keep momentum while your progress context is fresh.',
+        destination: '/train' as const,
+      }
+    : {
+        label: 'Review workout history patterns',
+        description: 'Compare your recent sessions and use the trends to decide your next focus.',
+        destination: '/history' as const,
+      };
+
+  useEffect(() => {
+    const trackingKey = `${userId}:${recommendation.destination}:${hasHistory}:${Boolean(insight)}:${isGuestUser}`;
+    if (recommendationTrackedRef.current === trackingKey) return;
+    trackInsightRecommendationEvent({
+      action: 'shown',
+      destination: recommendation.destination,
+      hasHistory,
+      hasInsight: Boolean(insight),
+      isGuest: isGuestUser,
+    });
+    recommendationTrackedRef.current = trackingKey;
+  }, [hasHistory, insight, recommendation.destination, userId, isGuestUser]);
+
+  function handleRecommendationAction() {
+    trackInsightRecommendationEvent({
+      action: 'clicked',
+      destination: recommendation.destination,
+      hasHistory,
+      hasInsight: Boolean(insight),
+      isGuest: isGuestUser,
+    });
+
+    if (recommendation.destination === '/ask') {
+      trackFeatureEntry({ source: 'insights_recommendation', destination: '/ask', label: 'insight_follow_up' });
+      navigate('/ask', {
+        state: {
+          prefill: 'Based on my latest insights, what should I prioritize in my next workout?',
+        },
+      });
+      return;
+    }
+
+    trackFeatureEntry({ source: 'insights_recommendation', destination: recommendation.destination, label: 'insight_next_step' });
+    navigate(recommendation.destination);
+  }
 
   async function handleAnalyze() {
     if (!user) return;
@@ -232,6 +311,20 @@ export function InsightsPage() {
             <MarkdownText text={insight} />
           </Card>
         )}
+
+        <Card className="border-brand-200 bg-brand-50/60 dark:border-brand-800 dark:bg-brand-900/20" data-testid="insights-next-step-card">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300">Recommended next step</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{recommendation.label}</p>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{recommendation.description}</p>
+          <Button
+            size="sm"
+            className="mt-3"
+            onClick={handleRecommendationAction}
+            data-testid="insights-next-step-action"
+          >
+            Continue
+          </Button>
+        </Card>
 
         {/* Quick questions → AskPage */}
         <div>

@@ -146,7 +146,7 @@ test.describe('Workout complete modal', () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 
-  test('complete modal has Dashboard and History buttons', async ({ page }) => {
+  test('complete modal shows one dominant next step and keeps utility actions available', async ({ page }) => {
     test.info().annotations.push({ type: 'feature', description: 'Workout' });
 
     await page.goto('/workout/quick');
@@ -169,8 +169,10 @@ test.describe('Workout complete modal', () => {
 
     await finishBtn.click();
 
-    // Modal should appear with both CTAs
+    // Modal should appear with one dominant next step plus lower-priority utility actions
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('workout-complete-primary-next-step')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(/view history/i)).toBeVisible({ timeout: 3_000 });
     await expect(
       page.getByRole('button', { name: /dashboard/i }).or(page.getByRole('link', { name: /dashboard/i })),
     ).toBeVisible({ timeout: 3_000 });

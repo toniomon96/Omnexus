@@ -7,6 +7,7 @@ import { TodayCard } from '../components/dashboard/TodayCard';
 import { StreakDisplay } from '../components/dashboard/StreakDisplay';
 import { RecoveryScoreCard } from '../components/dashboard/RecoveryScoreCard';
 import { WeeklyRecapCard } from '../components/dashboard/WeeklyRecapCard';
+import { MomentumFocusCard } from '../components/dashboard/MomentumFocusCard';
 import { MuscleHeatMap } from '../components/dashboard/MuscleHeatMap';
 import { ProgramContextBar } from '../components/dashboard/ProgramContextBar';
 import { Card } from '../components/ui/Card';
@@ -480,7 +481,16 @@ export function DashboardPage() {
         <MuscleHeatMap sessions={state.history.sessions} />
 
         {/* ── Weekly recap ──────────────────────────────────────────── */}
-        {!isGuidedMode && <WeeklyRecapCard sessions={state.history.sessions} />}
+        {hasCompletedSessions && <WeeklyRecapCard sessions={state.history.sessions} />}
+
+        {/* ── Momentum focus (streak + mission reinforcement) ─────── */}
+        <MomentumFocusCard
+          userId={user.id}
+          programId={program?.id ?? null}
+          streak={streak}
+          sessionsThisWeek={completedThisWeek}
+          isGuest={Boolean(user.isGuest)}
+        />
 
         {/* ── AI Insights teaser ────────────────────────────────────── */}
         <button type="button" onClick={() => navigate('/insights')} className="w-full text-left">
