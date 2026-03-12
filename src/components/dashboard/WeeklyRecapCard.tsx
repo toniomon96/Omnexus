@@ -16,6 +16,12 @@ interface WeeklyRecapCardProps {
   sessions: WorkoutSession[];
 }
 
+interface WeeklyPrimaryAction {
+  label: string;
+  description: string;
+  destination: '/train' | '/insights';
+}
+
 function getLastWeekStart(): string {
   const d = new Date(getWeekStart());
   d.setDate(d.getDate() - 7);
@@ -95,7 +101,7 @@ export function WeeklyRecapCard({ sessions }: WeeklyRecapCardProps) {
 
   const streak = calculateStreak(sessions.map((s) => s.startedAt));
 
-  const primaryAction = thisWeek.length < weeklyGoal
+  const primaryAction: WeeklyPrimaryAction = thisWeek.length < weeklyGoal
     ? {
         label: sessionsRemaining === 1 ? 'Plan 1 more workout this week' : `Plan ${sessionsRemaining} more workouts this week`,
         description: 'Use Train to keep weekly momentum moving while it is fresh.',

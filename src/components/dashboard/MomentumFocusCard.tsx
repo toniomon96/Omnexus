@@ -33,11 +33,12 @@ export function MomentumFocusCard({
         cancelled = true;
       };
     }
+    const activeProgramId = programId;
 
     async function loadMission() {
       try {
         const { getBlockMissions } = await import('../../lib/db');
-        const missions = await getBlockMissions(userId, programId);
+        const missions = await getBlockMissions(userId, activeProgramId);
         if (cancelled) return;
         const nextMission = missions.find((mission) => mission.status === 'active') ?? null;
         setActiveMission(nextMission);

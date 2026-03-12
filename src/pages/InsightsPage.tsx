@@ -32,6 +32,12 @@ const QUICK_QUESTIONS = [
   'What should I focus on to break through a plateau?',
 ];
 
+interface InsightNextStepRecommendation {
+  label: string;
+  description: string;
+  destination: '/train' | '/history' | '/ask' | '/onboarding';
+}
+
 export function InsightsPage() {
   const { state } = useApp();
   const { user: authUser } = useAuth();
@@ -46,15 +52,17 @@ export function InsightsPage() {
   const recommendationTrackedRef = useRef<string | null>(null);
 
   if (!user) return null;
+  const userId = user.id;
+  const isGuestUser = Boolean(user.isGuest);
 
-  const experienceMode = getExperienceMode(user.id);
+  const experienceMode = getExperienceMode(userId);
   const isGuidedMode = experienceMode === 'guided';
 
   const hasHistory = sessions.some((s) => s.completedAt);
   const weekStart = getWeekStart();
   const sessionsThisWeek = sessions.filter((s) => s.completedAt && s.startedAt >= weekStart).length;
 
-  const recommendation = user.isGuest
+  const recommendation: InsightNextStepRecommendation = user.isGuest
     ? {
         label: 'Create account to unlock personalized next steps',
         description: 'Insights-driven recommendations require your workout history in an account.',
@@ -85,17 +93,17 @@ export function InsightsPage() {
       };
 
   useEffect(() => {
-    const trackingKey = `${user.id}:${recommendation.destination}:${hasHistory}:${Boolean(insight)}:${user.isGuest}`;
+    const trackingKey = `${userId}:${recommendation.destination}:${hasHistory}:${Boolean(insight)}:${isGuestUser}`;
     if (recommendationTrackedRef.current === trackingKey) return;
     trackInsightRecommendationEvent({
       action: 'shown',
       destination: recommendation.destination,
       hasHistory,
       hasInsight: Boolean(insight),
-      isGuest: Boolean(user.isGuest),
+      isGuest: isGuestUser,
     });
     recommendationTrackedRef.current = trackingKey;
-  }, [hasHistory, insight, recommendation.destination, user.id, user.isGuest]);
+  }, [hasHistory, insight, recommendation.destination, userId, isGuestUser]);
 
   function handleRecommendationAction() {
     trackInsightRecommendationEvent({
@@ -103,7 +111,7 @@ export function InsightsPage() {
       destination: recommendation.destination,
       hasHistory,
       hasInsight: Boolean(insight),
-      isGuest: Boolean(user.isGuest),
+      isGuest: isGuestUser,
     });
 
     if (recommendation.destination === '/ask') {
