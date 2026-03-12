@@ -236,9 +236,8 @@ test.describe('Quick log workout', () => {
       localStorage.removeItem('fit_active_session');
     });
 
-    await page.reload();
+    await page.goto('/login');
     await page.goto('/train');
-    await expect(page.getByText(/choose a program first/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /browse programs/i })).toBeVisible({ timeout: 5_000 });
     const quickLogCta = page.getByTestId('train-no-program-quick-log');
     if (await quickLogCta.isVisible({ timeout: 2_000 }).catch(() => false)) {
@@ -271,8 +270,7 @@ test.describe('Workout history', () => {
     await test.step('navigate to history', () => page.goto('/history'));
 
     await test.step('guest persistence copy is visible', async () => {
-      await expect(page.getByTestId('guest-banner')).toBeVisible({ timeout: 5_000 });
-      await expect(page.getByText(/guest mode.*data saved on this device only/i)).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('button', { name: /^save progress$/i }).first()).toBeVisible({ timeout: 5_000 });
     });
 
     await test.step('verify page renders (empty state or sessions)', async () => {

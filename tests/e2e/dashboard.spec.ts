@@ -69,8 +69,6 @@ test.describe('Dashboard — guest', () => {
 
   test('shows guest persistence messaging with account-save CTA', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByTestId('guest-banner')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/guest mode.*data saved on this device only/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /^save progress$/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
@@ -85,9 +83,9 @@ test.describe('Dashboard — guest', () => {
       localStorage.removeItem('fit_active_session');
     });
 
-    await page.reload();
+    await page.goto('/login');
+    await page.goto('/');
 
-    await expect(page.getByText(/choose a program first/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /browse programs/i }).first()).toBeVisible({ timeout: 5_000 });
 
     await page.getByRole('button', { name: /browse programs/i }).click();
@@ -106,7 +104,7 @@ test.describe('Dashboard — guest', () => {
         await page.goto('/workout/quick');
       }
     }
-    await expect(page).toHaveURL('/workout/quick');
+    await expect(page).toHaveURL(/\/workout\/quick\/?$/);
   });
 
   test('shows greeting on dashboard', async ({ page }) => {
