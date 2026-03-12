@@ -47,16 +47,17 @@ const SLIDES = [
 
 interface Props {
   onDismiss: () => void;
+  userId?: string;
 }
 
-export function AppTutorial({ onDismiss }: Props) {
+export function AppTutorial({ onDismiss, userId }: Props) {
   const [idx, setIdx] = useState(0);
   const isLast = idx === SLIDES.length - 1;
   const slide = SLIDES[idx];
 
   function next() {
     if (isLast) {
-      markTutorialSeen();
+      markTutorialSeen(userId);
       onDismiss();
     } else {
       setIdx(i => i + 1);
@@ -64,7 +65,7 @@ export function AppTutorial({ onDismiss }: Props) {
   }
 
   function skip() {
-    markTutorialSeen();
+    markTutorialSeen(userId);
     onDismiss();
   }
 

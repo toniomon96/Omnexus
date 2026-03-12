@@ -75,7 +75,7 @@ async function createFallbackProfile(session: Session) {
   }
 
   // Recovered accounts are legacy/broken-account repairs, not true first-run onboarding.
-  markTutorialSeen();
+  markTutorialSeen(session.user.id);
 }
 
 export async function ensureProfileUser(session: Session): Promise<User | null> {
