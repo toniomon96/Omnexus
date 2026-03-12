@@ -157,7 +157,7 @@ jobs:
           retention-days: 14
 
   e2e-prod:
-    name: Production Verification Gate
+    name: Preview/Production Verification Gate
     runs-on: ubuntu-latest
     needs: quality
     if: |
@@ -194,8 +194,18 @@ jobs:
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
-      - name: Run full production verification suite
-        run: npm run verify:prod
+      - name: Resolve main gate command
+        id: main-gate-command
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "script=verify:preview" >> "$GITHUB_OUTPUT"
+          else
+            echo "script=verify:prod" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run main branch verification suite
+        run: npm run ${{ steps.main-gate-command.outputs.script }}
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
@@ -206,14 +216,14 @@ jobs:
         if: always()
         with:
           report_paths: 'test-results/junit.xml'
-          check_name: 'Production Verification Results'
+          check_name: 'Main Branch Verification Results'
           fail_on_failure: true
 
       - name: Upload full report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-preview-report-${{ github.run_id }}
+          name: playwright-main-gate-report-${{ github.run_id }}
           path: |
             playwright-report/
             test-results/

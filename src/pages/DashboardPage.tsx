@@ -289,14 +289,14 @@ export function DashboardPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                  Guest progress stays on this device
+                  Guest progress is saved only on this device
                 </p>
                 <p className="mt-1 text-sm text-amber-800/85 dark:text-amber-300/85">
-                  Create a free account when you are ready to keep workouts, measurements, and learning progress across devices.
+                  Create a free account to sync workouts, measurements, and learning progress across devices.
                 </p>
               </div>
               <Button size="sm" variant="secondary" onClick={() => navigate('/onboarding')}>
-                Save Progress
+                Create Free Account
               </Button>
             </div>
           </Card>
@@ -366,7 +366,7 @@ export function DashboardPage() {
                 We had trouble generating your program.
               </p>
               <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">
-                Tap retry and we'll try again. This usually takes about 5-10 seconds.
+                Tap Retry to try again. Most generations finish in 5-10 seconds.
               </p>
             </div>
             <button
@@ -433,7 +433,7 @@ export function DashboardPage() {
               </div>
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 text-center">
-              Building your personalized plan... this usually takes about 5-10 seconds.
+              Building your personalized plan. This usually takes 5-10 seconds.
             </p>
           </Card>
         )}
@@ -446,10 +446,10 @@ export function DashboardPage() {
               Next step
             </p>
             <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
-              Choose a program first
+              Pick a program to get started
             </p>
             <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-              Guided training works best when you pick a plan first. {QUICK_SESSION_LABEL} stays available if you need something flexible today.
+              Choose a plan for guided day-by-day training. {QUICK_SESSION_LABEL} remains available when you want a flexible session today.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button onClick={() => handleDashboardPrimaryAction('browse_programs')} data-testid="dashboard-primary-action-button">{getTrainingPrimaryActionLabel('browse_programs')}</Button>
@@ -513,7 +513,7 @@ export function DashboardPage() {
         />
 
         {/* ── AI Insights teaser ────────────────────────────────────── */}
-        <button type="button" onClick={() => navigate('/insights')} className="w-full text-left">
+        <button type="button" onClick={() => navigate('/insights')} className="w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
           <Card hover className="border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0">
@@ -549,7 +549,7 @@ export function DashboardPage() {
               <button type="button" onClick={() => {
                 trackFeatureEntry({ source: 'dashboard_card', destination: '/guided-pathways', label: 'guided_pathways' });
                 navigate('/guided-pathways');
-              }} className="w-full text-left">
+              }} className="w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
                 <Card hover className="h-full border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/30">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-slate-200/80 flex items-center justify-center shrink-0 dark:bg-slate-800">
@@ -568,7 +568,7 @@ export function DashboardPage() {
               <button type="button" onClick={() => {
                 trackFeatureEntry({ source: 'dashboard_card', destination: '/nutrition', label: 'nutrition_starter' });
                 navigate('/nutrition');
-              }} className="w-full text-left">
+              }} className="w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
                 <Card hover className="h-full border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-900/30">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-slate-200/80 flex items-center justify-center shrink-0 dark:bg-slate-800">
@@ -611,7 +611,7 @@ export function DashboardPage() {
                       trackFeatureEntry({ source: 'dashboard_explore_more', destination: to, label });
                       navigate(to);
                     }}
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-left hover:border-brand-300 dark:hover:border-brand-700 transition-colors min-h-[52px]"
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-left hover:border-brand-300 dark:hover:border-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors min-h-[52px]"
                   >
                     <div className="flex items-center gap-2">
                       <Icon size={14} className="text-slate-500" />
@@ -656,7 +656,7 @@ export function DashboardPage() {
                   })
                 }
                 type="button"
-                className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 underline underline-offset-2"
+                className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 rounded"
               >
                 Ask Omnexus →
               </button>

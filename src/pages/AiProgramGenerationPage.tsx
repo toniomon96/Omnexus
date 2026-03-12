@@ -161,7 +161,7 @@ export function AiProgramGenerationPage() {
 
   return (
     <AppShell>
-      <TopBar title="New AI Program" showBack />
+      <TopBar title="AI Program Draft" showBack />
       <div className="px-4 pb-8 pt-4 space-y-4">
         <Card>
           <div className="flex items-start gap-3">
@@ -169,9 +169,9 @@ export function AiProgramGenerationPage() {
               <Sparkles size={18} className="text-brand-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Generate a draft first</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Create a draft safely</p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Your current program stays active until you explicitly start the new AI-generated draft.
+                Your current program stays active until you explicitly start a new AI draft.
               </p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export function AiProgramGenerationPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Current Active Program</p>
             <p className="text-sm font-semibold text-slate-900 dark:text-white">{activeProgram.name}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Generating a new draft will not interrupt this block until you choose to start the new plan.
+              Generating a new draft will not interrupt this program unless you decide to start the draft.
             </p>
           </Card>
         )}
@@ -211,7 +211,7 @@ export function AiProgramGenerationPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Draft ready</p>
             <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Your new AI draft is ready to review</p>
             <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-              Your current active program remains unchanged until you explicitly start the new draft from its detail page.
+              Your active program remains unchanged until you start the new draft from its detail page.
             </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <Button size="sm" onClick={handleReviewDraft} data-testid="program-generation-review-draft-action">
@@ -265,9 +265,9 @@ export function AiProgramGenerationPage() {
 
         {generationStatus === 'generating' && generationState?.userId === user.id && !generationState.activateOnReady && (
           <Card>
-            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300" role="status" aria-live="polite">
               <Loader2 size={16} className="animate-spin text-brand-500" />
-              Building your new AI training draft…
+              Generating your new AI training draft. This usually takes under 15 seconds.
             </div>
           </Card>
         )}

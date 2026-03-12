@@ -90,19 +90,19 @@ export function AskPage() {
 
   const recommendation: AskNextStepRecommendation = state.user?.isGuest
     ? {
-        label: 'Create account to save AI guidance across devices',
-        description: 'Keep Ask history and insights available when you switch devices.',
+        label: 'Create an account to save Ask answers',
+        description: 'Keep your Ask history and AI guidance synced across devices.',
         destination: '/onboarding',
       }
     : currentAnswer
     ? {
         label: 'Apply this in your next workout',
-        description: 'Use Train to turn this guidance into your next concrete session.',
+        description: 'Use Train to turn this guidance into a concrete session plan.',
         destination: '/train',
       }
     : {
-        label: 'Review your workout insight trends',
-        description: 'Use Insights to connect Ask guidance with your recent training patterns.',
+        label: 'Review your insight trends',
+        description: 'Use Insights to connect this guidance with your recent workout patterns.',
         destination: '/insights',
       };
 
@@ -288,7 +288,7 @@ export function AskPage() {
               Ask Anything
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Science-backed answers, with citations
+              Science-backed answers with source citations
             </p>
           </div>
           {session && status && status.tier === 'free' && (
@@ -300,7 +300,11 @@ export function AskPage() {
 
         {/* Input area */}
         <div className="space-y-3">
+          <label htmlFor="ask-question" className="sr-only">
+            Ask your fitness question
+          </label>
           <textarea
+            id="ask-question"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -332,7 +336,7 @@ export function AskPage() {
         {!currentAnswer && !loading && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-              Try asking
+              Try one of these
             </p>
             <div className="space-y-2">
               {SUGGESTED.map((q) => (
@@ -340,7 +344,7 @@ export function AskPage() {
                   key={q}
                   type="button"
                   onClick={() => setQuestion(q)}
-                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                 >
                   <MessageCircle size={14} className="text-brand-500 shrink-0" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">{q}</span>
@@ -377,7 +381,7 @@ export function AskPage() {
                 </p>
                 <Link
                   to="/subscription"
-                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors"
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                 >
                   <Zap size={12} fill="currentColor" />
                   Upgrade to Premium
@@ -389,7 +393,7 @@ export function AskPage() {
 
         {/* Current answer */}
         {(currentAnswer !== null || loading) && (
-          <div ref={answerRef} className="space-y-3">
+          <div ref={answerRef} className="space-y-3" aria-live="polite">
             <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-1">
               <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -403,7 +407,7 @@ export function AskPage() {
                 {currentAnswer ? (
                   <MarkdownText text={currentAnswer} />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2" role="status" aria-label="Generating answer">
                     <div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                     <div className="h-3 w-3/5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                     <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
@@ -436,8 +440,8 @@ export function AskPage() {
             {/* Context limit indicator */}
             {conversationHistory.length >= 4 && !loading && (
               <p className="text-[10px] text-slate-500 text-center mt-1">
-                Context limited to last 4 exchanges ·{' '}
-                <button type="button" onClick={resetConversation} className="underline hover:text-slate-400 transition-colors">
+                Showing the last 4 exchanges for context ·{' '}
+                <button type="button" onClick={resetConversation} className="underline hover:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors">
                   Start fresh
                 </button>
               </p>
@@ -453,7 +457,7 @@ export function AskPage() {
                       key={chip}
                       type="button"
                       onClick={() => handleFollowUp(chip)}
-                      className="px-3 py-1.5 rounded-full text-xs bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20 transition-colors"
+                      className="px-3 py-1.5 rounded-full text-xs bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                     >
                       {chip}
                     </button>
@@ -490,7 +494,7 @@ export function AskPage() {
                   <Card key={session.id} padding="sm">
                     <button
                       type="button"
-                      className="w-full text-left flex items-start justify-between gap-2"
+                      className="w-full text-left flex items-start justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-lg"
                       onClick={() =>
                         setExpandedId(isExpanded ? null : session.id)
                       }

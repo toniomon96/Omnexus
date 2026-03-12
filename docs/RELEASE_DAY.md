@@ -14,6 +14,7 @@ Use with:
 - QA owner: executes manual smoke.
 - Ops owner: watches logs/alerts for 24h after deploy.
 - Rollback owner: executes rollback if trigger conditions are hit.
+- Comms owner: posts timeline updates in the release PR and incident channel.
 
 ## 0. Start conditions
 
@@ -27,13 +28,13 @@ Run from repo root:
 
 ```bash
 npm run verify:dev
-npm run verify:prod
+npm run verify:preview
 npm audit --omit=dev
 ```
 
 Expected:
 - `verify:dev` confirms the deterministic Chromium golden path is green
-- `verify:prod` exits `0`
+- `verify:preview` exits `0`
 - `npm audit --omit=dev` has no untriaged critical/high runtime vulnerabilities
 
 Evidence to capture:
@@ -65,7 +66,7 @@ Evidence to capture:
 
 - Open or refresh PR: `dev -> main`
 - Wait for preview deploy + required checks
-- Confirm `Preview Release Gate` is green
+- Confirm `Preview/Production Verification Gate` is green for the PR run (`verify:preview`)
 
 Evidence to capture:
 - PR URL
@@ -102,6 +103,7 @@ Evidence to capture:
 
 - Confirm required approvals on `dev -> main` PR
 - Merge PR to `main`
+- Confirm `Preview/Production Verification Gate` is green for the `main` push run (`verify:prod`)
 - Watch Vercel production deployment until success
 
 Evidence to capture:
@@ -127,10 +129,13 @@ Evidence to capture:
 
 1. Identify last known good commit on `main`.
 2. Re-deploy that commit in Vercel production.
-3. Post incident note in release PR with:
+3. Rollback owner posts completion in release PR and pings QA owner for smoke validation.
+4. QA owner validates login, dashboard, and workout-start paths on production.
+5. Comms owner posts incident note in release PR with:
 - trigger
 - impact
 - rollback time
+- validation status
 - follow-up issue links
 
 ## 8. 24-hour follow-up

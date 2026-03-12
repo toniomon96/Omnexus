@@ -142,7 +142,7 @@ export function TrainPage() {
                       Resume your active workout
                     </p>
                     <p className="text-xs text-brand-700/80 dark:text-brand-300/80 mt-0.5">
-                      Your session is already in progress. Finish this before starting something else.
+                      Your session is already in progress. Finish or end it before starting another workout.
                     </p>
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export function TrainPage() {
                     {nextWorkout.day.label}
                   </p>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Start your guided session first. {QUICK_SESSION_LABEL} stays available if you want something flexible instead.
+                    Start your guided session for today. {QUICK_SESSION_LABEL} stays available if you want a flexible workout instead.
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{program?.name}</span>
@@ -212,10 +212,10 @@ export function TrainPage() {
               Next step
             </p>
             <p className="mb-1 text-sm font-semibold text-slate-900 dark:text-white">
-              Choose a program first
+              Pick a program to unlock guided training
             </p>
             <p className="mx-auto mb-4 max-w-xs text-sm text-slate-500 dark:text-slate-400">
-              Pick a plan if you want day-by-day guidance. {QUICK_SESSION_LABEL} is still here when you need a flexible workout right now.
+              Choose a plan to get structured day-by-day workouts. {QUICK_SESSION_LABEL} is still here when you need flexibility right now.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button onClick={() => handleTrainPrimaryAction('browse_programs')} data-testid="train-primary-action-button">
@@ -236,7 +236,7 @@ export function TrainPage() {
               <CircleHelp size={18} className="text-brand-500 mt-0.5 shrink-0" />
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">New to workout logging?</p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">Start with the main action above, then use {QUICK_SESSION_LABEL} only when you want a flexible workout.</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">Start with the main action above, then use {QUICK_SESSION_LABEL} only when you intentionally want a flexible workout.</p>
                 <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal ml-4">
                   <li>Use <span className="font-semibold">{getTrainingPrimaryActionLabel('start_workout')}</span> for your guided session when a program is ready.</li>
                   <li>Use <span className="font-semibold">{QUICK_SESSION_LABEL}</span> when you want to build your own workout.</li>
@@ -285,7 +285,7 @@ export function TrainPage() {
                   trackFeatureEntry({ source: 'train_tools', destination: to, label });
                   navigate(to);
                 }}
-                className="rounded-2xl bg-slate-100 p-4 text-left text-slate-700 transition-colors hover:bg-brand-500/10 hover:text-brand-500 dark:bg-slate-800 dark:text-slate-300"
+                className="rounded-2xl bg-slate-100 p-4 text-left text-slate-700 transition-colors hover:bg-brand-500/10 hover:text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:bg-slate-800 dark:text-slate-300"
               >
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-600 dark:bg-slate-900/70 dark:text-slate-300">
                   <Icon size={20} strokeWidth={1.8} />
@@ -305,7 +305,7 @@ export function TrainPage() {
               <button
                 type="button"
                 onClick={() => navigate('/history')}
-                className="flex items-center gap-1 text-xs text-brand-500 font-medium"
+                className="flex items-center gap-1 text-xs text-brand-500 font-medium rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               >
                 View all <ChevronRight size={14} />
               </button>
@@ -340,7 +340,7 @@ export function TrainPage() {
           <div className="text-center py-6">
             <History size={28} className="mx-auto text-slate-300 dark:text-slate-700 mb-2" />
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Your completed workouts will show up here once you finish your first session.
+              Finish your first workout and your completed sessions will appear here.
             </p>
           </div>
         )}
@@ -352,7 +352,7 @@ export function TrainPage() {
               trackFeatureEntry({ source: 'train_card', destination: '/guided-pathways', label: 'guided_pathways' });
               navigate('/guided-pathways');
             }}
-            className="w-full text-left"
+            className="w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
             <Card hover>
               <div className="flex items-start gap-3">
@@ -375,7 +375,7 @@ export function TrainPage() {
               trackFeatureEntry({ source: 'train_card', destination: '/nutrition', label: 'nutrition_starter' });
               navigate('/nutrition');
             }}
-            className="w-full text-left"
+            className="w-full text-left rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
             <Card hover>
               <div className="flex items-start gap-3">

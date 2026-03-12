@@ -67,8 +67,8 @@ export function InsightsPage() {
 
   const recommendation: InsightNextStepRecommendation = user.isGuest
     ? {
-        label: 'Create account to unlock personalized next steps',
-        description: 'Insights-driven recommendations require your workout history in an account.',
+        label: 'Create an account to unlock personalized next steps',
+        description: 'Insights recommendations need workout history saved to your account.',
         destination: '/onboarding' as const,
       }
     : !hasHistory
@@ -79,8 +79,8 @@ export function InsightsPage() {
       }
     : insight
     ? {
-        label: 'Turn this into a focused Ask',
-        description: 'Use Ask Omnexus to get one concrete plan for your next session based on this analysis.',
+        label: 'Turn this into a focused Ask prompt',
+        description: 'Use Ask Omnexus to get one concrete plan for your next session from this analysis.',
         destination: '/ask' as const,
       }
     : sessionsThisWeek < 3
@@ -91,7 +91,7 @@ export function InsightsPage() {
       }
     : {
         label: 'Review workout history patterns',
-        description: 'Compare your recent sessions and use the trends to decide your next focus.',
+        description: 'Compare recent sessions and use trend changes to choose your next focus.',
         destination: '/history' as const,
       };
 
@@ -202,7 +202,7 @@ export function InsightsPage() {
               AI-Powered Insights
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Your data × science × Claude
+              Patterns from your workouts, grounded in evidence
             </p>
           </div>
         </div>
@@ -239,10 +239,7 @@ export function InsightsPage() {
           {user.isGuest ? (
             <div className="flex flex-col items-center gap-3 py-2 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Insights require an account because they analyze your workout history.
-              </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Create an account to unlock personalized training insights.
+                Insights analyze your workout history. Create an account to unlock personalized recommendations.
               </p>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => navigate('/onboarding')}>
@@ -256,7 +253,7 @@ export function InsightsPage() {
           ) : !hasHistory ? (
             <div className="flex flex-col items-center gap-3 py-2 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Insights appear after you complete workouts. Log a few sessions and Omnexus will analyze your progress.
+                Insights appear after completed workouts. Log a few sessions, then analyze your trends.
               </p>
               <Button variant="secondary" size="sm" onClick={() => navigate('/train')}>
                 <Play size={14} />
@@ -345,7 +342,7 @@ export function InsightsPage() {
         {/* Quick questions → AskPage */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-            Ask a Follow-Up
+            Ask a follow-up
           </p>
           {user.isGuest ? (
             <Card className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
@@ -368,7 +365,7 @@ export function InsightsPage() {
                   key={q}
                   type="button"
                   onClick={() => navigate('/ask', { state: { prefill: q } })}
-                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                 >
                   <MessageCircle size={14} className="text-brand-500 shrink-0" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">{q}</span>

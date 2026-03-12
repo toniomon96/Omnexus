@@ -290,6 +290,9 @@ Execution backlog:
 
 Duration: 1 week
 
+Status:
+Started in repo as of 2026-03-12. Sprint 5 launch-readiness backlog, issue drafts, QA checklist, and release notes are tracked in-repo. Story 1.1 launch-critical copy and empty-state polish is implemented across Dashboard, Train, Ask, Insights, and AI Program Generation. Story 1.2 accessibility/mobile hardening is implemented in the same surfaces (focus-visible states, explicit input labeling, and live-region status semantics) with final manual viewport QA still pending. Story 2.1 gate hardening is implemented by aligning `main` PR verification to `verify:preview`, `main` push verification to `verify:prod`, and synchronizing CI policy docs with workflow behavior. Story 2.2 rollback/incident readiness docs are implemented with explicit owner handoffs and trigger language. Story 3.1 and 3.2 documentation artifacts are implemented; remaining scope is final manual QA completion, accepted known-issues decisions, and release-owner signoff.
+
 Goal:
 Consolidate, polish, validate, and freeze V1 refinement work.
 
@@ -317,6 +320,12 @@ Exit criteria:
 - All planned sprint goals are accepted.
 - Release candidate passes preview verification and manual QA.
 - Known issues list is explicit and acceptable for launch.
+
+Execution backlog:
+
+- [Sprint 5 backlog](SPRINT_5_BACKLOG.md)
+- [Sprint 5 issue drafts](SPRINT_5_ISSUE_DRAFTS.md)
+- [Sprint 5 QA checklist](SPRINT_5_QA_CHECKLIST.md)
 
 ## Sprint Metrics
 

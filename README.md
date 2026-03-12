@@ -308,6 +308,10 @@ In Supabase Dashboard → Authentication → URL Configuration:
 | `docs/SPRINT_4_BACKLOG.md` | Executable Sprint 4 backlog for AI quality, fallback clarity, and cohesion work |
 | `docs/SPRINT_4_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 4 AI quality implementation |
 | `docs/SPRINT_4_QA_CHECKLIST.md` | Manual verification checklist for Sprint 4 AI quality and degraded-state signoff |
+| `docs/SPRINT_5_BACKLOG.md` | Executable Sprint 5 backlog for launch-readiness sweep and release freeze tasks |
+| `docs/SPRINT_5_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 5 release execution |
+| `docs/SPRINT_5_QA_CHECKLIST.md` | Manual verification checklist and signoff record for Sprint 5 launch readiness |
+| `docs/SPRINT_5_RELEASE_NOTES.md` | Launch-ready release notes and accepted known-issues register for Sprint 5 |
 | `docs/SDLC_EXECUTION_PLAYBOOK.md` | TDD, VCS, QA, rollout, and delivery standards for enhancement work |
 | `docs/PLATFORM_SETUP_CHECKLIST.md` | Exact manual admin steps for GitHub, Vercel, Supabase, and Stripe |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, data models, Supabase schema |

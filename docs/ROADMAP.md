@@ -30,6 +30,18 @@ All 11 sprints complete. **0 TypeScript errors · 115 tests passing.**
 
 ---
 
+## Sprint 5 Launch Readiness Snapshot (2026-03-12)
+
+- Launch-critical UX copy and empty/degraded states were clarified across Dashboard, Train, Ask, Insights, and AI Program Generation.
+- Accessibility hardening was applied to critical controls (focus-visible states, explicit input labeling, live-region status semantics).
+- CI/release-gate policy is now explicit for `main`:
+	- PR validation uses `verify:preview`
+	- post-merge validation uses `verify:prod`
+- Rollback ownership and incident handoff expectations are documented for release-day execution.
+- Final QA signoff and accepted known issues are tracked in `docs/SPRINT_5_QA_CHECKLIST.md` and summarized in `docs/SPRINT_5_RELEASE_NOTES.md`.
+
+---
+
 ## v1.x — Maintenance & Stabilization
 
 These minor releases ship between now and the v2 cycle.
