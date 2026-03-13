@@ -29,7 +29,7 @@ const MOCK_EXERCISES: Exercise[] = [
     id: 'biceps-curl',
     name: 'Biceps Curl',
     category: 'strength',
-    primaryMuscles: ['arms'],
+    primaryMuscles: ['biceps'],
     secondaryMuscles: ['back'],
     equipment: ['dumbbell'],
     instructions: [],

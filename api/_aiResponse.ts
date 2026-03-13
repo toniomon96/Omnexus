@@ -5,10 +5,22 @@ function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function stripControlChars(input: string): string {
+  let out = '';
+  for (const ch of input) {
+    const code = ch.charCodeAt(0);
+    if ((code >= 0 && code <= 8) || (code >= 11 && code <= 12) || (code >= 14 && code <= 31) || code === 127) {
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 export function cleanAiText(raw: string): string {
-  return String(raw ?? '')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+  const normalized = stripControlChars(String(raw ?? '').replace(/\r\n?/g, '\n'));
+
+  return normalized
     .replace(/^```(?:markdown|md|text)?\s*\n?/i, '')
     .replace(/\n?```\s*$/i, '')
     .replace(/^\s*(assistant|ai|omnexus\s*ai)\s*:\s*/i, '')
