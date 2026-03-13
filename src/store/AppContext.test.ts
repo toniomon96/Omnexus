@@ -50,6 +50,7 @@ function baseState(overrides: Partial<AppState> = {}): AppState {
     streak: 0,
     sparks: 0,
     unlockedAchievementIds: [],
+    pendingCelebrations: [],
     ...overrides,
   };
 }

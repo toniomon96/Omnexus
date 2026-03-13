@@ -5,14 +5,30 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { getCourseById } from '../data/courses';
 import { useLearningProgress } from '../hooks/useLearningProgress';
-import { CheckCircle, Circle, ChevronRight, Clock, BookOpen } from 'lucide-react';
+import { CheckCircle, Circle, ChevronRight, Clock, BookOpen, Share2 } from 'lucide-react';
+import { useApp } from '../store/AppContext';
+import { generateCourseCompletionCard, shareOrDownload } from '../utils/shareCard';
 
 export function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { isLessonComplete, isModuleComplete, progress } = useLearningProgress();
+  const { state } = useApp();
 
   const course = courseId ? getCourseById(courseId) : undefined;
+
+  async function handleShareCertificate(courseTitle: string) {
+    try {
+      const blob = await generateCourseCompletionCard({
+        courseName: courseTitle,
+        completedAt: new Date().toLocaleDateString(),
+        userName: state.user?.name ?? '',
+      });
+      await shareOrDownload(blob, `${courseTitle.replace(/\s+/g, '-')}-certificate.png`);
+    } catch {
+      // silently ignore
+    }
+  }
 
   if (!course) {
     return (
@@ -92,10 +108,18 @@ export function CourseDetailPage() {
           </Button>
         )}
         {!nextModule && completedCount > 0 && (
-          <div className="text-center py-3">
+          <div className="text-center py-3 space-y-2">
             <p className="text-green-600 dark:text-green-400 font-semibold text-sm">
               🎉 Course complete!
             </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleShareCertificate(course.title)}
+            >
+              <Share2 size={14} className="mr-1.5" />
+              Share Certificate
+            </Button>
           </div>
         )}
 

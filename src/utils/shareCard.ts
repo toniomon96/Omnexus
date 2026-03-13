@@ -484,3 +484,93 @@ export async function generateProgressionReportCard(params: {
     canvas.toBlob((blob) => resolve(blob!), 'image/png');
   });
 }
+
+export async function generateStreakMilestoneCard(params: {
+  streakDays: number;
+  userName?: string;
+}): Promise<Blob> {
+  const { streakDays, userName } = params;
+  const { canvas, ctx } = makeCanvas();
+
+  drawBackground(ctx);
+
+  const cx = SIZE / 2;
+  let y = 220;
+
+  drawBrand(ctx, y);
+  y += SIZE * 0.06;
+
+  ctx.font = `${SIZE * 0.11}px serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('🔥', cx, y + SIZE * 0.09);
+  y += SIZE * 0.17;
+
+  ctx.font = `bold ${SIZE * 0.118}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = '#fb923c';
+  ctx.textAlign = 'center';
+  ctx.fillText(String(streakDays), cx, y);
+  y += SIZE * 0.07;
+
+  ctx.font = `bold ${SIZE * 0.048}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.fillText('Day Streak', cx, y);
+  y += SIZE * 0.065;
+
+  if (userName) {
+    ctx.font = `${SIZE * 0.03}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = SLATE_400;
+    ctx.fillText(userName, cx, y);
+  }
+
+  drawFooter(ctx);
+
+  return canvasToBlob(canvas);
+}
+
+export async function generateCourseCompletionCard(params: {
+  courseName: string;
+  completedAt: string;
+  userName?: string;
+}): Promise<Blob> {
+  const { courseName, completedAt, userName } = params;
+  const { canvas, ctx } = makeCanvas();
+
+  drawBackground(ctx);
+
+  const cx = SIZE / 2;
+  let y = 200;
+
+  drawBrand(ctx, y);
+  y += SIZE * 0.065;
+
+  ctx.font = `${SIZE * 0.088}px serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('🏆', cx, y);
+  y += SIZE * 0.12;
+
+  ctx.font = `bold ${SIZE * 0.048}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = 'center';
+  const nameHeight = wrapText(ctx, courseName, cx, y, SIZE * 0.78, SIZE * 0.06);
+  y += nameHeight + SIZE * 0.055;
+
+  ctx.font = `${SIZE * 0.026}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = SLATE_400;
+  ctx.fillText('Certificate of Completion', cx, y);
+  y += SIZE * 0.046;
+
+  ctx.font = `${SIZE * 0.024}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = AMBER;
+  ctx.fillText(completedAt, cx, y);
+  y += SIZE * 0.046;
+
+  if (userName) {
+    ctx.font = `${SIZE * 0.026}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = SLATE_400;
+    ctx.fillText(`Earned by ${userName}`, cx, y);
+  }
+
+  drawFooter(ctx);
+
+  return canvasToBlob(canvas);
+}

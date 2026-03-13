@@ -882,3 +882,16 @@ export interface CheckinAdaptationBanner {
   reduceIntensity: boolean;
   flaggedExercises: string[];
 }
+
+// ─── Celebrations ─────────────────────────────────────────────────────────────
+
+export type CelebrationKind = 'rank_up' | 'streak_milestone' | 'achievement';
+
+export interface PendingCelebration {
+  id: string;
+  kind: CelebrationKind;
+  /** For rank_up: the new rank label. For streak_milestone: the streak count. For achievement: the achievement id. */
+  payload: string;
+  /** ISO timestamp when this was queued */
+  queuedAt: string;
+}
