@@ -18,13 +18,16 @@ import { setCorsHeaders } from './_cors.js';
 
 type DeleteStep = {
   name: string;
-  execute: () => Promise<{ error: { message?: string } | null } | void>;
+  execute: () =>
+    | PromiseLike<{ error: { message?: string } | null } | void>
+    | { error: { message?: string } | null }
+    | void;
 };
 
 async function runDeleteSteps(steps: DeleteStep[]): Promise<Array<{ step: string; message: string }>> {
   for (const step of steps) {
     try {
-      const result = await step.execute();
+      const result = await Promise.resolve(step.execute());
       const error = result && 'error' in result ? result.error : null;
       if (error) {
         return [{ step: step.name, message: error.message ?? 'Unknown database error' }];

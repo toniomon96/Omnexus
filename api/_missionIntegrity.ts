@@ -68,8 +68,9 @@ export function normalizeMissionProgress(raw: unknown): NormalizedMissionProgres
       .filter((entry) => typeof entry?.date === 'string' && entry.date.trim().length > 0)
       .map((entry) => {
         const valueParsed = Number(entry.value);
+        const date = typeof entry.date === 'string' ? entry.date.trim() : '';
         return {
-          date: entry.date!.trim(),
+          date,
           value: Number.isFinite(valueParsed) && valueParsed >= 0 ? valueParsed : 0,
         };
       })

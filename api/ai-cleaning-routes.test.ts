@@ -292,9 +292,11 @@ describe('AI route response cleaning', () => {
 
     expect(getStatusCode()).toBe(200);
     expect(sendNotificationReliably).toHaveBeenCalledTimes(1);
-    const firstCall = sendNotificationReliably.mock.calls[0][0] as {
+    const calls = sendNotificationReliably.mock.calls as unknown[][];
+    const firstCall = calls[0]?.[0] as {
       payload: { body: string };
     };
+    expect(firstCall).toBeTruthy();
     expect(firstCall.payload.body).toContain('Great volume trend this week. Keep momentum next week.');
     expect(firstCall.payload.body).not.toContain('Assistant:');
     expect(firstCall.payload.body).not.toContain('```');

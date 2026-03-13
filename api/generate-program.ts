@@ -284,7 +284,11 @@ function normalizeProgramCandidate(raw: GeneratedProgram, profile: UserTrainingP
   const schedule: TrainingDay[] = [];
 
   for (let i = 0; i < targetDays; i++) {
-    const candidateDay = raw.schedule?.[i] as Record<string, unknown> | undefined;
+    const candidateDayRaw = raw.schedule?.[i] as unknown;
+    const candidateDay =
+      candidateDayRaw && typeof candidateDayRaw === 'object'
+        ? (candidateDayRaw as Record<string, unknown>)
+        : undefined;
     const fallbackDay = fallback.schedule[i % fallback.schedule.length]!;
 
     const dayType = typeof candidateDay?.type === 'string' && VALID_DAY_TYPES.has(candidateDay.type)
