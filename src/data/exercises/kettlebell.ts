@@ -1,7 +1,7 @@
 import type { Exercise } from '../../types';
 
 // ─── Kettlebell Exercises ─────────────────────────────────────────────────────
-// Sprint B: 25 kettlebell exercises
+// Sprint B: 23 kettlebell exercises
 
 export const kettlebellExercises: Exercise[] = [
   // ── HINGE / HIP DOMINANT ─────────────────────────────────────────────────

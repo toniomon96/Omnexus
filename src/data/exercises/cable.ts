@@ -1,7 +1,7 @@
 import type { Exercise } from '../../types';
 
 // ─── Cable Exercises ──────────────────────────────────────────────────────────
-// Sprint B: 35 cable machine exercises
+// Sprint B: 40 cable machine exercises
 
 export const cableExercises: Exercise[] = [
   // ── CHEST ─────────────────────────────────────────────────────────────────

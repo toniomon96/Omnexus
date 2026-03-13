@@ -1,7 +1,7 @@
 import type { Exercise } from '../../types';
 
 // ─── Resistance Band Exercises ────────────────────────────────────────────────
-// Sprint B: 20 resistance band exercises
+// Sprint B: 19 resistance band exercises
 
 export const resistanceBandExercises: Exercise[] = [
   // ── PULL / BACK ───────────────────────────────────────────────────────────
