@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
-import { normalizeMissions } from './_missionIntegrity.js';
+import { normalizeMissionProgress, normalizeMissions } from './_missionIntegrity.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach generating block missions for a training program.
 
@@ -145,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       type: row.type,
       description: row.description,
       target: row.target,
-      progress: row.progress,
+      progress: normalizeMissionProgress(row.progress),
       status: row.status,
       createdAt: row.created_at,
     }));

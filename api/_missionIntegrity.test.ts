@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeMissions } from './_missionIntegrity.js';
+import { normalizeMissionProgress, normalizeMissions } from './_missionIntegrity.js';
 
 describe('normalizeMissions', () => {
   it('falls back to default missions for non-array input', () => {
@@ -22,5 +22,24 @@ describe('normalizeMissions', () => {
     expect(missions.find((m) => m.type === 'volume')?.target.value).toBeGreaterThanOrEqual(1);
     expect(missions.find((m) => m.type === 'rpe')?.target.value).toBe(8);
     expect(missions.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('sanitizes malformed mission progress payloads', () => {
+    const normalized = normalizeMissionProgress({
+      current: Number.POSITIVE_INFINITY,
+      history: [
+        { date: '2026-03-01', value: 3 },
+        { date: '', value: 2 },
+        { date: ' 2026-03-02 ', value: Number.NaN },
+        { date: '2026-03-03', value: -4 },
+      ],
+    });
+
+    expect(normalized.current).toBe(0);
+    expect(normalized.history).toEqual([
+      { date: '2026-03-01', value: 3 },
+      { date: '2026-03-02', value: 0 },
+      { date: '2026-03-03', value: 0 },
+    ]);
   });
 });

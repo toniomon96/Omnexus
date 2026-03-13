@@ -17,6 +17,11 @@ export type NormalizedMission = {
   target: { metric: string; value: number; unit: string };
 };
 
+export type NormalizedMissionProgress = {
+  current: number;
+  history: Array<{ date: string; value: number }>;
+};
+
 function isMissionType(value: unknown): value is MissionType {
   return typeof value === 'string' && (ALLOWED_TYPES as readonly string[]).includes(value);
 }
@@ -45,6 +50,33 @@ function buildFallbackMissions(daysPerWeek: number): NormalizedMission[] {
       target: { metric: 'weekly volume', value: 10000, unit: 'kg' },
     },
   ];
+}
+
+export function normalizeMissionProgress(raw: unknown): NormalizedMissionProgress {
+  const progress = (raw ?? {}) as {
+    current?: unknown;
+    history?: Array<{ date?: unknown; value?: unknown }>;
+  };
+
+  const currentParsed = Number(progress.current);
+  const current = Number.isFinite(currentParsed) && currentParsed >= 0
+    ? currentParsed
+    : 0;
+
+  const history = Array.isArray(progress.history)
+    ? progress.history
+      .filter((entry) => typeof entry?.date === 'string' && entry.date.trim().length > 0)
+      .map((entry) => {
+        const valueParsed = Number(entry.value);
+        return {
+          date: entry.date!.trim(),
+          value: Number.isFinite(valueParsed) && valueParsed >= 0 ? valueParsed : 0,
+        };
+      })
+      .slice(-60)
+    : [];
+
+  return { current, history };
 }
 
 export function normalizeMissions(raw: unknown, daysPerWeekInput: number): NormalizedMission[] {
