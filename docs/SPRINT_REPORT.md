@@ -185,14 +185,35 @@ Replaces the flat exercise list with five discovery modes. **Shipped in `Exercis
 ---
 
 ### Sprint G — Omni AI Coach
-**Epic 4** · 2 weeks · **Requires Sprints C–F (XP events data)**
+**Epic 4** · **COMPLETE**
 
-- Evolve Ask page into "Omni" with three operating modes:
-  1. **Free chat** — open-ended AI coaching (existing)
-  2. **Check-In** — weekly structured check-in pipeline (mood, recovery, performance)
-  3. **Coach Notes** — AI-generated weekly summary of user progress, stored and displayed on Profile
-- Check-In answers stored in `check_ins` table
-- Coach Notes generated from `xp_events`, `learning_review_queue`, and workout history
+**Delivered:**
+
+- **Ask page evolved to "Ask Omni"** — renamed from "Ask Omnexus", three mode tabs: **Coach** · **Science** · **Check-In** visible at top of page.
+- **Coach Mode** — personalised Omni system prompt includes user's first name, goal, experience level, active program name & week, current week's progression note, rank, streak, and recent PRs. Responses kept under 150 words. Skip RAG so coaching stays contextual.
+- **Science Mode** — existing RAG pipeline (pgvector semantic search + citation display) unchanged and still the default.
+- **Check-In Mode** — guided readiness UI: energy slider (1–10), sleep slider (1–10), soreness slider (1–5), pain toggle with location field, optional notes. Submits to `/api/checkin`, saves locally via `saveDailyCheckinLocal`, restores today's result on mount.
+- **`api/checkin.ts`** — new Vercel serverless endpoint. Validates readiness data, calls Claude to generate a one-sentence training recommendation, persists to `daily_checkins` table (fire-and-forget for authenticated users), returns `{ checkinId, omniResponse, reduceIntensity, flaggedExercises }`.
+- **`docs/migrations/012_daily_checkins.sql`** — migration for `daily_checkins` table with RLS policies and unique constraint on `(user_id, checkin_date)`.
+- **Adaptation banner in ActiveWorkoutPage** — amber warning banner appears when `energyLevel < 5`, `sleepQuality < 5`, or `painFlag` is true, showing Omni's recommendation text.
+- **Coach Notes** — already implemented as `weeklyProgressionNotes` in `generate-program.ts` and surfaced in Coach Mode system prompt via `currentWeekNote`.
+- **Types** — `DailyCheckin`, `OmniMode`, `CheckinAdaptationBanner` added to `src/types/index.ts`.
+- **`src/lib/db.ts`** — `saveDailyCheckinToDb` added.
+- **`src/utils/localStorage.ts`** — `getTodayCheckin`, `getDailyCheckins`, `saveDailyCheckinLocal` added.
+- **`src/services/claudeService.ts`** — `AskRequest` extended with `mode` and `coachContext`; `submitCheckin` function added.
+
+**New files:**
+- `api/checkin.ts`
+- `docs/migrations/012_daily_checkins.sql`
+
+**Modified files:**
+- `src/types/index.ts` — DailyCheckin, OmniMode, CheckinAdaptationBanner types
+- `src/utils/localStorage.ts` — daily check-in persistence
+- `src/lib/db.ts` — saveDailyCheckinToDb
+- `src/services/claudeService.ts` — mode + coachContext in AskRequest, submitCheckin
+- `api/ask.ts` — mode-aware system prompt selection, buildCoachSystemPrompt
+- `src/pages/AskPage.tsx` — three mode tabs, Check-In guided flow, Coach Mode context injection
+- `src/pages/ActiveWorkoutPage.tsx` — Omni adaptation banner
 
 ---
 
@@ -225,10 +246,10 @@ Replaces the flat exercise list with five discovery modes. **Shipped in `Exercis
 ```
 Sprint I  → Exercise Discovery ✅ COMPLETE
 Sprint C  → Gamification + Learning DB ✅ COMPLETE
-Sprint D  → Courses + Quiz
-Sprint E  → Remaining Courses + Spaced Repetition
-Sprint F  → Social + Leaderboard
-Sprint G  → Omni AI Coach
+Sprint D  → Courses + Quiz ✅ COMPLETE
+Sprint E  → Remaining Courses + Spaced Repetition ✅ COMPLETE
+Sprint F  → Social + Leaderboard ✅ COMPLETE
+Sprint G  → Omni AI Coach ✅ COMPLETE
 Sprint J  → Celebrations + Share Cards
 Sprint H  → Program Continuation
 ```

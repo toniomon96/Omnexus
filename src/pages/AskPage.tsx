@@ -9,14 +9,16 @@ import { MarkdownText } from '../components/ui/MarkdownText';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { askOmnexusStream } from '../services/claudeService';
+import { askOmnexusStream, submitCheckin } from '../services/claudeService';
 import type { ConversationMessage, Citation } from '../services/claudeService';
 import { normalizeAiError } from '../lib/aiErrorHandling';
 import {
   appendInsightSession,
   getInsightSessions,
+  saveDailyCheckinLocal,
+  getTodayCheckin,
 } from '../utils/localStorage';
-import type { InsightSession } from '../types';
+import type { InsightSession, OmniMode } from '../types';
 import { trackAiDegradedStateEvent, trackAskSubmitted, trackFeatureEntry } from '../lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -28,7 +30,13 @@ import {
   ChevronUp,
   RotateCcw,
   Zap,
+  Dumbbell,
+  FlaskConical,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
+import { programs } from '../data/programs';
+import { getCustomPrograms } from '../utils/localStorage';
 
 const SUGGESTED = [
   'How much protein do I need per day?',
@@ -70,6 +78,11 @@ export function AskPage() {
   const { session } = useAuth();
   const { status } = useSubscription();
   const prefill = (location.state as { prefill?: string } | null)?.prefill ?? '';
+
+  // ── Omni mode state ─────────────────────────────────────────────────────────
+  const [omniMode, setOmniMode] = useState<OmniMode>('science');
+
+  // ── Ask (science / coach) state ─────────────────────────────────────────────
   const [question, setQuestion] = useState(prefill);
   const [loading, setLoading] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState<string | null>(null);
@@ -85,8 +98,61 @@ export function AskPage() {
   const [currentCitations, setCurrentCitations] = useState<Citation[]>([]);
   const lastDegradedErrorKindRef = useRef<'auth' | 'upgrade' | 'network' | 'rate_limit' | 'server' | 'unknown' | null>(null);
 
+  // ── Check-In state ──────────────────────────────────────────────────────────
+  const [checkinStep, setCheckinStep] = useState<'form' | 'submitting' | 'done'>('form');
+  const [checkinEnergy, setCheckinEnergy] = useState(7);
+  const [checkinSleep, setCheckinSleep] = useState(7);
+  const [checkinSoreness, setCheckinSoreness] = useState(2);
+  const [checkinPain, setCheckinPain] = useState(false);
+  const [checkinPainLocation, setCheckinPainLocation] = useState('');
+  const [checkinNotes, setCheckinNotes] = useState('');
+  const [checkinResult, setCheckinResult] = useState<{
+    omniResponse: string;
+    reduceIntensity: boolean;
+    flaggedExercises: string[];
+  } | null>(() => {
+    const saved = getTodayCheckin();
+    if (!saved) return null;
+    return {
+      omniResponse: saved.omniResponse ?? '',
+      reduceIntensity: saved.energyLevel < 5 || saved.sleepQuality < 5,
+      flaggedExercises: saved.painFlag && saved.painLocation ? [`Avoid heavy loading of ${saved.painLocation}`] : [],
+    };
+  });
+  const [checkinError, setCheckinError] = useState<string | null>(null);
+
   const answerRef = useRef<HTMLDivElement>(null);
   const CONVO_KEY = 'omnexus_ask_conversation';
+
+  // ── Derive active program for Coach Mode context ─────────────────────────────
+  const activeProgram = (() => {
+    if (!state.user?.activeProgramId) return null;
+    const custom = getCustomPrograms().find((p) => p.id === state.user!.activeProgramId);
+    if (custom) return custom;
+    return programs.find((p) => p.id === state.user!.activeProgramId) ?? null;
+  })();
+
+  const currentWeek = (() => {
+    if (!activeProgram) return undefined;
+    const sessions = state.history.sessions.filter((s) => s.programId === activeProgram.id);
+    const daysPerWeek = activeProgram.daysPerWeek || 3;
+    return Math.min(Math.floor(sessions.length / daysPerWeek) + 1, 8);
+  })();
+
+  const coachContext = {
+    firstName: state.user?.name?.split(' ')[0],
+    goal: state.user?.goal,
+    experienceLevel: state.user?.experienceLevel,
+    programName: activeProgram?.name,
+    currentWeek,
+    rankLabel: state.xpProfile?.rankLabel,
+    streak: state.streak,
+    recentPRs: state.history.personalRecords.slice(-3).map((pr) => `${pr.exerciseId} ${pr.weight}kg×${pr.reps}`),
+    currentWeekNote: activeProgram?.weeklyProgressionNotes?.[Math.max(0, (currentWeek ?? 1) - 1)],
+    checkInSummary: checkinResult
+      ? `Energy ${checkinEnergy}/10, Sleep ${checkinSleep}/10, Soreness ${checkinSoreness}/5${checkinPain ? ', pain flag' : ''}`
+      : undefined,
+  };
 
   const recommendation: AskNextStepRecommendation = state.user?.isGuest
     ? {
@@ -168,6 +234,8 @@ export function AskPage() {
           ? { goal: state.user.goal, experienceLevel: state.user.experienceLevel }
           : undefined,
         conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
+        mode: omniMode === 'check-in' ? 'science' : omniMode,
+        coachContext: omniMode === 'coach' ? coachContext : undefined,
       }, {
         onMeta: ({ citations: nextCitations }) => {
           setCurrentCitations(nextCitations ?? []);
@@ -227,6 +295,51 @@ export function AskPage() {
     }
   }
 
+  async function handleCheckinSubmit() {
+    setCheckinStep('submitting');
+    setCheckinError(null);
+    try {
+      const result = await submitCheckin({
+        energyLevel: checkinEnergy,
+        sleepQuality: checkinSleep,
+        sorenessLevel: checkinSoreness,
+        painFlag: checkinPain,
+        painLocation: checkinPain && checkinPainLocation.trim() ? checkinPainLocation.trim() : undefined,
+        notes: checkinNotes.trim() || undefined,
+      });
+      // Save locally for adaptation banner in ActiveWorkout
+      saveDailyCheckinLocal({
+        id: result.checkinId,
+        checkinDate: new Date().toISOString().split('T')[0],
+        energyLevel: checkinEnergy,
+        sleepQuality: checkinSleep,
+        sorenessLevel: checkinSoreness,
+        painFlag: checkinPain,
+        painLocation: checkinPain && checkinPainLocation.trim() ? checkinPainLocation.trim() : undefined,
+        notes: checkinNotes.trim() || undefined,
+        omniResponse: result.omniResponse,
+        createdAt: new Date().toISOString(),
+      });
+      setCheckinResult(result);
+      setCheckinStep('done');
+    } catch {
+      setCheckinError('Check-in could not be saved. Please try again.');
+      setCheckinStep('form');
+    }
+  }
+
+  function resetCheckin() {
+    setCheckinStep('form');
+    setCheckinEnergy(7);
+    setCheckinSleep(7);
+    setCheckinSoreness(2);
+    setCheckinPain(false);
+    setCheckinPainLocation('');
+    setCheckinNotes('');
+    setCheckinResult(null);
+    setCheckinError(null);
+  }
+
   function handleFollowUp(chip: string) {
     setQuestion(chip);
     handleSubmit(chip);
@@ -273,9 +386,33 @@ export function AskPage() {
     navigate(recommendation.destination);
   }
 
+  // ── Mode config ─────────────────────────────────────────────────────────────
+  const MODES: { id: OmniMode; label: string; icon: React.ReactNode; description: string }[] = [
+    {
+      id: 'coach',
+      label: 'Coach',
+      icon: <Dumbbell size={14} />,
+      description: 'Personalised advice using your program and history',
+    },
+    {
+      id: 'science',
+      label: 'Science',
+      icon: <FlaskConical size={14} />,
+      description: 'Evidence-based answers with source citations',
+    },
+    {
+      id: 'check-in',
+      label: 'Check-In',
+      icon: <CheckCircle2 size={14} />,
+      description: 'Daily readiness check — Omni adapts your session',
+    },
+  ];
+
+  const activeMode = MODES.find((m) => m.id === omniMode) ?? MODES[1];
+
   return (
     <AppShell>
-      <TopBar title="Ask Omnexus" showBack />
+      <TopBar title="Ask Omni" showBack />
       <div className="px-4 pb-8 pt-4 space-y-5">
 
         {/* Hero */}
@@ -285,19 +422,190 @@ export function AskPage() {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-snug">
-              Ask Anything
+              Ask Omni
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Science-backed answers with source citations
+              {activeMode.description}
             </p>
           </div>
-          {session && status && status.tier === 'free' && (
+          {session && status && status.tier === 'free' && omniMode !== 'check-in' && (
             <span className="shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
               {status.askCount}/{status.askLimit} today
             </span>
           )}
         </div>
 
+        {/* Mode tabs */}
+        <div className="flex gap-2" role="tablist" aria-label="Omni operating mode">
+          {MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              role="tab"
+              aria-selected={omniMode === mode.id}
+              onClick={() => { setOmniMode(mode.id); resetConversation(); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
+                omniMode === mode.id
+                  ? 'border-brand-500 bg-brand-500/10 text-brand-600 dark:text-brand-300'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-brand-400 dark:hover:border-brand-600'
+              }`}
+            >
+              {mode.icon}
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Check-In Mode ───────────────────────────────────────────────────── */}
+        {omniMode === 'check-in' && (
+          <>
+            {checkinStep === 'done' && checkinResult ? (
+              <div className="space-y-4">
+                <Card className={checkinResult.reduceIntensity
+                  ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20'
+                  : 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20'
+                }>
+                  <div className="flex items-start gap-3">
+                    {checkinResult.reduceIntensity
+                      ? <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      : <CheckCircle2 size={18} className="text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                    }
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Omni's recommendation
+                      </p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                        {checkinResult.omniResponse || 'Check-in saved.'}
+                      </p>
+                      {checkinResult.flaggedExercises.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {checkinResult.flaggedExercises.map((flag) => (
+                            <li key={flag} className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                              <AlertTriangle size={12} />
+                              {flag}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+                <Button variant="secondary" fullWidth onClick={resetCheckin}>
+                  <RotateCcw size={14} />
+                  Update today's check-in
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {checkinError && (
+                  <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+                    {checkinError}
+                  </div>
+                )}
+
+                {/* Energy */}
+                <Card>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                    Energy level: <span className="text-brand-500">{checkinEnergy}/10</span>
+                  </p>
+                  <input
+                    type="range" min={1} max={10} value={checkinEnergy}
+                    onChange={(e) => setCheckinEnergy(Number(e.target.value))}
+                    aria-label="Energy level"
+                    className="w-full accent-brand-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>Exhausted</span><span>Energised</span>
+                  </div>
+                </Card>
+
+                {/* Sleep */}
+                <Card>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                    Sleep quality: <span className="text-brand-500">{checkinSleep}/10</span>
+                  </p>
+                  <input
+                    type="range" min={1} max={10} value={checkinSleep}
+                    onChange={(e) => setCheckinSleep(Number(e.target.value))}
+                    aria-label="Sleep quality"
+                    className="w-full accent-brand-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>Terrible</span><span>Excellent</span>
+                  </div>
+                </Card>
+
+                {/* Soreness */}
+                <Card>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-3">
+                    Muscle soreness: <span className="text-brand-500">{checkinSoreness}/5</span>
+                  </p>
+                  <input
+                    type="range" min={1} max={5} value={checkinSoreness}
+                    onChange={(e) => setCheckinSoreness(Number(e.target.value))}
+                    aria-label="Muscle soreness"
+                    className="w-full accent-brand-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>None</span><span>Very sore</span>
+                  </div>
+                </Card>
+
+                {/* Pain flag */}
+                <Card>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checkinPain}
+                      onChange={(e) => setCheckinPain(e.target.checked)}
+                      className="h-4 w-4 rounded accent-brand-500"
+                    />
+                    <span className="text-sm text-slate-800 dark:text-slate-200">
+                      I have pain (not just soreness)
+                    </span>
+                  </label>
+                  {checkinPain && (
+                    <input
+                      type="text"
+                      value={checkinPainLocation}
+                      onChange={(e) => setCheckinPainLocation(e.target.value)}
+                      placeholder="Where? (e.g. left knee, lower back)"
+                      aria-label="Pain location"
+                      maxLength={100}
+                      className="mt-3 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    />
+                  )}
+                </Card>
+
+                {/* Optional notes */}
+                <div>
+                  <label htmlFor="checkin-notes" className="sr-only">Optional notes</label>
+                  <textarea
+                    id="checkin-notes"
+                    value={checkinNotes}
+                    onChange={(e) => setCheckinNotes(e.target.value)}
+                    placeholder="Anything else Omni should know? (optional)"
+                    rows={2}
+                    maxLength={300}
+                    className="w-full rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 resize-none focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+
+                <Button fullWidth onClick={() => void handleCheckinSubmit()} disabled={checkinStep === 'submitting'}>
+                  {checkinStep === 'submitting' ? (
+                    <><Loader size={16} className="animate-spin" /> Saving…</>
+                  ) : (
+                    <><CheckCircle2 size={16} /> Complete check-in</>
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Coach / Science Mode ─────────────────────────────────────────────── */}
+        {omniMode !== 'check-in' && (
+          <>
         {/* Input area */}
         <div className="space-y-3">
           <label htmlFor="ask-question" className="sr-only">
@@ -308,7 +616,10 @@ export function AskPage() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="e.g. How much protein do I need to build muscle?"
+            placeholder={omniMode === 'coach'
+              ? 'e.g. Should I push hard today or deload?'
+              : 'e.g. How much protein do I need to build muscle?'
+            }
             rows={3}
             disabled={loading}
             className="w-full rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors disabled:opacity-50"
@@ -326,7 +637,7 @@ export function AskPage() {
             ) : (
               <>
                 <Send size={16} />
-                Ask Omnexus
+                Ask Omni
               </>
             )}
           </Button>
@@ -518,6 +829,9 @@ export function AskPage() {
               })}
             </div>
           </div>
+        )}
+
+          </>
         )}
 
         {/* Safety notice */}

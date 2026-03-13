@@ -15,6 +15,7 @@ import type {
   WorkoutFeedback,
   GamificationData,
   SpacedRepCard,
+  DailyCheckin,
 } from '../types';
 
 const KEYS = {
@@ -40,6 +41,7 @@ const KEYS = {
   GAMIFICATION: 'omnexus_gamification',
   DAILY_CHALLENGE: 'omnexus_daily_challenge',
   SPACED_REP_CARDS: 'omnexus_spaced_rep_cards',
+  DAILY_CHECKINS: 'omnexus_daily_checkins',
 } as const;
 
 export const WEIGHT_UNIT_CHANGED_EVENT = 'omnexus:weight-unit-changed';
@@ -490,4 +492,24 @@ export function upsertSpacedRepCardLocal(card: SpacedRepCard): void {
     cards.push(card);
   }
   setSpacedRepCards(cards);
+}
+
+// ─── Daily Check-Ins ──────────────────────────────────────────────────────────
+
+/** Returns all locally stored daily check-ins (most recent first). */
+export function getDailyCheckins(): DailyCheckin[] {
+  return safeRead<DailyCheckin[]>(KEYS.DAILY_CHECKINS, []);
+}
+
+/** Returns today's check-in, or null if none has been completed today. */
+export function getTodayCheckin(): DailyCheckin | null {
+  const today = new Date().toISOString().split('T')[0];
+  const all = getDailyCheckins();
+  return all.find((c) => c.checkinDate === today) ?? null;
+}
+
+/** Saves a check-in locally. Replaces an existing entry for the same date. Keeps the 30 most recent. */
+export function saveDailyCheckinLocal(checkin: DailyCheckin): void {
+  const existing = getDailyCheckins().filter((c) => c.checkinDate !== checkin.checkinDate);
+  safeWrite(KEYS.DAILY_CHECKINS, [checkin, ...existing].slice(0, 30));
 }

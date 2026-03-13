@@ -25,6 +25,7 @@ import type {
   NotificationPreferences,
   XpEvent,
   SpacedRepCard,
+  DailyCheckin,
 } from '../types';
 
 let supabasePromise: Promise<(typeof import('./supabase'))['supabase']> | null = null;
@@ -1210,4 +1211,27 @@ export async function upsertSpacedRepCard(card: SpacedRepCard): Promise<void> {
     last_reviewed_at: card.lastReviewedAt,
   }, { onConflict: 'card_id,user_id' });
   if (error) throw new Error(`[upsertSpacedRepCard] ${error.message}`);
+}
+
+
+// ─── Daily Check-Ins ──────────────────────────────────────────────────────────
+
+export async function saveDailyCheckinToDb(checkin: DailyCheckin, userId: string): Promise<void> {
+  const supabase = await getSupabase();
+  const { error } = await supabase.from('daily_checkins').upsert({
+    id: checkin.id,
+    user_id: userId,
+    checkin_date: checkin.checkinDate,
+    energy_level: checkin.energyLevel,
+    sleep_quality: checkin.sleepQuality,
+    soreness_level: checkin.sorenessLevel,
+    pain_flag: checkin.painFlag,
+    pain_location: checkin.painLocation ?? null,
+    notes: checkin.notes ?? null,
+    omni_response: checkin.omniResponse ?? null,
+    created_at: checkin.createdAt,
+  }, { onConflict: 'user_id,checkin_date' });
+  if (error) {
+    console.warn('[saveDailyCheckinToDb]', error.message);
+  }
 }

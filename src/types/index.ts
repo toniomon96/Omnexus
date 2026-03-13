@@ -804,3 +804,35 @@ export interface SpacedRepCard {
 }
 
 export type SpacedRepQuality = 0 | 1 | 2 | 3 | 4 | 5;
+
+// ─── Omni AI Coach ────────────────────────────────────────────────────────────
+
+export type OmniMode = 'coach' | 'science' | 'check-in';
+
+/** A daily check-in record capturing readiness signals before a training session. */
+export interface DailyCheckin {
+  id: string;
+  userId?: string;
+  /** YYYY-MM-DD UTC */
+  checkinDate: string;
+  /** 1–10: how energised the user feels */
+  energyLevel: number;
+  /** 1–10: how well the user slept */
+  sleepQuality: number;
+  /** 1–5: overall muscle soreness */
+  sorenessLevel: number;
+  /** true when the user reports pain (as opposed to general soreness) */
+  painFlag: boolean;
+  painLocation?: string;
+  notes?: string;
+  /** Omni's one-sentence training recommendation generated from this check-in */
+  omniResponse?: string;
+  createdAt: string;
+}
+
+/** Adaptation banner payload derived from a daily check-in. */
+export interface CheckinAdaptationBanner {
+  message: string;
+  reduceIntensity: boolean;
+  flaggedExercises: string[];
+}

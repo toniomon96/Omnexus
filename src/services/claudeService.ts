@@ -12,6 +12,19 @@ export interface AskRequest {
     experienceLevel: string;
   };
   conversationHistory?: ConversationMessage[];
+  /** Omni operating mode. Defaults to 'science' (existing RAG behavior). */
+  mode?: 'coach' | 'science' | 'check-in';
+  /** Additional coach context sent when mode is 'coach' */
+  coachContext?: {
+    firstName?: string;
+    programName?: string;
+    currentWeek?: number;
+    rankLabel?: string;
+    streak?: number;
+    recentPRs?: string[];
+    currentWeekNote?: string;
+    checkInSummary?: string;
+  };
 }
 
 export interface Citation {
@@ -313,4 +326,26 @@ export interface MealPlanApiResponse {
 
 export function getMealPlan(body: MealPlanRequest): Promise<MealPlanApiResponse> {
   return post<MealPlanApiResponse>('/api/meal-plan', body);
+}
+
+// ─── Daily Check-In ───────────────────────────────────────────────────────────
+
+export interface CheckinRequest {
+  energyLevel: number;
+  sleepQuality: number;
+  sorenessLevel: number;
+  painFlag: boolean;
+  painLocation?: string;
+  notes?: string;
+}
+
+export interface CheckinResponse {
+  checkinId: string;
+  omniResponse: string;
+  reduceIntensity: boolean;
+  flaggedExercises: string[];
+}
+
+export function submitCheckin(body: CheckinRequest): Promise<CheckinResponse> {
+  return post<CheckinResponse>('/api/checkin', body);
 }
