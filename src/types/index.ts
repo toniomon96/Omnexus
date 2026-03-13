@@ -572,3 +572,31 @@ export interface NutritionGoals {
   carbsG: number;
   fatG: number;
 }
+
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+export type AchievementCategory = 'workout' | 'program' | 'learning' | 'streak' | 'nutrition';
+
+export type MasteryLevel = 'novice' | 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;           // emoji
+  category: AchievementCategory;
+  /** Optional progress: current / target */
+  progressTarget?: number;
+}
+
+export interface EarnedAchievement {
+  id: string;
+  earnedAt: string;       // ISO date string
+}
+
+export interface ExerciseMastery {
+  exerciseId: string;
+  sessionsCount: number;  // distinct workout sessions that included this exercise
+  totalSets: number;
+  masteryLevel: MasteryLevel;
+}

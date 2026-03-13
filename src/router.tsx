@@ -71,6 +71,7 @@ const HelpPage = lazy(() => import('./pages/HelpPage').then(m => ({ default: m.H
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
 const GuidedPathwaysPage = lazy(() => import('./pages/GuidedPathwaysPage').then(m => ({ default: m.GuidedPathwaysPage })))
+const AchievementsPage = lazy(() => import('./pages/AchievementsPage').then(m => ({ default: m.AchievementsPage })))
 
 function RootLayout() {
   return (
@@ -642,6 +643,7 @@ export const router = createBrowserRouter([
           { path: '/help', element: <HelpPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/guided-pathways', element: <GuidedPathwaysPage /> },
+          { path: '/achievements', element: <AchievementsPage /> },
           { path: '*', element: <Navigate to="/" replace /> },
         ],
       },
