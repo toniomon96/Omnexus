@@ -781,7 +781,7 @@ export const exercises: Exercise[] = [
     name: 'Preacher Curl',
     category: 'strength',
     primaryMuscles: ['biceps'],
-    secondaryMuscles: ['forearms'],
+    secondaryMuscles: ['core'],
     equipment: ['barbell', 'dumbbell', 'cable'],
     instructions: [
       'Sit at a preacher bench. Rest the backs of your upper arms flat against the pad.',
@@ -802,7 +802,7 @@ export const exercises: Exercise[] = [
     name: 'Incline Dumbbell Curl',
     category: 'strength',
     primaryMuscles: ['biceps'],
-    secondaryMuscles: ['forearms'],
+    secondaryMuscles: ['core'],
     equipment: ['dumbbell'],
     instructions: [
       'Set a bench to a 45–60° incline. Sit back with a dumbbell in each hand, arms hanging straight down.',
@@ -904,7 +904,7 @@ export const exercises: Exercise[] = [
     category: 'strength',
     primaryMuscles: ['core'],
     secondaryMuscles: ['shoulders', 'back'],
-    equipment: ['cable', 'resistance band'],
+    equipment: ['cable', 'resistance-band'],
     instructions: [
       'Attach a handle to a cable at chest height. Stand sideways to the cable, feet shoulder-width, holding the handle at your chest.',
       'Brace your core hard, then press the handle straight out in front of you to full arm extension.',
@@ -943,7 +943,7 @@ export const exercises: Exercise[] = [
     name: 'Front Squat',
     category: 'strength',
     primaryMuscles: ['quads'],
-    secondaryMuscles: ['core', 'upper back', 'glutes'],
+    secondaryMuscles: ['core', 'back', 'glutes'],
     equipment: ['barbell'],
     instructions: [
       'Rest the barbell across the front of your shoulders (front rack or crossed-arm position). Keep elbows high.',
