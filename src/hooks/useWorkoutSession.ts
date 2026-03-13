@@ -23,6 +23,22 @@ function safeInitialSetCount(value: unknown): number {
   return Math.min(Math.max(Math.round(numeric), 1), 8);
 }
 
+export function sanitizeMissionProgressHistory(
+  history: Array<{ date: string; value: number }>,
+  maxEntries = 60,
+): Array<{ date: string; value: number }> {
+  return history
+    .filter((entry) => typeof entry?.date === 'string' && entry.date.length > 0)
+    .map((entry) => {
+      const numeric = Number(entry.value);
+      return {
+        date: entry.date,
+        value: Number.isFinite(numeric) && numeric > 0 ? numeric : 0,
+      };
+    })
+    .slice(-Math.max(1, Math.round(maxEntries)));
+}
+
 // ─── Block mission progress helper ────────────────────────────────────────────
 
 async function updateBlockMissions(
@@ -75,11 +91,15 @@ async function updateBlockMissions(
 
       if (!shouldUpdate) continue;
 
-      const newCurrent = getSafeMissionCurrentValue(mission) + delta;
-      const newHistory = [
-        ...mission.progress.history,
-        { date: today, value: delta },
-      ].slice(-60);
+      const safeDelta = Number.isFinite(delta) && delta > 0 ? delta : 0;
+      if (safeDelta <= 0) continue;
+
+      const newCurrent = getSafeMissionCurrentValue(mission) + safeDelta;
+      const existingHistory = sanitizeMissionProgressHistory(mission.progress.history);
+      const newHistory = sanitizeMissionProgressHistory([
+        ...existingHistory,
+        { date: today, value: safeDelta },
+      ]);
       const newProgress: BlockMission['progress'] = { current: newCurrent, history: newHistory };
       const newStatus: BlockMission['status'] =
         newCurrent >= getSafeMissionTargetValue(mission) ? 'completed' : 'active';
