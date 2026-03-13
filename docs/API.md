@@ -198,8 +198,12 @@ Content-Type: application/json
 - Invalid or weak set schemes are clamped to safe bounds (sets, rest, optional RPE).
 - Day count is normalized to the requested training frequency.
 - Missing progression details are backfilled to preserve week-by-week coaching continuity.
+- Explicit split preferences are enforced when requested (`upper-lower`, `push-pull-legs`, `full-body`).
+- Session duration realism is checked using per-day estimates from sets/reps/rest patterns.
 
 If normalized output still fails quality integrity checks, a hardcoded fallback full-body program is returned instead. The endpoint never returns a generation failure 4xx/5xx.
+
+See [docs/program-generation.md](docs/program-generation.md) for full pipeline and validation details.
 
 **Fallback:** Even on Claude API errors, a usable fallback program is returned with `HTTP 200`.
 

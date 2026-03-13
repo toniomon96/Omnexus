@@ -64,6 +64,7 @@ export interface InsightResponse {
 // ─── Fetch helpers ────────────────────────────────────────────────────────────
 
 import { apiBase } from '../lib/api';
+import { cleanAiResponseText } from '../lib/aiResponse';
 
 async function getAccessToken() {
   const { supabase } = await import('../lib/supabase');
@@ -100,8 +101,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export function askOmnexus(body: AskRequest): Promise<AskResponse> {
-  return post<AskResponse>('/api/ask', body);
+export async function askOmnexus(body: AskRequest): Promise<AskResponse> {
+  const response = await post<AskResponse>('/api/ask', body);
+  return {
+    ...response,
+    answer: cleanAiResponseText(response.answer),
+  };
 }
 
 export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHandlers): Promise<AskResponse> {
@@ -134,9 +139,10 @@ export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHand
 
     if (!looksLikeSse) {
       const data = JSON.parse(raw) as AskResponse;
-      handlers.onChunk({ text: data.answer });
-      handlers.onDone?.({ answer: data.answer, citations: data.citations });
-      return data;
+      const cleanAnswer = cleanAiResponseText(data.answer);
+      handlers.onChunk({ text: cleanAnswer });
+      handlers.onDone?.({ answer: cleanAnswer, citations: data.citations });
+      return { ...data, answer: cleanAnswer };
     }
 
     let answerFromSseText = '';
@@ -177,7 +183,7 @@ export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHand
       }
 
       if (eventType === 'done') {
-        answerFromSseText = payload.answer ?? answerFromSseText;
+        answerFromSseText = cleanAiResponseText(payload.answer ?? answerFromSseText);
         citationsFromSseText = payload.citations ?? citationsFromSseText;
         handlers.onDone?.({ answer: answerFromSseText, citations: citationsFromSseText });
         return { answer: answerFromSseText, citations: citationsFromSseText };
@@ -189,8 +195,9 @@ export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHand
       message: 'SSE stream ended without a done event',
       skippedFrames: skippedFramesFromSseText,
     });
-    handlers.onDone?.({ answer: answerFromSseText, citations: citationsFromSseText });
-    return { answer: answerFromSseText, citations: citationsFromSseText };
+    const cleanFallbackAnswer = cleanAiResponseText(answerFromSseText);
+    handlers.onDone?.({ answer: cleanFallbackAnswer, citations: citationsFromSseText });
+    return { answer: cleanFallbackAnswer, citations: citationsFromSseText };
   }
 
   const reader = res.body.getReader();
@@ -250,7 +257,7 @@ export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHand
       }
 
       if (eventType === 'done') {
-        answer = payload.answer ?? answer;
+        answer = cleanAiResponseText(payload.answer ?? answer);
         citations = payload.citations ?? citations;
         handlers.onDone?.({ answer, citations });
         return { answer, citations };
@@ -264,8 +271,9 @@ export async function askOmnexusStream(body: AskRequest, handlers: AskStreamHand
     skippedFrames,
   });
 
-  handlers.onDone?.({ answer, citations });
-  return { answer, citations };
+  const cleanAnswer = cleanAiResponseText(answer);
+  handlers.onDone?.({ answer: cleanAnswer, citations });
+  return { answer: cleanAnswer, citations };
 }
 
 export function getWorkoutInsights(body: InsightRequest): Promise<InsightResponse> {

@@ -1,19 +1,36 @@
 import { useEffect, useState } from 'react';
 import type { WeightUnit } from '../types';
-import { getWeightUnit } from '../utils/localStorage';
+import { getWeightUnit, WEIGHT_UNIT_CHANGED_EVENT } from '../utils/localStorage';
+
+export function subscribeToWeightUnitChanges(onUnitChange: () => void): () => void {
+  function onStorage(event: StorageEvent) {
+    if (event.key === 'omnexus_weight_unit') {
+      onUnitChange();
+    }
+  }
+
+  function onWeightUnitChanged() {
+    onUnitChange();
+  }
+
+  window.addEventListener('storage', onStorage);
+  window.addEventListener(WEIGHT_UNIT_CHANGED_EVENT, onWeightUnitChanged);
+
+  return () => {
+    window.removeEventListener('storage', onStorage);
+    window.removeEventListener(WEIGHT_UNIT_CHANGED_EVENT, onWeightUnitChanged);
+  };
+}
 
 export function useWeightUnit(): WeightUnit {
   const [unit, setUnit] = useState<WeightUnit>(() => getWeightUnit());
 
   useEffect(() => {
-    function onStorage(event: StorageEvent) {
-      if (event.key === 'omnexus_weight_unit') {
-        setUnit(getWeightUnit());
-      }
-    }
+    const unsubscribe = subscribeToWeightUnitChanges(() => {
+      setUnit(getWeightUnit());
+    });
 
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return unsubscribe;
   }, []);
 
   return unit;

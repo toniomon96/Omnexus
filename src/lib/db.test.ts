@@ -8,7 +8,7 @@ vi.mock('./supabase', () => ({
   supabase: { from: mockFrom },
 }));
 
-import { upsertSession, fetchHistory, deleteCustomProgramDb } from './db';
+import { upsertSession, fetchHistory, deleteCustomProgramDb, getBlockMissions } from './db';
 import type { WorkoutSession } from '../types';
 
 // ── Builder helper ─────────────────────────────────────────────────────────────
@@ -166,5 +166,58 @@ describe('deleteCustomProgramDb', () => {
     await expect(deleteCustomProgramDb('prog-bad')).rejects.toThrow(
       '[deleteCustomProgramDb] row not found',
     );
+  });
+});
+
+// ── getBlockMissions ─────────────────────────────────────────────────────────
+describe('getBlockMissions', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('safely maps malformed target and progress payloads', async () => {
+    const missionRow = {
+      id: 'mission-1',
+      user_id: 'user-1',
+      program_id: 'prog-1',
+      type: 'volume',
+      description: 'Hit weekly volume target',
+      target: {
+        metric: '   ',
+        value: Number.POSITIVE_INFINITY,
+        unit: '  kg  ',
+      },
+      progress: {
+        current: Number.NaN,
+        history: [
+          { date: '2026-03-01', value: 10 },
+          { date: '   ', value: Number.NaN },
+          { date: '2026-03-02', value: -5 },
+        ],
+      },
+      status: 'active',
+      created_at: '2026-03-01T00:00:00Z',
+      completed_at: null,
+    };
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'block_missions') {
+        return createBuilder({ data: [missionRow], error: null });
+      }
+      return createBuilder({ data: [], error: null });
+    });
+
+    const missions = await getBlockMissions('user-1', 'prog-1');
+
+    expect(missions).toHaveLength(1);
+    expect(missions[0].target).toEqual({
+      metric: 'target',
+      value: 1,
+      unit: 'kg',
+    });
+    expect(missions[0].progress.current).toBe(0);
+    expect(missions[0].progress.history).toHaveLength(3);
+    expect(missions[0].progress.history[0]).toEqual({ date: '2026-03-01', value: 10 });
+    expect(missions[0].progress.history[1].value).toBe(0);
+    expect(missions[0].progress.history[1].date.length).toBeGreaterThan(0);
+    expect(missions[0].progress.history[2]).toEqual({ date: '2026-03-02', value: 0 });
   });
 });

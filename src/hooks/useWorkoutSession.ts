@@ -15,11 +15,28 @@ import { calculateTotalVolume, detectPersonalRecords } from '../utils/volumeUtil
 import { advanceProgramCursor } from '../utils/programUtils';
 import { trackWorkoutCompleted } from '../lib/analytics';
 import { getSessionPersonalRecords } from '../utils/workoutSync';
+import { getSafeMissionCurrentValue, getSafeMissionTargetValue } from '../lib/missionUtils';
 
 function safeInitialSetCount(value: unknown): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 3;
   return Math.min(Math.max(Math.round(numeric), 1), 8);
+}
+
+export function sanitizeMissionProgressHistory(
+  history: Array<{ date: string; value: number }>,
+  maxEntries = 60,
+): Array<{ date: string; value: number }> {
+  return history
+    .filter((entry) => typeof entry?.date === 'string' && entry.date.length > 0)
+    .map((entry) => {
+      const numeric = Number(entry.value);
+      return {
+        date: entry.date,
+        value: Number.isFinite(numeric) && numeric > 0 ? numeric : 0,
+      };
+    })
+    .slice(-Math.max(1, Math.round(maxEntries)));
 }
 
 // ─── Block mission progress helper ────────────────────────────────────────────
@@ -66,7 +83,7 @@ async function updateBlockMissions(
       } else if (mission.type === 'rpe' && avgRpe !== null) {
         // For RPE missions, target is the max acceptable avg RPE
         // Increment current only if session avg RPE <= target
-        if (avgRpe <= mission.target.value) {
+        if (avgRpe <= getSafeMissionTargetValue(mission)) {
           delta = 1;
           shouldUpdate = true;
         }
@@ -74,14 +91,18 @@ async function updateBlockMissions(
 
       if (!shouldUpdate) continue;
 
-      const newCurrent = mission.progress.current + delta;
-      const newHistory = [
-        ...mission.progress.history,
-        { date: today, value: delta },
-      ];
+      const safeDelta = Number.isFinite(delta) && delta > 0 ? delta : 0;
+      if (safeDelta <= 0) continue;
+
+      const newCurrent = getSafeMissionCurrentValue(mission) + safeDelta;
+      const existingHistory = sanitizeMissionProgressHistory(mission.progress.history);
+      const newHistory = sanitizeMissionProgressHistory([
+        ...existingHistory,
+        { date: today, value: safeDelta },
+      ]);
       const newProgress: BlockMission['progress'] = { current: newCurrent, history: newHistory };
       const newStatus: BlockMission['status'] =
-        newCurrent >= mission.target.value ? 'completed' : 'active';
+        newCurrent >= getSafeMissionTargetValue(mission) ? 'completed' : 'active';
 
       await updateMissionProgress(mission.id, newProgress, newStatus);
     }

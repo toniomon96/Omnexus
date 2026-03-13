@@ -16,6 +16,52 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'Omnexus <no-reply@notifications.omnexus.fit>';
 const MIN_PASSWORD_LENGTH = 12;
 
+function toOrigin(value?: string): string | null {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function resolveSignupRedirect(req: VercelRequest, redirectTo: unknown): string {
+  const trustedOrigins = new Set<string>();
+
+  const appOrigin = toOrigin(process.env.VITE_SITE_URL) ?? toOrigin(process.env.APP_URL);
+  if (appOrigin) trustedOrigins.add(appOrigin);
+
+  const requestOriginRaw = req.headers.origin;
+  const requestOrigin = Array.isArray(requestOriginRaw) ? requestOriginRaw[0] : requestOriginRaw;
+  const normalizedRequestOrigin = toOrigin(requestOrigin);
+  if (normalizedRequestOrigin) trustedOrigins.add(normalizedRequestOrigin);
+
+  const localDevOrigin = 'http://localhost:3000';
+
+  if (typeof redirectTo === 'string' && redirectTo.trim().length > 0) {
+    const value = redirectTo.trim();
+
+    try {
+      const parsed = new URL(value);
+      if (trustedOrigins.has(parsed.origin)) {
+        return parsed.toString();
+      }
+    } catch {
+      const base = appOrigin ?? normalizedRequestOrigin;
+      if (base) {
+        try {
+          return new URL(value, base).toString();
+        } catch {
+          // Fall through to trusted default below.
+        }
+      }
+    }
+  }
+
+  const defaultOrigin = appOrigin ?? normalizedRequestOrigin ?? localDevOrigin;
+  return new URL('/auth/callback', defaultOrigin).toString();
+}
+
 function buildConfirmationEmail(confirmUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -108,7 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
 
-  const safeRedirectTo = typeof redirectTo === 'string' ? redirectTo : undefined;
+  const safeRedirectTo = resolveSignupRedirect(req, redirectTo);
 
   // 1. Create the user with Supabase admin API.
   //    email_confirm: false — we send our own email via Resend.
@@ -135,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     email: email.trim().toLowerCase(),
     password,
     options: {
-      redirectTo: safeRedirectTo ?? `${process.env.VITE_SITE_URL ?? ''}/auth/callback`,
+      redirectTo: safeRedirectTo,
     },
   });
 

@@ -83,9 +83,10 @@ New user (AI onboarding):
                           → POST /api/generate-program → Program JSON returned
                           → supabase.auth.signUp()
                           → saveAiGeneratedProgram() → custom_programs table
-                          → POST /api/setup-profile (admin insert, sets activeProgramId)
+                          → POST /api/setup-profile (Bearer token required; only when session exists)
                           → upsertTrainingProfile() → training_profiles table
                →  if email confirmation ON: show "check email" message
+                          → profile row is created after first verified login via profile recovery
                →  if email confirmation OFF: dispatch SET_USER → navigate to /
 
 Guest user:
@@ -95,6 +96,7 @@ Guest user:
 
 Returning user:
   /login  →  supabase.auth.signInWithPassword()  →  fetch profile  →  dispatch SET_USER  →  /
+         →  tutorial auto-show uses per-user localStorage key (no cross-account bleed on shared devices)
 
 Cross-device login:
   session restored by onAuthStateChange  →  AuthGuard.hydrate()

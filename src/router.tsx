@@ -413,7 +413,10 @@ function GuestOrAuthGuard() {
         />
       )}
       {showTutorial && location.pathname === '/' && (
-        <AppTutorial onDismiss={() => setShowTutorial(false)} />
+        <AppTutorial
+          onDismiss={() => setShowTutorial(false)}
+          userId={state.user?.id}
+        />
       )}
     </>
   )

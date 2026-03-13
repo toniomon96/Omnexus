@@ -64,6 +64,8 @@ const CORE_OR_CARDIO_IDS = new Set([
 
 const DEFAULT_EXERCISE_PROGRESS = 'W1: 3x10 @RPE7 | W2: 4x8 @RPE7 | W3: 4x8 @RPE8 | W4: Deload 2x10 @RPE6 | W5: 4x8 @RPE8 | W6: 4x6 @RPE8 | W7: 5x5 @RPE9 | W8: Test or deload';
 
+type CanonicalProgramStyle = 'full-body' | 'upper-lower' | 'push-pull-legs' | 'any';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface UserTrainingProfile {
@@ -154,6 +156,76 @@ function exerciseCountRange(profile: UserTrainingProfile): { min: number; max: n
   if (profile.sessionDurationMinutes <= 60) return { min: 5, max: 6 };
   if (profile.sessionDurationMinutes <= 75) return { min: 6, max: 7 };
   return { min: 7, max: 8 };
+}
+
+function normalizeProgramStyle(style: unknown): CanonicalProgramStyle {
+  if (style === 'full-body' || style === 'upper-lower' || style === 'push-pull-legs' || style === 'any') {
+    return style;
+  }
+  return 'any';
+}
+
+function expectedDayTypePattern(profile: UserTrainingProfile): string[] | null {
+  const style = normalizeProgramStyle(profile.programStyle);
+  const days = clampDays(profile.daysPerWeek);
+
+  if (style === 'any') return null;
+
+  if (style === 'full-body') {
+    return Array.from({ length: days }, () => 'full-body');
+  }
+
+  if (style === 'upper-lower') {
+    if (days === 4) return ['upper', 'lower', 'upper', 'lower'];
+    if (days === 5) return ['upper', 'lower', 'upper', 'lower', 'upper'];
+    return ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'];
+  }
+
+  if (days === 3) return ['push', 'pull', 'legs'];
+  if (days === 4) return ['push', 'pull', 'legs', 'upper'];
+  if (days === 5) return ['push', 'pull', 'legs', 'upper', 'lower'];
+  return ['push', 'pull', 'legs', 'push', 'pull', 'legs'];
+}
+
+function parseRepTarget(reps: string): number {
+  const cleaned = reps.trim().toLowerCase();
+  if (!cleaned) return 10;
+
+  if (/^\d+\s*s$/.test(cleaned)) {
+    const seconds = Number(cleaned.replace(/\D+/g, ''));
+    return Number.isFinite(seconds) ? Math.max(1, Math.round(seconds / 4)) : 10;
+  }
+
+  const parts = cleaned.split('-').map((part) => Number(part.replace(/\D+/g, ''))).filter(Number.isFinite);
+  if (parts.length === 2) {
+    return Math.max(1, Math.round((parts[0] + parts[1]) / 2));
+  }
+  if (parts.length === 1) {
+    return Math.max(1, parts[0]);
+  }
+  return 10;
+}
+
+function estimateDayDurationMinutes(day: TrainingDay): number {
+  let totalSeconds = 0;
+
+  for (const exercise of day.exercises) {
+    const sets = Math.max(1, exercise.scheme.sets);
+    const repTarget = parseRepTarget(exercise.scheme.reps);
+    const workSeconds = sets * Math.max(20, repTarget * 4);
+    const restSeconds = Math.max(0, (sets - 1) * exercise.scheme.restSeconds);
+    // Includes setup/transitions for stations and logging.
+    const transitionSeconds = 75;
+
+    totalSeconds += workSeconds + restSeconds + transitionSeconds;
+  }
+
+  return Math.max(1, Math.round(totalSeconds / 60));
+}
+
+function hasCompleteWeekMarkers(value: string): boolean {
+  const normalized = value.toUpperCase();
+  return ['W1:', 'W2:', 'W3:', 'W4:', 'W5:', 'W6:', 'W7:', 'W8:'].every((marker) => normalized.includes(marker));
 }
 
 function normalizeScheme(raw: unknown, fallback?: SetScheme): SetScheme {
@@ -318,6 +390,18 @@ function assessProgramIntegrity(program: GeneratedProgram, profile: UserTraining
 
   if (!program.weeklyProgressionNotes || program.weeklyProgressionNotes.length !== 8) {
     reasons.push('weekly_progression_missing');
+  } else {
+    if (!program.weeklyProgressionNotes.every((note, idx) => note.toLowerCase().includes(`week ${idx + 1}`))) {
+      reasons.push('weekly_progression_sequence_invalid');
+    }
+    if (!/deload/i.test(program.weeklyProgressionNotes[3] ?? '')) {
+      reasons.push('weekly_deload_missing');
+    }
+  }
+
+  const expectedPattern = expectedDayTypePattern(profile);
+  if (expectedPattern && program.schedule.some((day, idx) => day.type !== expectedPattern[idx])) {
+    reasons.push('split_structure_mismatch');
   }
 
   let pushSets = 0;
@@ -330,9 +414,17 @@ function assessProgramIntegrity(program: GeneratedProgram, profile: UserTraining
       reasons.push('insufficient_daily_exercise_count');
     }
 
+    const estimatedMinutes = estimateDayDurationMinutes(day);
+    const minDuration = Math.max(20, profile.sessionDurationMinutes - 30);
+    const maxDuration = profile.sessionDurationMinutes + 20;
+    if (estimatedMinutes < minDuration) reasons.push('session_duration_too_short');
+    if (estimatedMinutes > maxDuration) reasons.push('session_duration_too_long');
+
     for (const exercise of day.exercises) {
-      if (!exercise.notes || !/W1:.*W8:/i.test(exercise.notes)) {
+      if (!exercise.notes || !hasCompleteWeekMarkers(exercise.notes)) {
         reasons.push('progression_notes_missing');
+      } else if (!/W4:.*deload/i.test(exercise.notes)) {
+        reasons.push('exercise_deload_missing');
       }
 
       const setCount = Math.max(1, exercise.scheme.sets);

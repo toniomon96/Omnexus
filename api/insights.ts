@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { hasPromptInjectionSignals, normalizeExperience, normalizeGoal, sanitizeFreeText } from './_aiSafety.js';
+import { cleanAiText } from './_aiResponse.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -132,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected Claude response type');
 
-    return res.status(200).json({ insight: block.text });
+    return res.status(200).json({ insight: cleanAiText(block.text) });
   } catch (err: unknown) {
     console.error('[/api/insights]', err);
     return res.status(500).json({ error: 'Could not generate insights right now. Please try again shortly.' });

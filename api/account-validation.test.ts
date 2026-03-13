@@ -475,4 +475,83 @@ describe('account route validation guards', () => {
     expect(getStatusCode()).toBe(200);
     expect(getBody()).toEqual({ userId: 'user_1', emailSent: false });
   });
+
+  it('signup uses trusted app callback when redirect is omitted', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
+    process.env.VITE_SITE_URL = 'https://app.omnexus.fit';
+
+    const generateLink = vi.fn(async () => ({
+      data: { properties: { action_link: 'https://confirm.example.com/token' } },
+      error: null,
+    }));
+
+    const supabaseMock = {
+      auth: {
+        admin: {
+          createUser: vi.fn(async () => ({ data: { user: { id: 'user_1' } }, error: null })),
+          generateLink,
+        },
+      },
+    };
+
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: () => supabaseMock,
+    }));
+
+    const { default: signup } = await import('./signup.js');
+    const { res, getStatusCode, getBody } = createMockResponse();
+
+    await signup(createReq({ body: { email: 'test@example.com', password: 'password1234' } }), res);
+
+    expect(getStatusCode()).toBe(200);
+    expect(getBody()).toEqual({ userId: 'user_1', emailSent: false });
+    expect(generateLink).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({
+        redirectTo: 'https://app.omnexus.fit/auth/callback',
+      }),
+    }));
+  });
+
+  it('signup ignores untrusted redirect origins', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
+    process.env.VITE_SITE_URL = 'https://app.omnexus.fit';
+
+    const generateLink = vi.fn(async () => ({
+      data: { properties: { action_link: 'https://confirm.example.com/token' } },
+      error: null,
+    }));
+
+    const supabaseMock = {
+      auth: {
+        admin: {
+          createUser: vi.fn(async () => ({ data: { user: { id: 'user_1' } }, error: null })),
+          generateLink,
+        },
+      },
+    };
+
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: () => supabaseMock,
+    }));
+
+    const { default: signup } = await import('./signup.js');
+    const { res, getStatusCode } = createMockResponse();
+
+    await signup(createReq({
+      body: {
+        email: 'test@example.com',
+        password: 'password1234',
+        redirectTo: 'https://evil.example.com/auth/callback',
+      },
+    }), res);
+
+    expect(getStatusCode()).toBe(200);
+    expect(generateLink).toHaveBeenCalledWith(expect.objectContaining({
+      options: expect.objectContaining({
+        redirectTo: 'https://app.omnexus.fit/auth/callback',
+      }),
+    }));
+  });
 });

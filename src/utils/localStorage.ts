@@ -35,6 +35,8 @@ const KEYS = {
   EXPERIENCE_MODE: 'omnexus_experience_mode',
 } as const;
 
+export const WEIGHT_UNIT_CHANGED_EVENT = 'omnexus:weight-unit-changed';
+
 export type ExperienceMode = 'guided' | 'advanced';
 
 function safeRead<T>(key: string, fallback: T): T {
@@ -178,6 +180,9 @@ export function getWeightUnit(): WeightUnit {
 
 export function setWeightUnit(unit: WeightUnit): void {
   safeWrite(KEYS.WEIGHT_UNIT, unit);
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent(WEIGHT_UNIT_CHANGED_EVENT, { detail: unit }));
+  }
 }
 
 export function getExperienceMode(userId?: string): ExperienceMode {
