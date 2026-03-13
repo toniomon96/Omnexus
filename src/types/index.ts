@@ -120,6 +120,26 @@ export interface UserTrainingProfile {
   programStyle?: 'full-body' | 'upper-lower' | 'push-pull-legs' | 'any';
   /** Whether the user wants cardio/conditioning built into the program */
   includeCardio?: boolean;
+  /** Athlete's bodyweight in kg — used for dip/pull-up progressions */
+  bodyweightKg?: number;
+  /** Current working lifts in kg — used to calibrate realistic load recommendations */
+  currentLiftsKg?: {
+    bench?: number;
+    squat?: number;
+    deadlift?: number;
+    press?: number;
+  };
+  /** Most recent workout feedback — injected into next program generation */
+  recentFeedback?: string;
+}
+
+// ─── Workout Feedback ─────────────────────────────────────────────────────────
+
+export interface WorkoutFeedback {
+  sessionId: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  notes?: string;
+  savedAt: string;
 }
 
 // ─── Exercise Library ─────────────────────────────────────────────────────────

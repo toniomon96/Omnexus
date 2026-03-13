@@ -755,6 +755,210 @@ export const exercises: Exercise[] = [
     ],
     pattern: 'pull-horizontal',
   },
+
+  // ── PHASE 2 EXERCISES ────────────────────────────────────────────────────────
+  {
+    id: 'close-grip-bench-press',
+    name: 'Close-Grip Bench Press',
+    category: 'strength',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: ['chest', 'shoulders'],
+    equipment: ['barbell'],
+    instructions: [
+      'Lie on a flat bench. Grip the bar with hands roughly shoulder-width apart (narrower than a standard bench grip).',
+      'Unrack and lower the bar to your lower chest, keeping elbows tucked close to your sides.',
+      'Press explosively back to full extension, squeezing your triceps at the top.',
+    ],
+    tips: [
+      'Hands too close (less than 6 inches apart) strains the wrists — shoulder-width is optimal.',
+      'Tuck the elbows at 45° to the torso, not perpendicular, to protect the shoulder joint.',
+      'This is the king of tricep mass builders — prioritise progressive overload here.',
+    ],
+    pattern: 'push-horizontal',
+  },
+  {
+    id: 'preacher-curl',
+    name: 'Preacher Curl',
+    category: 'strength',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['forearms'],
+    equipment: ['barbell', 'dumbbell', 'cable'],
+    instructions: [
+      'Sit at a preacher bench. Rest the backs of your upper arms flat against the pad.',
+      'Hold the bar or dumbbells with an underhand grip, arms extended.',
+      'Curl the weight up by flexing your elbows, keeping upper arms pinned against the pad.',
+      'Lower with control until your arms are nearly fully extended.',
+    ],
+    tips: [
+      'The pad eliminates any body English — every rep is honest work.',
+      'Stop just short of full extension at the bottom to keep tension on the bicep tendon.',
+      'The stretched position (near the bottom) is where hypertrophy stimulus is greatest.',
+      'Use a slightly wider than shoulder-width grip on the EZ bar to reduce wrist strain.',
+    ],
+    pattern: 'isolation',
+  },
+  {
+    id: 'incline-dumbbell-curl',
+    name: 'Incline Dumbbell Curl',
+    category: 'strength',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['forearms'],
+    equipment: ['dumbbell'],
+    instructions: [
+      'Set a bench to a 45–60° incline. Sit back with a dumbbell in each hand, arms hanging straight down.',
+      'Curl both dumbbells simultaneously, keeping your elbows stationary behind your torso.',
+      'Squeeze hard at the top, then lower with a slow 3-second eccentric.',
+    ],
+    tips: [
+      'The incline angle places the long head of the bicep in a deep stretch — its most productive position.',
+      'Do not let your elbows drift forward; keep them behind the plane of your torso the entire time.',
+      'This is one of the most effective exercises for developing bicep peak.',
+      'Use lighter weight than standing curls — the stretched position dramatically increases the challenge.',
+    ],
+    pattern: 'isolation',
+  },
+  {
+    id: 'hack-squat',
+    name: 'Hack Squat',
+    category: 'strength',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes', 'hamstrings', 'calves'],
+    equipment: ['machine'],
+    instructions: [
+      'Position yourself in the hack squat machine with your back flat against the pad and feet shoulder-width on the platform.',
+      'Release the safety handles and lower yourself until your knees reach 90° or deeper.',
+      'Drive through your full foot to press back to the start, without fully locking out the knees.',
+    ],
+    tips: [
+      'Placing feet higher on the platform increases glute/hamstring involvement; lower placement emphasises quads.',
+      'The machine tracks the path for you — focus entirely on depth and quad contraction.',
+      'An excellent option when lower back fatigue limits barbell squatting.',
+      'Try pausing 1 second in the hole for a brutal quad pump.',
+    ],
+    pattern: 'squat',
+  },
+  {
+    id: 'chest-supported-row',
+    name: 'Chest-Supported Dumbbell Row',
+    category: 'strength',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps', 'shoulders'],
+    equipment: ['dumbbell'],
+    instructions: [
+      'Set a bench to a low incline (20–30°). Lie face-down with your chest against the pad, dumbbells hanging below.',
+      'Row both dumbbells up by driving your elbows back and squeezing your shoulder blades together.',
+      'Lower with control to a full hang before the next rep.',
+    ],
+    tips: [
+      'The chest support eliminates all lower back stress — ideal for high-fatigue training days.',
+      'This allows you to isolate the upper back without any compensatory hip extension or trunk rotation.',
+      'Lead with your elbows, not your hands, to maximise lat and rhomboid engagement.',
+      'Use a neutral (palms-in) grip to target the mid-back; underhand grip shifts more load to the biceps.',
+    ],
+    pattern: 'pull-horizontal',
+  },
+  {
+    id: 'single-leg-romanian-deadlift',
+    name: 'Single-Leg Romanian Deadlift',
+    category: 'strength',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['glutes', 'core'],
+    equipment: ['dumbbell', 'barbell'],
+    instructions: [
+      'Stand on one foot, holding a dumbbell in the opposite hand (or both hands for a barbell).',
+      'Hinge at the hip, extending the free leg behind you as a counterbalance, and lower the weight toward the floor.',
+      'Keep your back flat and hips square throughout the movement.',
+      'Return to standing by driving through the heel of the working leg.',
+    ],
+    tips: [
+      'Focus on the hip hinge — the foot goes back because the hip hinges, not the other way around.',
+      'Keep your pelvis level; avoid rotating your hips open toward the ceiling.',
+      'Start light — balance demands and unilateral hamstring loading are both significant.',
+      'Excellent for identifying and correcting strength asymmetries between legs.',
+    ],
+    pattern: 'hinge',
+  },
+  {
+    id: 'dumbbell-fly',
+    name: 'Dumbbell Fly',
+    category: 'strength',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    equipment: ['dumbbell'],
+    instructions: [
+      'Lie on a flat bench with a dumbbell in each hand, arms extended above your chest, palms facing each other.',
+      'With a slight, fixed bend in the elbows, lower the dumbbells out to the sides in a wide arc.',
+      'Stop when you feel a deep stretch in the chest, then squeeze the pecs to return to the start.',
+    ],
+    tips: [
+      'This is a stretch-focused isolation movement — use light-to-moderate weight and prioritise the range of motion.',
+      'Keep the elbow angle constant (do not curl the weights up). Think of hugging a barrel.',
+      'The dumbbell fly targets the chest through a different range than pressing — it belongs in every hypertrophy program.',
+      'A 2-second pause in the stretched position dramatically increases time under tension.',
+    ],
+    pattern: 'isolation',
+  },
+  {
+    id: 'pallof-press',
+    name: 'Pallof Press',
+    category: 'strength',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['shoulders', 'back'],
+    equipment: ['cable', 'resistance band'],
+    instructions: [
+      'Attach a handle to a cable at chest height. Stand sideways to the cable, feet shoulder-width, holding the handle at your chest.',
+      'Brace your core hard, then press the handle straight out in front of you to full arm extension.',
+      'Hold for 1–2 seconds, then return the handle to your chest. Do not rotate.',
+    ],
+    tips: [
+      'The Pallof press trains anti-rotation — resisting twisting forces — which is how your core works in real life.',
+      'The further you stand from the machine, the harder the anti-rotation demand.',
+      'Avoid letting your hips or shoulders turn toward the cable. Zero rotation is the goal.',
+      'This exercise is highly transferable to sport performance and injury prevention.',
+    ],
+    pattern: 'isolation',
+  },
+  {
+    id: 'hyperextension',
+    name: 'Hyperextension (Back Extension)',
+    category: 'strength',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    equipment: ['machine', 'bodyweight'],
+    instructions: [
+      'Position yourself face-down in a hyperextension bench, feet secured, hips at the pad edge.',
+      'Cross your arms over your chest or hold a weight plate. Lower your torso toward the floor.',
+      'Contract your glutes and lower back to raise your torso back to neutral (do not hyperextend beyond horizontal).',
+    ],
+    tips: [
+      'Stop at horizontal — excessive extension loads the lumbar spine unnecessarily.',
+      'To bias the glutes, round your back slightly and think "squeeze glutes" on the way up.',
+      'To bias the erectors, keep the spine neutral throughout the range.',
+      'Add a plate or dumbbell to the chest for progressive overload once bodyweight becomes easy.',
+    ],
+    pattern: 'hinge',
+  },
+  {
+    id: 'front-squat',
+    name: 'Front Squat',
+    category: 'strength',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['core', 'upper back', 'glutes'],
+    equipment: ['barbell'],
+    instructions: [
+      'Rest the barbell across the front of your shoulders (front rack or crossed-arm position). Keep elbows high.',
+      'Stand with feet shoulder-width, toes turned slightly out.',
+      'Squat by breaking at the hips and knees simultaneously, keeping your torso as upright as possible.',
+      'Drive through your full foot to return to the start.',
+    ],
+    tips: [
+      'The front-loaded position forces an upright torso — this maximises quad involvement and reduces lower back stress.',
+      'Elbows must stay high throughout. If they drop, the bar will roll off your shoulders.',
+      'Ankle mobility is critical; work on it with heel-elevated squats or mobility drills if you struggle to hit depth.',
+      'Front squats transfer directly to athletic performance and Olympic lifting.',
+    ],
+    pattern: 'squat',
+  },
 ];
 
 export function getExerciseById(id: string): Exercise | undefined {
@@ -809,6 +1013,17 @@ const EXERCISE_YOUTUBE_IDS: Record<string, string> = {
   'nordic-hamstring-curl':     '0a_fVS2s4Ho', // Jeff Nippard — hamstring training
   'cable-crunch':              '1G0y8D5rFDc', // Jeff Nippard — core training
   't-bar-row':                 'BPXjwGiKOmo', // Athlean-X — back workout
+  // Phase 2 additions
+  'close-grip-bench-press':    '8Nkfuhxsl-0', // Athlean-X — tricep workout
+  'preacher-curl':             'i1YgFZB6alI', // Jeff Nippard — biceps
+  'incline-dumbbell-curl':     'i1YgFZB6alI', // Jeff Nippard — biceps (long head)
+  'hack-squat':                'H6mRkx1x77k', // Jeff Nippard — leg day
+  'chest-supported-row':       'axoeDmW0oAY', // Jeff Nippard — rowing technique
+  'single-leg-romanian-deadlift': '_oyxCn2iSjU', // Jeff Nippard — RDL
+  'dumbbell-fly':              'NsEbXsTwas8', // Jeff Nippard — chest exercises
+  'pallof-press':              '1G0y8D5rFDc', // Jeff Nippard — core training
+  'hyperextension':            'VL5Ab0T07e4', // Jeff Nippard — posterior chain
+  'front-squat':               'bs_Ej32IYgo', // Alan Thrall — squat technique
 };
 
 export function getExerciseYouTubeId(id: string): string | undefined {

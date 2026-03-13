@@ -8,7 +8,7 @@ import { NextSessionTab } from './NextSessionTab';
 import { formatDuration, getWeekStart, calculateStreak } from '../../utils/dateUtils';
 import { getExerciseById } from '../../data/exercises';
 import { generatePRCard } from '../../utils/shareCard';
-import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History, MessageCircle, Flame, CalendarDays, ArrowRight } from 'lucide-react';
+import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History, MessageCircle, Flame, CalendarDays, ArrowRight, ThumbsUp } from 'lucide-react';
 import { triggerHapticNotification } from '../../lib/capacitor';
 import { getAdaptation } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
@@ -17,6 +17,8 @@ import { formatMass, formatWeightValue, toDisplayWeight } from '../../utils/weig
 import { WorkoutSyncStatusBadge } from './WorkoutSyncStatusBadge';
 import { getWorkoutSyncStatusCopy } from '../../utils/workoutSync';
 import { trackWorkoutCompletionNextStepEvent } from '../../lib/analytics';
+import { saveWorkoutFeedback } from '../../utils/localStorage';
+import type { WorkoutFeedback } from '../../types';
 
 interface WorkoutCompleteModalProps {
   open: boolean;
@@ -117,6 +119,21 @@ export function WorkoutCompleteModal({
   const [adaptation, setAdaptation] = useState<AdaptationResult | null>(null);
   const [adaptLoading, setAdaptLoading] = useState(false);
   const primaryNextStepTrackedRef = useRef<string | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState<WorkoutFeedback['rating'] | null>(null);
+  const [feedbackNotes, setFeedbackNotes] = useState('');
+  const [feedbackSaved, setFeedbackSaved] = useState(false);
+
+  function submitFeedback(rating: WorkoutFeedback['rating']) {
+    setFeedbackRating(rating);
+    const feedback: WorkoutFeedback = {
+      sessionId: session.id,
+      rating,
+      notes: feedbackNotes.trim() || undefined,
+      savedAt: new Date().toISOString(),
+    };
+    saveWorkoutFeedback(feedback);
+    setFeedbackSaved(true);
+  }
 
   // Fetch adaptation on open
   useEffect(() => {
@@ -441,6 +458,58 @@ export function WorkoutCompleteModal({
               <span>Ask Omnexus about this workout</span>
               <ChevronRight size={14} className="ml-auto text-slate-400 shrink-0" />
             </button>
+
+            {/* Workout feedback */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+              {feedbackSaved ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                  <ThumbsUp size={14} />
+                  <span>Feedback saved — we'll use this to improve your next program.</span>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
+                    How did this session feel?
+                  </p>
+                  <div className="flex gap-2 mb-3">
+                    {([1, 2, 3, 4, 5] as WorkoutFeedback['rating'][]).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setFeedbackRating(r)}
+                        aria-label={`Rate ${r} star${r === 1 ? '' : 's'}`}
+                        className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg border transition-colors text-xs font-medium ${feedbackRating === r ? 'border-brand-500 bg-brand-500/10' : 'border-slate-200 dark:border-slate-600'}`}
+                      >
+                        <Star
+                          size={16}
+                          className={feedbackRating !== null && r <= feedbackRating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-300 dark:text-slate-600'}
+                        />
+                        <span className="text-slate-500 dark:text-slate-400">{r}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {feedbackRating !== null && (
+                    <>
+                      <textarea
+                        value={feedbackNotes}
+                        onChange={(e) => setFeedbackNotes(e.target.value)}
+                        placeholder="Optional: anything specific felt too easy, too hard, or missing?"
+                        maxLength={300}
+                        rows={2}
+                        className="w-full resize-none rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-400 mb-2 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => submitFeedback(feedbackRating)}
+                        className="w-full rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors"
+                      >
+                        Save feedback
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
 
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => navigate('/')} fullWidth size="lg">

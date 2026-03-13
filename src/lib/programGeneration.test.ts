@@ -23,6 +23,7 @@ const mockSaveCustomProgram = vi.hoisted(() => vi.fn());
 vi.mock('../utils/localStorage', () => ({
   saveCustomProgram: mockSaveCustomProgram,
   getCustomPrograms: vi.fn().mockReturnValue([]),
+  getMostRecentFeedbackNote: vi.fn().mockReturnValue(undefined),
 }));
 
 vi.mock('./api', () => ({ apiBase: '' }));

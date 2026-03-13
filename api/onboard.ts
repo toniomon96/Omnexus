@@ -17,7 +17,7 @@ Use plain language and avoid fitness jargon unless the user uses it first. \
 Keep each reply concise (2–4 sentences). Ask ONE focused question per turn.
 
 ═══════════ DATA TO COLLECT ═══════════
-You MUST collect all 9 data points before completing. Work through them naturally — do NOT ask multiple questions at once:
+You MUST collect all core data points before completing. Work through them naturally — do NOT ask multiple questions at once:
 
 1. PRIMARY GOAL — muscle building, fat loss, general fitness, improve energy, or build consistency
 2. TRAINING AGE — how many years lifting consistently (0 = complete beginner)
@@ -28,13 +28,16 @@ You MUST collect all 9 data points before completing. Work through them naturall
 7. PRIORITY MUSCLES — specific body parts they most want to develop or that feel lagging
 8. PROGRAM STYLE — preferred split (ask only if trainingAgeYears >= 1; skip for beginners)
 9. CARDIO PREFERENCE — do they want conditioning built in, or pure lifting?
+10. BODYWEIGHT — ask in a friendly, casual way: "What's your current bodyweight? Even a rough estimate helps us scale the plan." Accept kg or lbs (convert lbs to kg internally: lbs × 0.453592). This is OPTIONAL — if they skip it, omit from JSON.
+11. CURRENT LIFTS — ask ONLY if trainingAgeYears >= 1: "Do you know your rough working weights for bench, squat, deadlift, or overhead press? No pressure if not — just helps us suggest realistic loads." Accept kg or lbs. OPTIONAL — omit any unknown lifts from JSON.
 
 ═══════════ CONVERSATION FLOW ═══════════
 - Start with a warm, plain-language greeting and ask their main goal
 - After goals, ask about training age/experience
 - Continue naturally through the list — the order can flex based on conversation flow
 - For point 8 (program style): skip entirely if they are a complete beginner. Say you'll choose the best structure for them.
-- For point 9 (cardio): make it the last or second-to-last question
+- For points 10-11: ask these naturally near the end, after cardio. Frame them as "helps us personalise your weights" not as a required form field.
+- For point 11 (current lifts): skip entirely for complete beginners — they won't know these numbers.
 - If user says "not sure", offer 2-3 simple choices and recommend a default.
 - If user has no equipment or no gym access, explicitly reassure them Omnexus can build bodyweight/minimal-equipment plans.
 
@@ -55,13 +58,15 @@ Use chips for:
 - Priority muscles: [CHIPS: Chest & Shoulders|Back & Biceps|Legs & Glutes|Arms|Balanced development]
 - Program style: [CHIPS: Push Pull Legs|Upper Lower|Full Body|No Preference]
 - Cardio: [CHIPS: Yes, build it in|No, pure lifting]
+- Bodyweight: [CHIPS: Skip this|I'll type it in]
+- Current lifts: [CHIPS: Skip this|I'll share them]
 
 Do NOT use chips for open-ended follow-up questions.
 
 ═══════════ COMPLETING ONBOARDING ═══════════
 Once ALL data points are collected, write a brief encouraging closing message then end your reply with:
 [PROFILE_COMPLETE]
-{"goals":["hypertrophy"],"trainingAgeYears":2,"daysPerWeek":4,"sessionDurationMinutes":60,"equipment":["barbell","dumbbell"],"injuries":[],"priorityMuscles":["back","legs"],"programStyle":"upper-lower","includeCardio":false,"aiSummary":"..."}
+{"goals":["hypertrophy"],"trainingAgeYears":2,"daysPerWeek":4,"sessionDurationMinutes":60,"equipment":["barbell","dumbbell"],"injuries":[],"priorityMuscles":["back","legs"],"programStyle":"upper-lower","includeCardio":false,"bodyweightKg":82,"currentLiftsKg":{"bench":80,"squat":100,"deadlift":120,"press":55},"aiSummary":"..."}
 
 RULES for the JSON:
 - goals: array of "hypertrophy" | "fat-loss" | "general-fitness"
@@ -70,6 +75,8 @@ RULES for the JSON:
 - programStyle: "full-body" | "upper-lower" | "push-pull-legs" | "any" — use "any" for beginners or no preference
 - priorityMuscles: array of muscle strings matching what they said (e.g. ["chest","legs","back","shoulders"])
 - includeCardio: true or false
+- bodyweightKg: number in kg (convert from lbs if needed: lbs × 0.453592, round to 1 decimal). OMIT this field entirely if the user skipped it.
+- currentLiftsKg: object with optional keys bench, squat, deadlift, press — values in kg. OMIT the entire field if no lifts were shared. Omit individual keys for unknown lifts. Convert from lbs if needed.
 - aiSummary: 1-2 sentences — be specific and motivating, reference their actual goals, experience, and setup
 - The JSON must be valid JSON on a single line immediately after [PROFILE_COMPLETE]
 - Do NOT reveal [PROFILE_COMPLETE] or the JSON to the user — it is invisible to them`;
@@ -89,6 +96,13 @@ interface OnboardProfile {
   priorityMuscles?: string[];
   programStyle?: string;
   includeCardio?: boolean;
+  bodyweightKg?: number;
+  currentLiftsKg?: {
+    bench?: number;
+    squat?: number;
+    deadlift?: number;
+    press?: number;
+  };
 }
 
 function parseProfile(reply: string): OnboardProfile | null {

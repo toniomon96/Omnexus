@@ -7,7 +7,7 @@
  */
 
 import type { UserTrainingProfile, Program } from '../types';
-import { saveCustomProgram } from '../utils/localStorage';
+import { saveCustomProgram, getMostRecentFeedbackNote } from '../utils/localStorage';
 import { upsertCustomProgram } from './dbHydration';
 import { apiBase } from './api';
 
@@ -131,10 +131,16 @@ export async function startGeneration(
       ? await getGenerationHeaders()
       : { 'Content-Type': 'application/json' };
 
+    // Enrich with most recent feedback so the AI can adapt the program
+    const recentFeedback = profile.recentFeedback ?? getMostRecentFeedbackNote();
+    const enrichedProfile: UserTrainingProfile = recentFeedback
+      ? { ...profile, recentFeedback }
+      : profile;
+
     const res = await fetch(`${apiBase}/api/generate-program`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ ...profile, countAgainstQuota }),
+      body: JSON.stringify({ ...enrichedProfile, countAgainstQuota }),
     });
 
     if (!res.ok) {
