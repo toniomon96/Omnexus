@@ -300,8 +300,19 @@ In Supabase Dashboard → Authentication → URL Configuration:
 | `docs/V1_ENHANCEMENT_SPRINT_PLAN.md` | Sprint-by-sprint execution plan for the V1 refinement cycle |
 | `docs/SPRINT_1_BACKLOG.md` | Executable Sprint 1 backlog with epics, stories, acceptance criteria, and test guidance |
 | `docs/SPRINT_1_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 1 implementation |
+| `docs/SPRINT_1_QA_CHECKLIST.md` | Manual verification checklist for Sprint 1 reliability and release-confidence signoff |
 | `docs/SPRINT_2_BACKLOG.md` | Executable Sprint 2 backlog for Dashboard and Train core-loop clarity work |
 | `docs/SPRINT_2_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 2 implementation |
+| `docs/SPRINT_3_BACKLOG.md` | Executable Sprint 3 backlog for motivation, retention, and post-workout reinforcement |
+| `docs/SPRINT_3_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 3 implementation |
+| `docs/SPRINT_3_QA_CHECKLIST.md` | Manual verification checklist for Sprint 3 motivation and retention signoff |
+| `docs/SPRINT_4_BACKLOG.md` | Executable Sprint 4 backlog for AI quality, fallback clarity, and cohesion work |
+| `docs/SPRINT_4_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 4 AI quality implementation |
+| `docs/SPRINT_4_QA_CHECKLIST.md` | Manual verification checklist for Sprint 4 AI quality and degraded-state signoff |
+| `docs/SPRINT_5_BACKLOG.md` | Executable Sprint 5 backlog for launch-readiness sweep and release freeze tasks |
+| `docs/SPRINT_5_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 5 release execution |
+| `docs/SPRINT_5_QA_CHECKLIST.md` | Manual verification checklist and signoff record for Sprint 5 launch readiness |
+| `docs/SPRINT_5_RELEASE_NOTES.md` | Launch-ready release notes and accepted known-issues register for Sprint 5 |
 | `docs/SDLC_EXECUTION_PLAYBOOK.md` | TDD, VCS, QA, rollout, and delivery standards for enhancement work |
 | `docs/PLATFORM_SETUP_CHECKLIST.md` | Exact manual admin steps for GitHub, Vercel, Supabase, and Stripe |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, data models, Supabase schema |

@@ -16,6 +16,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { MarkdownText } from '../components/ui/MarkdownText';
 import { Skeleton } from '../components/ui/Skeleton';
+import { getTrainingPrimaryActionLabel } from '../lib/trainingPrimaryAction';
 
 export function PreWorkoutBriefingPage() {
   const { state } = useApp();
@@ -137,7 +138,7 @@ export function PreWorkoutBriefingPage() {
           )}
 
           {!briefing && !loading && !error && (
-            <p className="text-slate-500 text-sm">No workout scheduled. Head to Quick Log to pick exercises.</p>
+            <p className="text-slate-500 text-sm">No workout scheduled. Head to Quick Session to pick exercises.</p>
           )}
         </Card>
       </div>
@@ -146,7 +147,7 @@ export function PreWorkoutBriefingPage() {
       <div className="fixed bottom-20 left-0 right-0 px-4">
         <Button onClick={handleStart} className="w-full flex items-center justify-center gap-2">
           <Play size={16} />
-          Start Workout
+          {getTrainingPrimaryActionLabel('start_workout')}
         </Button>
       </div>
     </AppShell>

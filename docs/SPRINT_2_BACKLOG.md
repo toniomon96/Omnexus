@@ -12,20 +12,30 @@ Make the next best action obvious on Dashboard and Train so users stop hesitatin
 Prerequisite:
 Sprint 1 implementation is complete in the repo, with final Actions validation and manual QA signoff still owned by release execution.
 
+Current implementation status:
+
+- Story 1.1 is implemented in repo: Dashboard now resolves one dominant next step for active-session, program-ready, and no-program states.
+- Story 1.2 is implemented in repo: secondary Dashboard discovery actions have been visually softened, duplicate Quick Session exposure is reduced when the no-program hero already presents that option, and active-session Dashboard state suppresses optional discovery sections so Resume Workout remains dominant.
+- Story 2.1 is implemented in repo: Train now resolves one dominant next step for active-session, program-ready, and no-program states.
+- Story 2.2 is implemented in repo: no-program CTA ordering and copy are aligned across Dashboard and Train, with Browse Programs primary and Quick Session positioned as the fast alternative.
+- Story 3.2 is implemented in repo: dominant CTA shown and clicked analytics exist for Dashboard and Train.
+- Story 3.1 is implemented in repo: shared training labels now extend beyond Dashboard and Train into supporting entry surfaces including Help, Quick Session, guided pathways, briefing, and onboarding.
+- Sprint 2 implementation is complete in repo. Manual QA and release-owner verification remain the remaining signoff tasks.
+
 ## Sprint Goal
 
 By the end of Sprint 2:
 
 - Dashboard answers "what should I do next?" within one screenful.
-- Train no longer presents program training and Quick Log as competing primary actions.
+- Train no longer presents program training and Quick Session as competing primary actions.
 - No-program users land on an intentional path instead of a dead-end or duplicate CTA set.
 - Guided-mode copy is consistent across Dashboard and Train.
 
 ## Sprint Success Metrics
 
 - Dashboard dominant CTA click-through is measurably higher than the baseline.
-- Train page fallback-to-Quick-Log behavior is clearer and more intentional.
-- No-program users reach either Browse Programs or Quick Log without hesitation.
+- Train page fallback-to-Quick-Session behavior is clearer and more intentional.
+- No-program users reach either Browse Programs or Quick Session without hesitation.
 - Golden-path E2E remains deterministic after CTA restructuring.
 
 ## Sprint Scope Guardrails
@@ -94,7 +104,7 @@ Acceptance criteria:
 
 - Secondary feature cards are still discoverable.
 - Secondary actions do not visually outrank the primary training CTA.
-- Dashboard still exposes Measurements, Library, Quick Log, and other tools without fragmenting focus.
+- Dashboard still exposes Measurements, Library, Quick Session, and other tools without fragmenting focus.
 
 Suggested files:
 
@@ -122,13 +132,13 @@ Problem:
 Train can present too many equally strong actions when the user has a program, no program, or an active session.
 
 User story:
-As a user, I want Train to reflect whether I should resume, start today's workout, browse programs, or use Quick Log.
+As a user, I want Train to reflect whether I should resume, start today's workout, browse programs, or use Quick Session.
 
 Acceptance criteria:
 
 - Train has explicit readiness states for active session, active program, and no-program paths.
 - Only one action is visually primary in each state.
-- The no-program state explains why Quick Log exists instead of making it feel like a competing default.
+- The no-program state explains why Quick Session exists instead of making it feel like a competing default.
 
 Suggested files:
 
@@ -157,7 +167,7 @@ Acceptance criteria:
 
 - No-program copy and CTA ordering are consistent across Dashboard and Train.
 - Browse Programs remains the default path when appropriate.
-- Quick Log is presented as the intentional fast path, not a fallback hidden behind ambiguity.
+- Quick Session is presented as the intentional fast path, not a fallback hidden behind ambiguity.
 
 Suggested files:
 
@@ -178,7 +188,7 @@ Labels:
 Goal:
 Ensure the simplified loop is understandable and measurable.
 
-### Story 3.1: Normalize guided-mode language across Dashboard and Train
+### Story 3.1: Normalize guided-mode language across primary training surfaces
 
 Problem:
 Guided-mode language currently varies enough that the product can feel inconsistent even when the flows work.
@@ -189,7 +199,8 @@ As a newer user, I want the app to describe my next step in plain, consistent la
 Acceptance criteria:
 
 - Guided-mode labels and explanatory copy match across Dashboard and Train.
-- Quick Log, Browse Programs, Start Workout, and Resume labels are used intentionally and consistently.
+- Supporting entry surfaces such as Help, Quick Session, and guided pathways do not reintroduce conflicting training labels.
+- Quick Session, Browse Programs, Start Workout, and Resume Workout labels are used intentionally and consistently.
 - Copy avoids advanced terminology when a simpler phrase exists.
 
 Suggested files:
@@ -277,7 +288,7 @@ Demo these journeys in order:
 1. Guest with active program opens Dashboard and sees one dominant next step
 2. User with active session returns and resumes without scanning multiple cards
 3. No-program user sees aligned guidance on Dashboard and Train
-4. Quick Log remains available, but clearly framed as the fast alternative
+4. Quick Session remains available, but clearly framed as the fast alternative
 5. Analytics events show which dominant CTA was shown and clicked
 
 ## Definition of Done for Sprint 2

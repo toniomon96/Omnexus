@@ -65,8 +65,8 @@ Policy:
 | `npm run test:e2e:golden:ci` | CI-friendly golden-path execution after `verify:local` | Chromium golden path |
 | `npm run test:e2e` | Full local regression run | All configured Playwright coverage |
 | `npm run verify:dev` | Merge gate for `dev` | `verify:local` + Chromium golden path |
-| `npm run verify:preview` | Release-candidate validation | `verify:local` + full Playwright suite |
-| `npm run verify:prod` | Manual production verification | `verify:local` + full Playwright suite |
+| `npm run verify:preview` | Release-candidate validation (`pull_request` into `main`) | `verify:local` + full Playwright suite |
+| `npm run verify:prod` | Production verification (`push` to `main`) | `verify:local` + full Playwright suite |
 
 ## Triage Priority
 

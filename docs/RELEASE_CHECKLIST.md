@@ -10,7 +10,8 @@ Security ops tracker: see `docs/PLATFORM_SECURITY_OPS.md`.
 - [ ] Changes are already merged into `dev`
 - [ ] `npm run verify:local` passes on the release candidate branch
 - [ ] `npm run verify:dev` is green for the deterministic Chromium golden path
-- [ ] `npm run verify:prod` passes locally or on CI against preview-like env
+- [ ] `npm run verify:preview` passes for the `dev -> main` release-candidate gate
+- [ ] `npm run verify:prod` passes before final production promotion (locally or via release workflow)
 - [ ] Release notes / PR summary are current
 - [ ] No known Sev 1 or Sev 2 bugs are open for this release
 
@@ -78,7 +79,15 @@ Evidence to capture:
 - [ ] Latest migrations are applied in Preview and Production
 - [ ] Pre-release backup/snapshot is taken
 - [ ] Previous stable production commit SHA is recorded
-- [ ] Rollback owner and rollback command/path are documented in the release PR
+- [ ] Last known good Vercel deployment URL is recorded
+- [ ] Rollback owner and rollback execution path are documented in the release PR
+- [ ] Rollback drill completed at checklist level (owner can execute in under 10 minutes)
+
+Owner assignments (required before merge to `main`):
+- [ ] Release captain:
+- [ ] Rollback owner:
+- [ ] QA owner:
+- [ ] Comms owner:
 
 ## 7. Security and abuse checks
 

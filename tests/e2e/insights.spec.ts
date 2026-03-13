@@ -64,6 +64,12 @@ test.describe('Insights — guest', () => {
     await expect(page.getByText(/educational information only/i)).toBeVisible({ timeout: 5_000 });
   });
 
+  test('shows an explicit next-step recommendation card', async ({ page }) => {
+    await page.goto('/insights');
+    await expect(page.getByTestId('insights-next-step-card')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId('insights-next-step-action')).toBeVisible({ timeout: 5_000 });
+  });
+
   test('shows Latest Research section', async ({ page }) => {
     await page.goto('/insights');
     await expect(page.getByText(/latest research/i).first()).toBeVisible({ timeout: 5_000 });
@@ -105,7 +111,7 @@ test.describe('Insights — guest', () => {
 test.describe('Insights — authenticated', () => {
   test.skip(({ isMobile }) => isMobile, 'Mobile auth login is flaky in CI');
 
-  test.beforeEach(async ({ page }, testInfo) => {
+  test.beforeEach(async ({ page }, _testInfo) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
     test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
@@ -121,5 +127,32 @@ test.describe('Insights — authenticated', () => {
     const hasHeading = await page.getByRole('heading', { name: /ai-powered insights/i })
       .isVisible({ timeout: 10_000 }).catch(() => false);
     expect(hasPeerSection || hasHeading || true).toBe(true); // non-blocking — presence of any content is acceptable
+  });
+
+  test('degraded insights state can recover after retry', async ({ page }) => {
+    let attempts = 0;
+    await page.route('**/api/insights', async (route) => {
+      attempts += 1;
+      if (attempts === 1) {
+        await route.abort('failed');
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ insight: 'Recovered insights output.' }),
+      });
+    });
+
+    await page.goto('/insights');
+
+    const analyzeButton = page.getByRole('button', { name: /analyze my training|re-analyze/i }).first();
+    const canAnalyze = await analyzeButton.isVisible({ timeout: 4_000 }).catch(() => false);
+    test.skip(!canAnalyze, 'No completed history available for this authenticated account in this environment.');
+
+    await analyzeButton.click();
+    await expect(page.getByTestId('insights-degraded-state')).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('insights-degraded-state-retry').click();
+    await expect(page.getByText(/recovered insights output/i)).toBeVisible({ timeout: 5_000 });
   });
 });

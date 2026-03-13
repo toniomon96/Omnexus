@@ -129,13 +129,14 @@ Execution backlog:
 
 - [Sprint 1 backlog](SPRINT_1_BACKLOG.md)
 - [Sprint 1 issue drafts](SPRINT_1_ISSUE_DRAFTS.md)
+- [Sprint 1 QA checklist](SPRINT_1_QA_CHECKLIST.md)
 
 ## Sprint 2: Core Loop Clarity
 
 Duration: 2 weeks
 
 Status:
-Ready for execution after Sprint 1 verification signoff.
+Implementation complete in repo as of 2026-03-12. Primary CTA hierarchy, dominant CTA analytics, Dashboard secondary-action deconfliction, and cross-surface Quick Session label alignment are implemented. Manual QA and release-owner verification remain signoff tasks.
 
 Goal:
 Make the app's primary next action obvious on Dashboard and Train.
@@ -143,14 +144,14 @@ Make the app's primary next action obvious on Dashboard and Train.
 Primary outcomes:
 
 - Users always see one dominant next step.
-- Quick Log and program-based training no longer compete equally in confusing ways.
+- Quick Session and program-based training no longer compete equally in confusing ways.
 - No-program states are clearer and more intentional.
 
 Product work:
 
 - Redesign Dashboard hero and no-program state.
 - Restructure Train page around next session readiness.
-- Simplify duplicate CTA surfaces for Quick Log, Browse Programs, Start Workout.
+- Simplify duplicate CTA surfaces for Quick Session, Browse Programs, Start Workout.
 
 Engineering work:
 
@@ -169,7 +170,7 @@ Suggested ticket slices:
 Test strategy:
 
 - Snapshot or component tests for action hierarchy branches
-- E2E flows for guest no-program, active program, and quick-log fallback
+- E2E flows for guest no-program, active program, and Quick Session fallback
 
 Exit criteria:
 
@@ -180,10 +181,14 @@ Execution backlog:
 
 - [Sprint 2 backlog](SPRINT_2_BACKLOG.md)
 - [Sprint 2 issue drafts](SPRINT_2_ISSUE_DRAFTS.md)
+- [Sprint 2 QA checklist](SPRINT_2_QA_CHECKLIST.md)
 
 ## Sprint 3: Motivation and Retention
 
 Duration: 2 weeks
+
+Status:
+Implementation complete in repo as of 2026-03-12. Post-workout reinforcement, weekly momentum framing, insight-to-action recommendations, and Sprint 3 retention analytics are implemented. Manual QA and release-owner verification remain signoff tasks.
 
 Goal:
 Connect completed work to progress, insights, and the next workout.
@@ -224,9 +229,18 @@ Exit criteria:
 - Users see a clear reason to come back this week.
 - Insights and adaptation visibly influence subsequent training behavior.
 
+Execution backlog:
+
+- [Sprint 3 backlog](SPRINT_3_BACKLOG.md)
+- [Sprint 3 issue drafts](SPRINT_3_ISSUE_DRAFTS.md)
+- [Sprint 3 QA checklist](SPRINT_3_QA_CHECKLIST.md)
+
 ## Sprint 4: AI Quality and Product Cohesion
 
 Duration: 2 weeks
+
+Status:
+Implementation complete in repo as of 2026-03-12. Shared AI error normalization, a unified degraded-state/retry panel, fallback analytics instrumentation, Ask/Insights next-step cohesion, explicit AI draft-ready handoff flows, and degraded-path spot tests are implemented across primary AI surfaces. Remaining scope is manual QA and release-owner signoff.
 
 Goal:
 Improve AI trust, clarity, and integration without expanding surface area.
@@ -267,9 +281,18 @@ Exit criteria:
 - AI paths are understandable under both normal and degraded conditions.
 - AI outputs consistently end in actionable product guidance.
 
+Execution backlog:
+
+- [Sprint 4 backlog](SPRINT_4_BACKLOG.md)
+- [Sprint 4 issue drafts](SPRINT_4_ISSUE_DRAFTS.md)
+- [Sprint 4 QA checklist](SPRINT_4_QA_CHECKLIST.md)
+
 ## Sprint 5: Launch Readiness Sweep
 
 Duration: 1 week
+
+Status:
+Implementation complete in repo as of 2026-03-12. Sprint 5 launch-readiness backlog, issue drafts, QA checklist, and release notes are tracked in-repo. Story 1.1 launch-critical copy and empty-state polish is implemented across Dashboard, Train, Ask, Insights, and AI Program Generation. Story 1.2 accessibility/mobile hardening is implemented in the same surfaces (focus-visible states, explicit input labeling, and live-region status semantics). Story 2.1 gate hardening is implemented by aligning `main` PR verification to `verify:preview`, `main` push verification to `verify:prod`, and synchronizing CI policy docs with workflow behavior. Story 2.2 rollback/incident readiness docs are implemented with explicit owner handoffs and trigger language. Story 3.1 and 3.2 documentation artifacts are implemented. Local release gate (`npm run verify:local`) is passing cleanly. Remaining scope is manual QA execution, accepted known-issues decisions, and final owner signoff.
 
 Goal:
 Consolidate, polish, validate, and freeze V1 refinement work.
@@ -298,6 +321,12 @@ Exit criteria:
 - All planned sprint goals are accepted.
 - Release candidate passes preview verification and manual QA.
 - Known issues list is explicit and acceptable for launch.
+
+Execution backlog:
+
+- [Sprint 5 backlog](SPRINT_5_BACKLOG.md)
+- [Sprint 5 issue drafts](SPRINT_5_ISSUE_DRAFTS.md)
+- [Sprint 5 QA checklist](SPRINT_5_QA_CHECKLIST.md)
 
 ## Sprint Metrics
 

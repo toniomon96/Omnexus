@@ -2,6 +2,8 @@ export type TrainingPrimaryActionState = 'active_session' | 'program_ready' | 'n
 
 export type TrainingPrimaryActionTarget = 'resume_workout' | 'start_workout' | 'browse_programs';
 
+export const QUICK_SESSION_LABEL = 'Quick Session';
+
 export function resolveTrainingPrimaryActionState(input: {
   hasActiveSession: boolean;
   hasProgramWorkout: boolean;
@@ -23,5 +25,16 @@ export function getTrainingPrimaryActionTarget(
       return 'start_workout';
     case 'no_program':
       return 'browse_programs';
+  }
+}
+
+export function getTrainingPrimaryActionLabel(target: TrainingPrimaryActionTarget): string {
+  switch (target) {
+    case 'resume_workout':
+      return 'Resume Workout';
+    case 'start_workout':
+      return 'Start Workout';
+    case 'browse_programs':
+      return 'Browse Programs';
   }
 }

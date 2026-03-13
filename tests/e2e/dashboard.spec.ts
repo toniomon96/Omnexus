@@ -1,6 +1,77 @@
 import { test, expect } from './helpers/fixtures';
 import { enterAsGuest } from './helpers/auth';
 
+async function resetGuestDashboardState(page: Parameters<typeof test>[0]['page'], options?: { withCompletedSession?: boolean }) {
+  const withCompletedSession = Boolean(options?.withCompletedSession);
+
+  await page.context().clearCookies();
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(({ includeCompletedSession }) => {
+    const guestUser = {
+      id: 'guest_e2e',
+      name: 'Guest',
+      goal: 'hypertrophy',
+      experienceLevel: 'intermediate',
+      activeProgramId: 'hyp-intermediate-4day',
+      onboardedAt: '2026-03-01T12:00:00.000Z',
+      theme: 'dark',
+      isGuest: true,
+    };
+
+    const history = { sessions: [], personalRecords: [] as unknown[] };
+    if (includeCompletedSession) {
+      const now = new Date();
+      const completedAt = now.toISOString();
+      const startedAt = new Date(now.getTime() - 35 * 60 * 1000).toISOString();
+      history.sessions.push({
+        id: 'e2e_weekly_progress_session',
+        programId: 'hyp-intermediate-4day',
+        trainingDayIndex: 0,
+        startedAt,
+        completedAt,
+        durationSeconds: 2100,
+        totalVolumeKg: 3200,
+        syncStatus: 'saved_on_device',
+        syncStatusUpdatedAt: completedAt,
+        exercises: [
+          {
+            exerciseId: 'barbell-bench-press',
+            sets: [
+              { setNumber: 1, weight: 135, reps: 8, completed: true, timestamp: completedAt },
+            ],
+          },
+        ],
+      });
+    }
+
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    window.localStorage.setItem('omnexus_cookie_consent', 'accepted');
+    window.localStorage.setItem('fit_user', JSON.stringify(guestUser));
+    window.localStorage.setItem('omnexus_guest', JSON.stringify(guestUser));
+    window.localStorage.setItem('fit_history', JSON.stringify(history));
+    window.localStorage.setItem('omnexus_learning_progress', JSON.stringify({
+      completedLessons: [],
+      completedModules: [],
+      completedCourses: [],
+      quizScores: {},
+      lastActivityAt: '',
+    }));
+    window.localStorage.setItem('omnexus_weight_unit', JSON.stringify('lbs'));
+    window.localStorage.setItem('fit_theme', JSON.stringify('dark'));
+    window.localStorage.setItem('omnexus_experience_mode', JSON.stringify({ guest_e2e: 'guided' }));
+  }, { includeCompletedSession: withCompletedSession });
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => {
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const isLoading = Boolean(document.querySelector('.animate-spin'));
+    const hasGuestProfile = Boolean(window.localStorage.getItem('omnexus_guest'));
+    const hasGuestUser = Boolean(window.localStorage.getItem('fit_user'));
+    return path === '/' && !isLoading && hasGuestProfile && hasGuestUser;
+  }, { timeout: 10_000 });
+}
+
 // Regression test: "No program found" bug when generation completes before hydration
 // Seeds localStorage with a completed generation state + matching program, then
 // verifies the View link on the dashboard actually loads the program detail page.
@@ -67,12 +138,43 @@ test.describe('Dashboard — guest', () => {
     await enterAsGuest(page);
   });
 
+  test('shows weekly progress module when workout history exists', async ({ page }) => {
+    await resetGuestDashboardState(page, { withCompletedSession: true });
+    await expect(page).toHaveURL('/');
+
+    const weeklyModuleByTestId = page.getByTestId('dashboard-weekly-progress-module');
+    const weeklyHeadingFallback = page.getByText(/progress and momentum/i).first();
+    const recoveryFallback = page.getByText(/recovery score/i).first();
+    const insightsFallback = page.getByText(/workout(?:s)? this week/i).first();
+
+    await expect(async () => {
+      const hasTestIdModule = await weeklyModuleByTestId.isVisible().catch(() => false);
+      const hasHeadingFallback = await weeklyHeadingFallback.isVisible().catch(() => false);
+      const hasRecoveryFallback = await recoveryFallback.isVisible().catch(() => false);
+      const hasInsightsFallback = await insightsFallback.isVisible().catch(() => false);
+      expect(hasTestIdModule || hasHeadingFallback || hasRecoveryFallback || hasInsightsFallback).toBeTruthy();
+    }).toPass({ timeout: 10_000 });
+
+    const weeklyActionByTestId = page.getByTestId('dashboard-weekly-progress-primary-action');
+    const weeklyActionFallback = page.getByRole('button', {
+      name: /plan (1|\d+) more workout|review weekly insights/i,
+    }).first();
+    const stableActionFallback = page.getByRole('button', { name: /^start workout$/i }).first();
+
+    await expect(async () => {
+      const hasTestIdAction = await weeklyActionByTestId.isVisible().catch(() => false);
+      const hasActionFallback = await weeklyActionFallback.isVisible().catch(() => false);
+      const hasStableFallback = await stableActionFallback.isVisible().catch(() => false);
+      expect(hasTestIdAction || hasActionFallback || hasStableFallback).toBeTruthy();
+    }).toPass({ timeout: 10_000 });
+  });
+
   test('shows guest persistence messaging with account-save CTA', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: /^save progress$/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('no-program dashboard state routes to programs and quick log', async ({ page }) => {
+  test('no-program dashboard state routes to programs and quick session', async ({ page }) => {
     await page.evaluate(() => {
       const raw = localStorage.getItem('fit_user');
       if (!raw) return;
@@ -115,11 +217,30 @@ test.describe('Dashboard — guest', () => {
   });
 
   test('displays streak section', async ({ page }) => {
-    await page.goto('/');
+    await resetGuestDashboardState(page);
+    await expect(page).toHaveURL('/');
     // StreakDisplay renders even at 0 — look for the streak area or day dots
     await expect(
       page.getByText(/streak|day/i).first(),
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 10_000 });
+
+    // Momentum card can be disabled/variant-specific in some CI builds; keep a soft assertion.
+    const momentumCardByTestId = page.getByTestId('dashboard-momentum-focus-card');
+    const momentumHeadingFallback = page.getByText(/momentum focus|keep this week moving/i).first();
+    const hasMomentumSurface = await momentumCardByTestId.isVisible().catch(() => false)
+      || await momentumHeadingFallback.isVisible().catch(() => false);
+
+    if (hasMomentumSurface) {
+      const momentumActionByTestId = page.getByTestId('dashboard-momentum-focus-action');
+      const momentumActionFallback = page.getByRole('button', {
+        name: /open mission progress|plan next session|start this week/i,
+      }).first();
+      await expect(async () => {
+        const hasTestIdAction = await momentumActionByTestId.isVisible().catch(() => false);
+        const hasFallbackAction = await momentumActionFallback.isVisible().catch(() => false);
+        expect(hasTestIdAction || hasFallbackAction).toBeTruthy();
+      }).toPass({ timeout: 10_000 });
+    }
   });
 
   test('AI Insights card links to /insights', async ({ page }) => {

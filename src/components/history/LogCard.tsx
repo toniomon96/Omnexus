@@ -248,7 +248,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
                               className="w-14 text-xs text-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-1 py-0.5 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                               aria-label={`Set ${i + 1} weight in ${weightUnit}`}
                             />
-                            <span className="text-xs text-slate-400">{weightUnit}x</span>
+                            <span className="text-xs text-slate-400">{weightUnit} x</span>
                             <input
                               type="number"
                               inputMode="numeric"
@@ -278,7 +278,7 @@ export function LogCard({ session, exerciseNames }: LogCardProps) {
                               : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
                           ].join(' ')}
                         >
-                          {formatWeightValue(s.weight, weightUnit)}{weightUnit}x{s.reps}
+                          {formatWeightValue(s.weight, weightUnit)} {weightUnit} x {s.reps}
                           {s.rpe != null && ` Effort:${s.rpe}`}
                           {s.isPersonalRecord && ' 🏆'}
                         </span>

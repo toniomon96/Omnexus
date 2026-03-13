@@ -11,6 +11,7 @@ import { TopBar } from '../components/layout/TopBar';
 import { Button } from '../components/ui/Button';
 import { SearchBar } from '../components/exercise-library/SearchBar';
 import { Card } from '../components/ui/Card';
+import { getTrainingPrimaryActionLabel, QUICK_SESSION_LABEL } from '../lib/trainingPrimaryAction';
 
 export function QuickLogPage() {
   const { startQuickWorkout } = useWorkoutSession();
@@ -77,15 +78,15 @@ export function QuickLogPage() {
 
   return (
     <AppShell>
-      <TopBar title="Quick Log" />
+      <TopBar title={QUICK_SESSION_LABEL} />
       <div className="p-4 space-y-5 pb-32">
 
         {/* Beginner instructions */}
         <Card className="border-brand-300/60 bg-brand-50/70 dark:bg-brand-900/20">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">How Quick Log Works</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">How {QUICK_SESSION_LABEL} Works</h2>
           <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-1 list-decimal ml-4">
             <li>Search and tap exercises to add them.</li>
-            <li>Tap <span className="font-semibold">Start Workout</span>.</li>
+            <li>Tap <span className="font-semibold">{getTrainingPrimaryActionLabel('start_workout')}</span>.</li>
             <li>Enter weight and reps for each set, then tap <span className="font-semibold">Finish</span>.</li>
           </ol>
         </Card>
@@ -202,7 +203,7 @@ export function QuickLogPage() {
         >
             <Zap size={16} />
             {selectedIds.length > 0
-              ? `Start Workout (${selectedIds.length} exercises)`
+              ? `${getTrainingPrimaryActionLabel('start_workout')} (${selectedIds.length} exercises)`
               : 'Select at least 1 exercise to start'}
           </Button>
       </div>

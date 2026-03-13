@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { cleanAiText } from './_aiResponse.js';
 
 // ─── Module-level client (reused across warm invocations) ──────────────────────
 
@@ -156,8 +157,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Strip the [PROFILE_COMPLETE] signal + JSON from the displayed reply
     const displayReply = profile
-      ? reply.slice(0, reply.indexOf('[PROFILE_COMPLETE]')).trim()
-      : reply;
+      ? cleanAiText(reply.slice(0, reply.indexOf('[PROFILE_COMPLETE]')).trim())
+      : cleanAiText(reply);
 
     return res.status(200).json({
       reply: displayReply,

@@ -5,10 +5,10 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { ShareCardModal } from '../ui/ShareCardModal';
 import { NextSessionTab } from './NextSessionTab';
-import { formatDuration } from '../../utils/dateUtils';
+import { formatDuration, getWeekStart, calculateStreak } from '../../utils/dateUtils';
 import { getExerciseById } from '../../data/exercises';
 import { generatePRCard } from '../../utils/shareCard';
-import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History, MessageCircle } from 'lucide-react';
+import { Trophy, Timer, Zap, Star, Share2, ChevronRight, Loader2, History, MessageCircle, Flame, CalendarDays, ArrowRight } from 'lucide-react';
 import { triggerHapticNotification } from '../../lib/capacitor';
 import { getAdaptation } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
@@ -16,6 +16,7 @@ import { useWeightUnit } from '../../hooks/useWeightUnit';
 import { formatMass, formatWeightValue, toDisplayWeight } from '../../utils/weightUnits';
 import { WorkoutSyncStatusBadge } from './WorkoutSyncStatusBadge';
 import { getWorkoutSyncStatusCopy } from '../../utils/workoutSync';
+import { trackWorkoutCompletionNextStepEvent } from '../../lib/analytics';
 
 interface WorkoutCompleteModalProps {
   open: boolean;
@@ -90,6 +91,14 @@ function useConfetti(active: boolean) {
 
 type Tab = 'summary' | 'next';
 
+interface NextStepConfig {
+  label: string;
+  description: string;
+  onClick: () => void;
+  testId: string;
+  target: 'next_session' | 'history' | 'dashboard';
+}
+
 export function WorkoutCompleteModal({
   open,
   session,
@@ -107,6 +116,7 @@ export function WorkoutCompleteModal({
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [adaptation, setAdaptation] = useState<AdaptationResult | null>(null);
   const [adaptLoading, setAdaptLoading] = useState(false);
+  const primaryNextStepTrackedRef = useRef<string | null>(null);
 
   // Fetch adaptation on open
   useEffect(() => {
@@ -163,10 +173,137 @@ export function WorkoutCompleteModal({
     (t, e) => t + e.sets.filter((s) => s.completed).length,
     0,
   );
+  const weekStart = getWeekStart();
+  const completedThisWeek = state.history.sessions.filter((entry) => Boolean(entry.completedAt) && entry.startedAt >= weekStart).length;
+  const streak = calculateStreak(state.history.sessions.map((entry) => entry.startedAt));
+  const isQuickSession = latestSession.programId === 'quick-log';
+  const completedExercises = latestSession.exercises.filter((exercise) => exercise.sets.some((set) => set.completed)).length;
+
+  const headline = hasPRs
+    ? `You set ${prs.length} personal record${prs.length === 1 ? '' : 's'}`
+    : completedThisWeek > 1
+    ? `You're ${completedThisWeek} workouts into this week`
+    : 'Workout saved and progress updated';
+
+  const subheadline = hasPRs
+    ? 'Strong session. Capture the win, then use it to guide what comes next.'
+    : streak > 1
+    ? `That keeps your ${streak}-day streak moving. Stay consistent while the momentum is fresh.`
+    : 'You logged the work. Use the next step below to keep the week moving forward.';
+
+  const primaryNextStep: NextStepConfig = adaptation || adaptLoading
+    ? {
+        label: 'Review Next Session',
+        description: 'See the coaching suggestions we generated from this workout before you move on.',
+        onClick: () => setActiveTab('next'),
+        testId: 'workout-complete-primary-next-step',
+        target: 'next_session',
+      }
+    : isQuickSession
+    ? {
+        label: 'View History',
+        description: 'Your quick session is saved. Review it in your training history and keep building consistency.',
+        onClick: () => navigate('/history'),
+        testId: 'workout-complete-primary-next-step',
+        target: 'history',
+      }
+    : {
+        label: 'Back to Dashboard',
+        description: 'Return to your plan and keep the main training path in focus for the rest of the week.',
+        onClick: () => navigate('/'),
+        testId: 'workout-complete-primary-next-step',
+        target: 'dashboard',
+      };
+
+  useEffect(() => {
+    if (!open) return;
+    const trackingKey = `${session.id}:${primaryNextStep.target}:${Boolean(adaptation || adaptLoading)}`;
+    if (primaryNextStepTrackedRef.current === trackingKey) return;
+
+    trackWorkoutCompletionNextStepEvent({
+      action: 'shown',
+      target: primaryNextStep.target,
+      hasAdaptation: Boolean(adaptation),
+      isQuickSession,
+      hasPersonalRecords: hasPRs,
+    });
+    primaryNextStepTrackedRef.current = trackingKey;
+  }, [adaptLoading, adaptation, hasPRs, isQuickSession, open, primaryNextStep.target, session.id]);
+
+  function handlePrimaryNextStepClick() {
+    trackWorkoutCompletionNextStepEvent({
+      action: 'clicked',
+      target: primaryNextStep.target,
+      hasAdaptation: Boolean(adaptation),
+      isQuickSession,
+      hasPersonalRecords: hasPRs,
+    });
+    primaryNextStep.onClick();
+  }
 
   return (
     <Modal open={open} title="Workout Complete! 🎉">
       <div className="space-y-4">
+        <div className="rounded-2xl border border-brand-200 bg-brand-50/80 px-4 py-4 dark:border-brand-800 dark:bg-brand-900/20">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300">
+            Session recap
+          </p>
+          <h3 className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+            {headline}
+          </h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            {subheadline}
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-white/80 px-3 py-3 dark:bg-slate-900/40">
+              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                <CalendarDays size={14} className="text-brand-500" />
+                <span className="text-xs font-medium">This week</span>
+              </div>
+              <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                {completedThisWeek} workout{completedThisWeek === 1 ? '' : 's'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {completedExercises} exercise{completedExercises === 1 ? '' : 's'} completed in this session.
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/80 px-3 py-3 dark:bg-slate-900/40">
+              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                <Flame size={14} className="text-orange-500" />
+                <span className="text-xs font-medium">Momentum</span>
+              </div>
+              <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                {streak > 0 ? `${streak}-day streak` : 'First step logged'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {hasPRs ? `${prs.length} new PR${prs.length === 1 ? '' : 's'} from this workout.` : 'Keep the rhythm going with one clear next action.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handlePrimaryNextStepClick}
+          data-testid={primaryNextStep.testId}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-brand-300 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-brand-700"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Next step
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                {primaryNextStep.label}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {primaryNextStep.description}
+              </p>
+            </div>
+            <ArrowRight size={16} className="shrink-0 text-brand-500" />
+          </div>
+        </button>
+
         {/* Tab bar */}
         <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
           {(['summary', 'next'] as Tab[]).map((tab) => (
@@ -306,7 +443,7 @@ export function WorkoutCompleteModal({
             </button>
 
             <div className="flex gap-2">
-              <Button onClick={() => navigate('/')} fullWidth size="lg">
+              <Button variant="ghost" onClick={() => navigate('/')} fullWidth size="lg">
                 Dashboard
               </Button>
               <Button variant="ghost" onClick={() => navigate('/history')} fullWidth size="lg">
@@ -333,7 +470,7 @@ export function WorkoutCompleteModal({
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={() => navigate('/')} fullWidth size="lg">
+              <Button variant="ghost" onClick={() => navigate('/')} fullWidth size="lg">
                 Dashboard
               </Button>
               <Button variant="ghost" onClick={() => navigate('/history')} fullWidth size="lg">

@@ -148,5 +148,6 @@ describe('security route hardening', () => {
     expect(getHeader('X-Content-Type-Options')).toBe('nosniff');
     expect(getHeader('X-Frame-Options')).toBe('DENY');
     expect(getHeader('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(getHeader('Content-Security-Policy')).toBe("default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
   });
 });

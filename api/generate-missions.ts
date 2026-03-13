@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { normalizeMissionProgress, normalizeMissions } from './_missionIntegrity.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach generating block missions for a training program.
 
@@ -78,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `Duration: ${durationWeeks ?? 8} weeks`,
   ].join('\n');
 
-  let missions: unknown[];
+  let missionsRaw: unknown;
 
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -93,17 +94,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (block.type !== 'text') throw new Error('Unexpected response type');
 
     const cleaned = block.text.replace(/^```[a-z]*\n?/i, '').replace(/```$/m, '').trim();
-    missions = JSON.parse(cleaned) as unknown[];
-    if (!Array.isArray(missions)) throw new Error('Expected array');
+    missionsRaw = JSON.parse(cleaned) as unknown[];
+    if (!Array.isArray(missionsRaw)) throw new Error('Expected array');
   } catch (err) {
     console.error('[/api/generate-missions] Claude error:', err);
     // Fallback missions
-    missions = [
+    missionsRaw = [
       { type: 'consistency', description: `Complete ${(daysPerWeek ?? 3) * 4} sessions in the next 4 weeks`, target: { metric: 'sessions', value: (daysPerWeek ?? 3) * 4, unit: 'sessions' } },
       { type: 'pr', description: 'Set a new personal record on your primary compound lift', target: { metric: 'new PR', value: 1, unit: 'PR' } },
       { type: 'volume', description: 'Hit a weekly volume of 10,000 kg', target: { metric: 'weekly volume', value: 10000, unit: 'kg' } },
     ];
   }
+
+  const missions = normalizeMissions(missionsRaw, Number(daysPerWeek ?? 3));
 
   // Upsert to Supabase: delete existing active missions for this program, insert new
 
@@ -115,8 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('program_id', programId)
       .eq('status', 'active');
 
-    const rows = missions.map((m) => {
-      const mission = m as { type: string; description: string; target: { metric: string; value: number; unit: string } };
+    const rows = missions.map((mission) => {
       return {
         user_id: userId,
         program_id: programId,
@@ -143,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       type: row.type,
       description: row.description,
       target: row.target,
-      progress: row.progress,
+      progress: normalizeMissionProgress(row.progress),
       status: row.status,
       createdAt: row.created_at,
     }));

@@ -225,7 +225,10 @@ describe('delete-account route hardening', () => {
     await deleteAccount(createReq(), res);
 
     expect(getStatusCode()).toBe(500);
-    expect(getBody()).toEqual({ error: 'Failed to delete account' });
+    expect(getBody()).toEqual({
+      error: 'Failed to fully delete account data',
+      failedSteps: ['friendships'],
+    });
     expect(operations.some((op) => op.table === 'challenge_participants')).toBe(true);
     expect(operations.some((op) => op.table === 'profiles')).toBe(false);
   });

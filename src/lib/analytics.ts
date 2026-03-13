@@ -171,3 +171,41 @@ export function trackPrimaryTrainingActionEvent(props: {
 }) {
   capture('primary_training_action_event', props);
 }
+
+export function trackWeeklyProgressModuleEvent(props: {
+  action: 'shown' | 'clicked';
+  sessionsThisWeek: number;
+  weeklyGoal: number;
+  hasMetGoal: boolean;
+  destination: '/train' | '/insights';
+}) {
+  capture('weekly_progress_module_event', props);
+}
+
+export function trackWorkoutCompletionNextStepEvent(props: {
+  action: 'shown' | 'clicked';
+  target: 'next_session' | 'history' | 'dashboard';
+  hasAdaptation: boolean;
+  isQuickSession: boolean;
+  hasPersonalRecords: boolean;
+}) {
+  capture('workout_completion_next_step_event', props);
+}
+
+export function trackInsightRecommendationEvent(props: {
+  action: 'shown' | 'clicked';
+  destination: '/train' | '/history' | '/ask' | '/onboarding';
+  hasHistory: boolean;
+  hasInsight: boolean;
+  isGuest: boolean;
+}) {
+  capture('insight_recommendation_event', props);
+}
+
+export function trackAiDegradedStateEvent(props: {
+  surface: 'ask' | 'insights' | 'program_generation';
+  action: 'shown' | 'retry_clicked' | 'recovered';
+  errorKind: 'auth' | 'upgrade' | 'network' | 'rate_limit' | 'server' | 'unknown';
+}) {
+  capture('ai_degraded_state_event', props);
+}

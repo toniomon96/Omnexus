@@ -5,6 +5,7 @@ import { Play, Zap } from 'lucide-react';
 import { getExerciseById } from '../../data/exercises';
 import { useWorkoutSession } from '../../hooks/useWorkoutSession';
 import { useNavigate } from 'react-router-dom';
+import { getTrainingPrimaryActionLabel } from '../../lib/trainingPrimaryAction';
 
 interface NextWorkoutCardProps {
   program: Program;
@@ -64,7 +65,7 @@ export function NextWorkoutCard({ program, day, dayIndex }: NextWorkoutCardProps
 
       <Button onClick={handleStart} fullWidth>
         <Play size={16} />
-        Start Workout
+        {getTrainingPrimaryActionLabel('start_workout')}
       </Button>
     </Card>
   );

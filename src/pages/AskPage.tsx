@@ -4,18 +4,20 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { AiDegradedStateCard } from '../components/ui/AiDegradedStateCard';
 import { MarkdownText } from '../components/ui/MarkdownText';
 import { useApp } from '../store/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { askOmnexusStream, ApiError } from '../services/claudeService';
+import { askOmnexusStream } from '../services/claudeService';
 import type { ConversationMessage, Citation } from '../services/claudeService';
+import { normalizeAiError } from '../lib/aiErrorHandling';
 import {
   appendInsightSession,
   getInsightSessions,
 } from '../utils/localStorage';
 import type { InsightSession } from '../types';
-import { trackAskSubmitted } from '../lib/analytics';
+import { trackAiDegradedStateEvent, trackAskSubmitted, trackFeatureEntry } from '../lib/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import {
   MessageCircle,
@@ -35,6 +37,12 @@ const SUGGESTED = [
   'How does sleep affect muscle recovery?',
   'Is creatine safe and effective?',
 ];
+
+interface AskNextStepRecommendation {
+  label: string;
+  description: string;
+  destination: '/insights' | '/train' | '/onboarding';
+}
 
 // Topic keyword → follow-up chips
 const FOLLOW_UP_MAP: Record<string, string[]> = {
@@ -75,9 +83,28 @@ export function AskPage() {
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [followUps, setFollowUps] = useState<string[]>([]);
   const [currentCitations, setCurrentCitations] = useState<Citation[]>([]);
+  const lastDegradedErrorKindRef = useRef<'auth' | 'upgrade' | 'network' | 'rate_limit' | 'server' | 'unknown' | null>(null);
 
   const answerRef = useRef<HTMLDivElement>(null);
   const CONVO_KEY = 'omnexus_ask_conversation';
+
+  const recommendation: AskNextStepRecommendation = state.user?.isGuest
+    ? {
+        label: 'Create an account to save Ask answers',
+        description: 'Keep your Ask history and AI guidance synced across devices.',
+        destination: '/onboarding',
+      }
+    : currentAnswer
+    ? {
+        label: 'Apply this in your next workout',
+        description: 'Use Train to turn this guidance into a concrete session plan.',
+        destination: '/train',
+      }
+    : {
+        label: 'Review your insight trends',
+        description: 'Use Insights to connect this guidance with your recent workout patterns.',
+        destination: '/insights',
+      };
 
   // Restore persisted conversation on mount (only when no prefill is driving a new context)
   useEffect(() => {
@@ -152,6 +179,14 @@ export function AskPage() {
 
       setCurrentAnswer(answer);
       setCurrentCitations(citations ?? []);
+      if (lastDegradedErrorKindRef.current) {
+        trackAiDegradedStateEvent({
+          surface: 'ask',
+          action: 'recovered',
+          errorKind: lastDegradedErrorKindRef.current,
+        });
+        lastDegradedErrorKindRef.current = null;
+      }
       trackAskSubmitted({ hasRagContext: (citations?.length ?? 0) > 0, isFollowUp: conversationHistory.length > 0 });
 
       const newHistory: ConversationMessage[] = [
@@ -175,18 +210,17 @@ export function AskPage() {
       setSessions(getInsightSessions().slice(0, 5));
       setQuestion('');
     } catch (err) {
-      // BUG-23: Use HTTP status code (403) rather than string matching to detect upgrade prompts.
-      if (err instanceof ApiError && err.status === 403) {
+      const normalized = normalizeAiError(err, { surface: 'ask' });
+      if (normalized.kind === 'upgrade') {
         setUpgradeRequired(true);
-      } else if (err instanceof Error) {
-        const msg = err.message;
-        if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-          setError('We could not reach the AI service right now. Check your connection and try again.');
-        } else {
-          setError(msg);
-        }
       } else {
-        setError('Something went wrong.');
+        setError(normalized.message);
+        lastDegradedErrorKindRef.current = normalized.kind;
+        trackAiDegradedStateEvent({
+          surface: 'ask',
+          action: 'shown',
+          errorKind: normalized.kind,
+        });
       }
     } finally {
       setLoading(false);
@@ -215,6 +249,30 @@ export function AskPage() {
     try { sessionStorage.removeItem(CONVO_KEY); } catch { /* ignore */ }
   }
 
+  function retryAsk() {
+    if (lastDegradedErrorKindRef.current) {
+      trackAiDegradedStateEvent({
+        surface: 'ask',
+        action: 'retry_clicked',
+        errorKind: lastDegradedErrorKindRef.current,
+      });
+    }
+    if (currentQuestion) {
+      void handleSubmit(currentQuestion);
+      return;
+    }
+    void handleSubmit();
+  }
+
+  function handleRecommendationAction() {
+    trackFeatureEntry({
+      source: 'ask_recommendation',
+      destination: recommendation.destination,
+      label: 'ai_next_step_continue',
+    });
+    navigate(recommendation.destination);
+  }
+
   return (
     <AppShell>
       <TopBar title="Ask Omnexus" showBack />
@@ -230,7 +288,7 @@ export function AskPage() {
               Ask Anything
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Science-backed answers, with citations
+              Science-backed answers with source citations
             </p>
           </div>
           {session && status && status.tier === 'free' && (
@@ -242,7 +300,11 @@ export function AskPage() {
 
         {/* Input area */}
         <div className="space-y-3">
+          <label htmlFor="ask-question" className="sr-only">
+            Ask your fitness question
+          </label>
           <textarea
+            id="ask-question"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -274,7 +336,7 @@ export function AskPage() {
         {!currentAnswer && !loading && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-              Try asking
+              Try one of these
             </p>
             <div className="space-y-2">
               {SUGGESTED.map((q) => (
@@ -282,7 +344,7 @@ export function AskPage() {
                   key={q}
                   type="button"
                   onClick={() => setQuestion(q)}
-                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                 >
                   <MessageCircle size={14} className="text-brand-500 shrink-0" />
                   <span className="text-sm text-slate-700 dark:text-slate-300">{q}</span>
@@ -294,9 +356,13 @@ export function AskPage() {
 
         {/* Error */}
         {error && (
-          <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-          </Card>
+          <AiDegradedStateCard
+            title="Ask is temporarily unavailable"
+            message={error}
+            onRetry={retryAsk}
+            retryDisabled={loading}
+            testId="ask-degraded-state"
+          />
         )}
 
         {/* Upgrade prompt when daily limit reached */}
@@ -315,7 +381,7 @@ export function AskPage() {
                 </p>
                 <Link
                   to="/subscription"
-                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors"
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                 >
                   <Zap size={12} fill="currentColor" />
                   Upgrade to Premium
@@ -327,7 +393,7 @@ export function AskPage() {
 
         {/* Current answer */}
         {(currentAnswer !== null || loading) && (
-          <div ref={answerRef} className="space-y-3">
+          <div ref={answerRef} className="space-y-3" aria-live="polite">
             <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-1">
               <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -341,7 +407,7 @@ export function AskPage() {
                 {currentAnswer ? (
                   <MarkdownText text={currentAnswer} />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2" role="status" aria-label="Generating answer">
                     <div className="h-3 w-4/5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                     <div className="h-3 w-3/5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                     <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
@@ -374,8 +440,8 @@ export function AskPage() {
             {/* Context limit indicator */}
             {conversationHistory.length >= 4 && !loading && (
               <p className="text-[10px] text-slate-500 text-center mt-1">
-                Context limited to last 4 exchanges ·{' '}
-                <button type="button" onClick={resetConversation} className="underline hover:text-slate-400 transition-colors">
+                Showing the last 4 exchanges for context ·{' '}
+                <button type="button" onClick={resetConversation} className="underline hover:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors">
                   Start fresh
                 </button>
               </p>
@@ -391,7 +457,7 @@ export function AskPage() {
                       key={chip}
                       type="button"
                       onClick={() => handleFollowUp(chip)}
-                      className="px-3 py-1.5 rounded-full text-xs bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20 transition-colors"
+                      className="px-3 py-1.5 rounded-full text-xs bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors"
                     >
                       {chip}
                     </button>
@@ -428,7 +494,7 @@ export function AskPage() {
                   <Card key={session.id} padding="sm">
                     <button
                       type="button"
-                      className="w-full text-left flex items-start justify-between gap-2"
+                      className="w-full text-left flex items-start justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 rounded-lg"
                       onClick={() =>
                         setExpandedId(isExpanded ? null : session.id)
                       }
@@ -466,14 +532,19 @@ export function AskPage() {
           </div>
         </Card>
 
-        {/* Link to insights */}
-        <button
-          type="button"
-          onClick={() => navigate('/insights')}
-          className="w-full text-center text-xs text-brand-500 hover:underline"
-        >
-          View AI insights on your workouts →
-        </button>
+        <Card className="border-brand-200 bg-brand-50/60 dark:border-brand-800 dark:bg-brand-900/20" data-testid="ask-next-step-card">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300">Recommended next step</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{recommendation.label}</p>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{recommendation.description}</p>
+          <Button
+            size="sm"
+            className="mt-3"
+            onClick={handleRecommendationAction}
+            data-testid="ask-next-step-action"
+          >
+            Continue
+          </Button>
+        </Card>
 
       </div>
     </AppShell>

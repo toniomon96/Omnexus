@@ -77,8 +77,8 @@ describe('askOmnexusStream', () => {
       ok: true,
       headers: { get: () => 'application/json' },
       body: null,
-      text: async () => JSON.stringify({ answer: 'plain response', citations: [] }),
-      json: async () => ({ answer: 'plain response', citations: [] }),
+      text: async () => JSON.stringify({ answer: '```markdown\nAssistant: plain response\n```', citations: [] }),
+      json: async () => ({ answer: '```markdown\nAssistant: plain response\n```', citations: [] }),
     }) as unknown as Response));
 
     const result = await askOmnexusStream(
@@ -264,5 +264,30 @@ describe('askOmnexusStream', () => {
     expect(onChunk).toHaveBeenCalledWith({ text: 'SSE' });
     expect(onDone).toHaveBeenCalledWith({ answer: 'SSE text', citations: [] });
     expect(result).toEqual({ answer: 'SSE text', citations: [] });
+  });
+
+  it('sanitizes done payload answer from SSE stream', async () => {
+    const onChunk = vi.fn();
+    const onDone = vi.fn();
+
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      const body = streamFromFrames([
+        'event: done\ndata: {"answer":"```markdown\\nAssistant: Clean me\\n```","citations":[]}\n\n',
+      ]);
+
+      return {
+        ok: true,
+        headers: { get: () => 'text/event-stream' },
+        body,
+      } as unknown as Response;
+    }));
+
+    const result = await askOmnexusStream(
+      { question: 'sanitize done answer' },
+      { onChunk, onDone },
+    );
+
+    expect(onDone).toHaveBeenCalledWith({ answer: 'Clean me', citations: [] });
+    expect(result).toEqual({ answer: 'Clean me', citations: [] });
   });
 });

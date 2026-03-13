@@ -108,4 +108,28 @@ test.describe('Ask AI Coach', () => {
     await expect(page.getByText('Done response', { exact: false })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /ask omnexus/i })).toBeVisible({ timeout: 5_000 });
   });
+
+  test('degraded state retry recovers after transient failure', async ({ page }) => {
+    let attempts = 0;
+    await page.route('**/api/ask', async (route) => {
+      attempts += 1;
+      if (attempts === 1) {
+        await route.abort('failed');
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ answer: 'Recovered answer', citations: [] }),
+      });
+    });
+
+    await page.goto('/ask');
+    await page.locator('textarea').fill('retry recovery test');
+    await page.getByRole('button', { name: /ask omnexus/i }).click();
+
+    await expect(page.getByTestId('ask-degraded-state')).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('ask-degraded-state-retry').click();
+    await expect(page.getByText('Recovered answer', { exact: false })).toBeVisible({ timeout: 5_000 });
+  });
 });

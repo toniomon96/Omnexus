@@ -8,6 +8,7 @@ import { MuscleGroupFilter } from '../components/exercise-library/MuscleGroupFil
 import { ExerciseCard } from '../components/exercise-library/ExerciseCard';
 import { EmptyState } from '../components/ui/EmptyState';
 import { exercises } from '../data/exercises';
+import { filterExercises } from '../lib/exerciseSearch';
 import { BookOpen } from 'lucide-react';
 
 export function ExerciseLibraryPage() {
@@ -17,24 +18,16 @@ export function ExerciseLibraryPage() {
   const [equipment, setEquipment] = useState<Equipment | 'all'>('all');
 
   const filtered = useMemo(() => {
-    return exercises.filter((ex) => {
-      const matchesQuery =
-        !query ||
-        ex.name.toLowerCase().includes(query.toLowerCase()) ||
-        ex.primaryMuscles.some((m) =>
-          m.toLowerCase().includes(query.toLowerCase()),
-        ) ||
-        ex.equipment.some((e) =>
-          e.toLowerCase().includes(query.toLowerCase()),
-        );
-      const matchesMuscle =
-        !muscle ||
-        ex.primaryMuscles.includes(muscle) ||
-        ex.secondaryMuscles.includes(muscle);
-      const matchesEquipment = equipment === 'all' || ex.equipment.includes(equipment);
-      return matchesQuery && matchesMuscle && matchesEquipment;
-    });
+    return filterExercises(exercises, { query, muscle, equipment });
   }, [query, muscle, equipment]);
+
+  const hasActiveFilters = query.trim().length > 0 || muscle !== null || equipment !== 'all';
+
+  function resetFilters() {
+    setQuery('');
+    setMuscle(null);
+    setEquipment('all');
+  }
 
   const EQUIPMENT_FILTERS: Array<{ value: Equipment | 'all'; label: string }> = [
     { value: 'all', label: 'All equipment' },
@@ -90,7 +83,22 @@ export function ExerciseLibraryPage() {
           <EmptyState
             icon={<BookOpen size={40} />}
             title="No exercises found"
-            description="Try a different search term or muscle group filter."
+            description={
+              hasActiveFilters
+                ? 'No matches for your current filters. Clear filters or try a broader search term.'
+                : 'No exercises are available right now. Please try again shortly.'
+            }
+            action={
+              hasActiveFilters ? (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:border-brand-400 hover:text-brand-500"
+                >
+                  Clear all filters
+                </button>
+              ) : undefined
+            }
           />
         )}
       </div>

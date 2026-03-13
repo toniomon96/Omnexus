@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Bug, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { apiBase } from '../lib/api';
+import { getTrainingPrimaryActionLabel, QUICK_SESSION_LABEL } from '../lib/trainingPrimaryAction';
 
 async function getCurrentAccessToken() {
   const { supabase } = await import('../lib/supabase');
@@ -19,7 +20,7 @@ async function getCurrentAccessToken() {
 const FAQS = [
   {
     q: 'How do I start my first workout?',
-    a: "Go to the Train tab, then tap \"Today's Workout\" if you have a program, or \"Quick Log\" to freestyle. You can also browse Programs to set up a structured 8-week plan.",
+    a: `Go to the Train tab, then tap "${getTrainingPrimaryActionLabel('start_workout')}" if you have a program, or "${QUICK_SESSION_LABEL}" when you want a flexible workout. You can also browse programs to set up a structured 8-week plan.`,
   },
   {
     q: 'How does Ask Omnexus work?',
@@ -47,7 +48,7 @@ const FAQS = [
   },
   {
     q: "Why isn't my workout syncing across devices?",
-    a: 'Make sure you are signed in with a Supabase account (not as a guest). Guest data is stored locally and does not sync. Create a free account to unlock cloud sync.',
+    a: 'Make sure you are signed in with a Supabase account and not using guest mode. Guest data is stored locally on this device and does not sync. Create a free account to unlock cloud sync.',
   },
 ];
 
@@ -106,7 +107,6 @@ export function HelpPage() {
                 <button
                   className="w-full flex items-center justify-between gap-3 text-left"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  aria-expanded={openFaq === i ? 'true' : 'false'}
                 >
                   <p className="text-sm font-medium text-slate-900 dark:text-white pr-2">
                     {faq.q}

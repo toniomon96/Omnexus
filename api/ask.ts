@@ -10,6 +10,7 @@ import {
   normalizeGoal,
   sanitizeFreeText,
 } from './_aiSafety.js';
+import { cleanAskAnswer } from './_aiResponse.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -446,11 +447,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           throw lastStreamError ?? new Error('Anthropic stream produced empty response');
         }
 
-        writeSseEvent(res, 'done', { answer: streamedAnswer, citations });
+        writeSseEvent(res, 'done', { answer: cleanAskAnswer(streamedAnswer), citations });
       } catch (streamErr: unknown) {
         const reason = classifyDegradedReason(streamErr);
         logAskDegraded({ traceId, reason, mode: 'stream', error: streamErr });
-        const fallbackAnswer = streamedAnswer.trim() || buildAskFallbackAnswer();
+        const fallbackAnswer = cleanAskAnswer(streamedAnswer.trim() || buildAskFallbackAnswer());
         writeSseEvent(res, 'done', {
           answer: fallbackAnswer,
           citations,
@@ -499,14 +500,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected Claude response type');
 
-    return res.status(200).json({ answer: block.text, citations });
+    return res.status(200).json({ answer: cleanAskAnswer(block.text), citations });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : '';
     if (message.includes('Claude request timed out')) {
       const reason: AskDegradedReason = 'anthropic_timeout';
       logAskDegraded({ traceId, reason, mode: 'json', error: err });
       return res.status(200).json({
-        answer: buildAskFallbackAnswer(),
+        answer: cleanAskAnswer(buildAskFallbackAnswer()),
         citations: [],
         degraded: true,
         degradedReason: reason,

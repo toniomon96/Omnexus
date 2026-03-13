@@ -42,7 +42,7 @@ test.describe('Community — guest upgrade wall', () => {
 test.describe('Feed — authenticated', () => {
   test.skip(({ isMobile }) => isMobile, 'Mobile auth login is flaky in CI');
 
-  test.beforeEach(async ({ page }, testInfo) => {
+  test.beforeEach(async ({ page }, _testInfo) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
     test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
@@ -69,7 +69,7 @@ test.describe('Feed — authenticated', () => {
 test.describe('Friends — authenticated', () => {
   test.skip(({ isMobile }) => isMobile, 'Mobile auth login is flaky in CI');
 
-  test.beforeEach(async ({ page }, testInfo) => {
+  test.beforeEach(async ({ page }, _testInfo) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
     test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');
@@ -93,7 +93,7 @@ test.describe('Friends — authenticated', () => {
 test.describe('Leaderboard — authenticated', () => {
   test.skip(({ isMobile }) => isMobile, 'Mobile auth login is flaky in CI');
 
-  test.beforeEach(async ({ page }, testInfo) => {
+  test.beforeEach(async ({ page }, _testInfo) => {
     test.skip(!hasRealCredentials, 'Requires real E2E_TEST_EMAIL / E2E_TEST_PASSWORD credentials');
     const destination = await signIn(page);
     test.skip(destination === 'unavailable', 'Auth sign-in unavailable in this environment');

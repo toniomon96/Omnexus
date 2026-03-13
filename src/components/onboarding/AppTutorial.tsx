@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight, X, Home, Dumbbell, BookOpen, Sparkles, History } from 'lucide-react';
 import { markTutorialSeen } from '../../lib/tutorial';
+import { getTrainingPrimaryActionLabel } from '../../lib/trainingPrimaryAction';
 
 // ─── Slide definitions ────────────────────────────────────────────────────────
 
@@ -16,7 +17,7 @@ const SLIDES = [
     icon: <Dumbbell size={32} className="text-emerald-400" />,
     color: 'bg-emerald-500/15 border-emerald-500/30',
     title: 'Train',
-    body: 'Start workouts, log every set, and track your personal records over time. Your program guides each session.',
+    body: `${getTrainingPrimaryActionLabel('start_workout')}, log every set, and track your personal records over time. Your program guides each session.`,
     tab: 'Train tab',
   },
   {
@@ -46,16 +47,17 @@ const SLIDES = [
 
 interface Props {
   onDismiss: () => void;
+  userId?: string;
 }
 
-export function AppTutorial({ onDismiss }: Props) {
+export function AppTutorial({ onDismiss, userId }: Props) {
   const [idx, setIdx] = useState(0);
   const isLast = idx === SLIDES.length - 1;
   const slide = SLIDES[idx];
 
   function next() {
     if (isLast) {
-      markTutorialSeen();
+      markTutorialSeen(userId);
       onDismiss();
     } else {
       setIdx(i => i + 1);
@@ -63,7 +65,7 @@ export function AppTutorial({ onDismiss }: Props) {
   }
 
   function skip() {
-    markTutorialSeen();
+    markTutorialSeen(userId);
     onDismiss();
   }
 

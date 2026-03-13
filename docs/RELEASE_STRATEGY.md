@@ -13,8 +13,8 @@ For the current V1 refinement cycle, use these companion documents:
 | Stage | Branch source | Purpose | Required checks | Deployment target |
 |---|---|---|---|---|
 | Local | `feature/*`, `bug/*`, `fix/*`, `chore/*`, `docs/*`, `polish/*` | Individual development | `npm run verify:local` | `vercel dev` or local preview |
-| Dev | `dev` | Shared integration branch | GitHub `Quality Gate` + `Dev Smoke Gate` | Dedicated DEV Vercel domain |
-| Preview | PR `dev -> main` | Release candidate validation | GitHub `Quality Gate` + `Preview Release Gate` + manual QA | Vercel Preview deployment |
+| Dev | `dev` | Shared integration branch | GitHub `Quality Gate` + `Dev PR Smoke Check` + `Dev Verification Gate` | Dedicated DEV Vercel domain |
+| Preview | PR `dev -> main` | Release candidate validation | GitHub `Quality Gate` + `Preview/Production Verification Gate` (`verify:preview`) + manual QA | Vercel Preview deployment |
 | Prod | `main` | Production | Only merged release or hotfix PRs | Vercel Production |
 
 ## Branching rules
@@ -57,10 +57,10 @@ Enhancement work should not be considered releasable unless the affected user jo
 The GitHub Actions workflow enforces:
 
 - `pull_request` branch naming rules before any other gate
-- `pull_request` into `dev`: `Quality Gate` and `Dev Smoke Gate`
-- `push` to `dev`: `Quality Gate` and `Dev Smoke Gate`
-- `pull_request` into `main`: `Quality Gate` and `Preview Release Gate`
-- `push` to `main`: `Quality Gate` and `Dev Smoke Gate`
+- `pull_request` into `dev`: `Quality Gate`, `Dev PR Smoke Check`, and `Dev Verification Gate`
+- `push` to `dev`: `Quality Gate` and `Dev Verification Gate`
+- `pull_request` into `main`: `Quality Gate` and `Preview/Production Verification Gate` using `verify:preview`
+- `push` to `main`: `Quality Gate` and `Preview/Production Verification Gate` using `verify:prod`
 - manual `Release Verification` runs for preview or production targets
 - manual `Promote dev to main` creates or refreshes the release PR
 
@@ -130,6 +130,24 @@ Production should only receive code that has:
 - passed the CI gates for the target branch
 - been exercised in a Preview deployment
 - received human approval before merging to `main`
+
+## Incident ownership and rollback policy
+
+Release-day responsibilities must be assigned before promotion begins:
+
+- Release captain: owns go/no-go decisions and checklist completion.
+- Rollback owner: executes rollback immediately when trigger criteria are met.
+- QA owner: validates user-critical journeys after rollback.
+- Comms owner: posts status updates in the release PR and incident channel.
+
+Rollback triggers should be explicit and time-bounded. Use `docs/RELEASE_DAY.md` trigger examples and do not delay rollback while investigating if customer-impacting failures are sustained.
+
+Minimum rollback artifacts required in the release PR:
+
+- Last known good production commit SHA.
+- Last known good Vercel deployment link.
+- Named rollback owner and comms owner.
+- Post-incident follow-up issue links if rollback occurs.
 
 ## What still requires manual admin access
 

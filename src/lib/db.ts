@@ -1003,6 +1003,50 @@ export async function saveAiGeneratedProgram(
 
 // ─── Block Missions ───────────────────────────────────────────────────────────
 
+function toSafeMissionTarget(value: unknown): BlockMission['target'] {
+  const candidate = (value ?? {}) as {
+    metric?: unknown;
+    value?: unknown;
+    unit?: unknown;
+  };
+
+  const metric = typeof candidate.metric === 'string' && candidate.metric.trim().length > 0
+    ? candidate.metric.trim()
+    : 'target';
+  const unit = typeof candidate.unit === 'string' && candidate.unit.trim().length > 0
+    ? candidate.unit.trim()
+    : '';
+  const parsedValue = Number(candidate.value);
+  const safeValue = Number.isFinite(parsedValue) ? Math.max(1, Math.round(parsedValue)) : 1;
+
+  return { metric, value: safeValue, unit };
+}
+
+function toSafeMissionProgress(value: unknown): BlockMission['progress'] {
+  const candidate = (value ?? {}) as {
+    current?: unknown;
+    history?: Array<{ date?: unknown; value?: unknown }>;
+  };
+
+  const parsedCurrent = Number(candidate.current);
+  const current = Number.isFinite(parsedCurrent) ? Math.max(0, parsedCurrent) : 0;
+  const history = Array.isArray(candidate.history)
+    ? candidate.history
+        .map((entry) => {
+          const trimmedDate = typeof entry?.date === 'string' ? entry.date.trim() : '';
+          const date = trimmedDate.length > 0
+            ? trimmedDate
+            : new Date().toISOString().split('T')[0];
+          const parsed = Number(entry?.value);
+          const safeValue = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+          return { date, value: safeValue };
+        })
+        .slice(-30)
+    : [];
+
+  return { current, history };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapMission(row: any): BlockMission {
   return {
@@ -1011,8 +1055,8 @@ function mapMission(row: any): BlockMission {
     programId: row.program_id,
     type: row.type as BlockMission['type'],
     description: row.description,
-    target: row.target,
-    progress: row.progress ?? { current: 0, history: [] },
+    target: toSafeMissionTarget(row.target),
+    progress: toSafeMissionProgress(row.progress),
     status: row.status as BlockMission['status'],
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,

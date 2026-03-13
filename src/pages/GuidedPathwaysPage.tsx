@@ -3,6 +3,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { QUICK_SESSION_LABEL } from '../lib/trainingPrimaryAction';
 
 interface Pathway {
   id: string;
@@ -43,15 +44,15 @@ const PATHWAYS: Pathway[] = [
     title: 'Improve Energy',
     summary: 'Combine low-stress movement with better recovery patterns.',
     firstStep: 'Start with moderate training and avoid all-out sessions early on.',
-    nextActionLabel: 'Open quick, low-stress training',
+    nextActionLabel: `Open ${QUICK_SESSION_LABEL.toLowerCase()} for low-stress training`,
     nextRoute: '/train',
   },
   {
     id: 'busy',
     title: 'Stay Active While Busy',
     summary: 'Short sessions you can complete in 20-30 minutes.',
-    firstStep: 'Use quick logs and simple sessions on your busiest days.',
-    nextActionLabel: 'Start a quick session',
+    firstStep: `Use ${QUICK_SESSION_LABEL.toLowerCase()} and simple sessions on your busiest days.`,
+    nextActionLabel: `Start ${QUICK_SESSION_LABEL.toLowerCase()}`,
     nextRoute: '/workout/quick',
   },
   {

@@ -21,7 +21,8 @@ Golden-path references:
 ## Release Signal Model
 
 - `verify:dev` is the deterministic Chromium golden-path gate.
-- `verify:preview` and `verify:prod` keep the broader Playwright coverage.
+- `verify:preview` is used for `pull_request` into `main` as the preview release-candidate gate.
+- `verify:prod` is used for `push` to `main` as the production verification gate.
 - Authenticated mobile flows and other environment-constrained paths should not be treated as primary `dev` gate signal.
 
 ## Quick Triage Order

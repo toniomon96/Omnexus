@@ -15,6 +15,29 @@ import { calculateTotalVolume, detectPersonalRecords } from '../utils/volumeUtil
 import { advanceProgramCursor } from '../utils/programUtils';
 import { trackWorkoutCompleted } from '../lib/analytics';
 import { getSessionPersonalRecords } from '../utils/workoutSync';
+import { getSafeMissionCurrentValue, getSafeMissionTargetValue } from '../lib/missionUtils';
+
+function safeInitialSetCount(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 3;
+  return Math.min(Math.max(Math.round(numeric), 1), 8);
+}
+
+export function sanitizeMissionProgressHistory(
+  history: Array<{ date: string; value: number }>,
+  maxEntries = 60,
+): Array<{ date: string; value: number }> {
+  return history
+    .filter((entry) => typeof entry?.date === 'string' && entry.date.length > 0)
+    .map((entry) => {
+      const numeric = Number(entry.value);
+      return {
+        date: entry.date,
+        value: Number.isFinite(numeric) && numeric > 0 ? numeric : 0,
+      };
+    })
+    .slice(-Math.max(1, Math.round(maxEntries)));
+}
 
 // ─── Block mission progress helper ────────────────────────────────────────────
 
@@ -60,7 +83,7 @@ async function updateBlockMissions(
       } else if (mission.type === 'rpe' && avgRpe !== null) {
         // For RPE missions, target is the max acceptable avg RPE
         // Increment current only if session avg RPE <= target
-        if (avgRpe <= mission.target.value) {
+        if (avgRpe <= getSafeMissionTargetValue(mission)) {
           delta = 1;
           shouldUpdate = true;
         }
@@ -68,14 +91,18 @@ async function updateBlockMissions(
 
       if (!shouldUpdate) continue;
 
-      const newCurrent = mission.progress.current + delta;
-      const newHistory = [
-        ...mission.progress.history,
-        { date: today, value: delta },
-      ];
+      const safeDelta = Number.isFinite(delta) && delta > 0 ? delta : 0;
+      if (safeDelta <= 0) continue;
+
+      const newCurrent = getSafeMissionCurrentValue(mission) + safeDelta;
+      const existingHistory = sanitizeMissionProgressHistory(mission.progress.history);
+      const newHistory = sanitizeMissionProgressHistory([
+        ...existingHistory,
+        { date: today, value: safeDelta },
+      ]);
       const newProgress: BlockMission['progress'] = { current: newCurrent, history: newHistory };
       const newStatus: BlockMission['status'] =
-        newCurrent >= mission.target.value ? 'completed' : 'active';
+        newCurrent >= getSafeMissionTargetValue(mission) ? 'completed' : 'active';
 
       await updateMissionProgress(mission.id, newProgress, newStatus);
     }
@@ -139,23 +166,35 @@ export function useWorkoutSession() {
   const startWorkout = useCallback(
     (program: Program, dayIndex: number) => {
       const trainingDay = program.schedule[dayIndex];
-      if (!trainingDay) return;
+      if (!trainingDay) {
+        toast('That workout day could not be loaded. Please pick another day.', 'error');
+        return;
+      }
 
-      const session: WorkoutSession = {
-        id: uuid(),
-        programId: program.id,
-        trainingDayIndex: dayIndex,
-        startedAt: new Date().toISOString(),
-        exercises: trainingDay.exercises.map((pe) => ({
-          exerciseId: pe.exerciseId,
-          sets: Array.from({ length: pe.scheme.sets }, (_, i) => ({
+      const normalizedExercises = trainingDay.exercises
+        .filter((exercise) => typeof exercise.exerciseId === 'string' && exercise.exerciseId.length > 0)
+        .map((exercise) => ({
+          exerciseId: exercise.exerciseId,
+          sets: Array.from({ length: safeInitialSetCount(exercise.scheme?.sets) }, (_, i) => ({
             setNumber: i + 1,
             weight: 0,
             reps: 0,
             completed: false,
             timestamp: '',
           })),
-        })),
+        }));
+
+      if (normalizedExercises.length === 0) {
+        toast('This workout day is invalid. Regenerate your program draft and try again.', 'error');
+        return;
+      }
+
+      const session: WorkoutSession = {
+        id: uuid(),
+        programId: program.id,
+        trainingDayIndex: dayIndex,
+        startedAt: new Date().toISOString(),
+        exercises: normalizedExercises,
         totalVolumeKg: 0,
       };
 
