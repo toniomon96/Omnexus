@@ -1,11 +1,16 @@
 import type { BlockMission } from '../types';
 
+function toFiniteNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function getSafeMissionTargetValue(mission: Pick<BlockMission, 'target'>): number {
-  return Math.max(1, Number(mission.target.value) || 1);
+  return Math.max(1, toFiniteNumber(mission.target.value) ?? 1);
 }
 
 export function getSafeMissionCurrentValue(mission: Pick<BlockMission, 'progress'>): number {
-  return Math.max(0, Number(mission.progress.current) || 0);
+  return Math.max(0, toFiniteNumber(mission.progress.current) ?? 0);
 }
 
 export function getMissionProgressPercent(mission: Pick<BlockMission, 'target' | 'progress'>): number {

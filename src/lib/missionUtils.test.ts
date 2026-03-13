@@ -27,4 +27,16 @@ describe('missionUtils', () => {
     expect(getMissionProgressLabel(mission)).toBe('16/10 kg');
     expect(getMissionProgressPercent(mission)).toBe(100);
   });
+
+  it('falls back safely for non-finite values', () => {
+    const mission = {
+      target: { metric: 'volume', value: Number.POSITIVE_INFINITY as number, unit: 'kg' },
+      progress: { current: Number.NaN as number, history: [] },
+    };
+
+    expect(getSafeMissionTargetValue(mission)).toBe(1);
+    expect(getSafeMissionCurrentValue(mission)).toBe(0);
+    expect(getMissionProgressPercent(mission)).toBe(0);
+    expect(getMissionProgressLabel(mission)).toBe('0/1 kg');
+  });
 });
