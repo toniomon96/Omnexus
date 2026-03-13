@@ -39,6 +39,20 @@ const PATTERN_LABELS: Record<string, string> = {
   cardio: 'Cardio',
 };
 
+function getEquipmentSummary(equipment: string[]): string {
+  if (equipment.length === 0) return 'Basic gym equipment';
+  const first = EQUIPMENT_LABELS[equipment[0]] ?? equipment[0];
+  if (equipment.length === 1) return first;
+  return `${first} +${equipment.length - 1}`;
+}
+
+function getTargetMuscleSummary(primaryMuscles: string[], secondaryMuscles: string[]): string {
+  const all = [...primaryMuscles, ...secondaryMuscles].filter(Boolean);
+  if (all.length === 0) return 'General strength focus';
+  if (all.length === 1) return `Targets ${all[0]}`;
+  return `Targets ${all[0]} and ${all[1]}`;
+}
+
 interface ExerciseCardProps {
   exercise: Exercise;
   onQuickAdd?: (id: string) => void;
@@ -46,6 +60,10 @@ interface ExerciseCardProps {
 
 export const ExerciseCard = memo(function ExerciseCard({ exercise, onQuickAdd }: ExerciseCardProps) {
   const navigate = useNavigate();
+  const patternLabel = PATTERN_LABELS[exercise.pattern ?? ''] ?? 'Strength exercise';
+  const equipmentSummary = getEquipmentSummary(exercise.equipment);
+  const targetSummary = getTargetMuscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles);
+  const primaryMuscles = exercise.primaryMuscles.length > 0 ? exercise.primaryMuscles : ['full body'];
 
   function handleClick() {
     navigate(`/library/${exercise.id}`);
@@ -62,10 +80,13 @@ export const ExerciseCard = memo(function ExerciseCard({ exercise, onQuickAdd }:
             {exercise.name}
           </p>
           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-            {PATTERN_LABELS[exercise.pattern ?? ''] ?? 'Strength exercise'} · {EQUIPMENT_LABELS[exercise.equipment[0] ?? ''] ?? 'Basic gym equipment'}
+            {patternLabel} · {equipmentSummary}
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 truncate">
+            {targetSummary}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
-            {exercise.primaryMuscles.slice(0, 2).map((m) => (
+            {primaryMuscles.slice(0, 2).map((m) => (
               <Badge key={m} color="brand" size="sm" >
                 {m}
               </Badge>

@@ -5,10 +5,8 @@ function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function cleanAskAnswer(raw: string): string {
-  let text = String(raw ?? '');
-
-  text = text
+export function cleanAiText(raw: string): string {
+  return String(raw ?? '')
     .replace(/\r\n?/g, '\n')
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .replace(/^```(?:markdown|md|text)?\s*\n?/i, '')
@@ -16,6 +14,10 @@ export function cleanAskAnswer(raw: string): string {
     .replace(/^\s*(assistant|ai|omnexus\s*ai)\s*:\s*/i, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+export function cleanAskAnswer(raw: string): string {
+  let text = cleanAiText(raw);
 
   const disclaimerRegex = new RegExp(escapeRegExp(ASK_MEDICAL_DISCLAIMER), 'g');
   const disclaimerMatches = text.match(disclaimerRegex);

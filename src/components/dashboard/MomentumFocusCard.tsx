@@ -5,6 +5,7 @@ import type { BlockMission } from '../../types';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { trackFeatureEntry } from '../../lib/analytics';
+import { getMissionProgressLabel } from '../../lib/missionUtils';
 
 interface MomentumFocusCardProps {
   userId: string;
@@ -67,7 +68,7 @@ export function MomentumFocusCard({
   }, [streak]);
 
   const missionProgress = activeMission
-    ? `${Math.round(activeMission.progress.current)}/${Math.round(activeMission.target.value)} ${activeMission.target.unit}`
+    ? getMissionProgressLabel(activeMission)
     : null;
 
   const cta = activeMission && programId

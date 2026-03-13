@@ -15,6 +15,7 @@ import { calculateTotalVolume, detectPersonalRecords } from '../utils/volumeUtil
 import { advanceProgramCursor } from '../utils/programUtils';
 import { trackWorkoutCompleted } from '../lib/analytics';
 import { getSessionPersonalRecords } from '../utils/workoutSync';
+import { getSafeMissionCurrentValue, getSafeMissionTargetValue } from '../lib/missionUtils';
 
 function safeInitialSetCount(value: unknown): number {
   const numeric = Number(value);
@@ -66,7 +67,7 @@ async function updateBlockMissions(
       } else if (mission.type === 'rpe' && avgRpe !== null) {
         // For RPE missions, target is the max acceptable avg RPE
         // Increment current only if session avg RPE <= target
-        if (avgRpe <= mission.target.value) {
+        if (avgRpe <= getSafeMissionTargetValue(mission)) {
           delta = 1;
           shouldUpdate = true;
         }
@@ -74,14 +75,14 @@ async function updateBlockMissions(
 
       if (!shouldUpdate) continue;
 
-      const newCurrent = mission.progress.current + delta;
+      const newCurrent = getSafeMissionCurrentValue(mission) + delta;
       const newHistory = [
         ...mission.progress.history,
         { date: today, value: delta },
-      ];
+      ].slice(-60);
       const newProgress: BlockMission['progress'] = { current: newCurrent, history: newHistory };
       const newStatus: BlockMission['status'] =
-        newCurrent >= mission.target.value ? 'completed' : 'active';
+        newCurrent >= getSafeMissionTargetValue(mission) ? 'completed' : 'active';
 
       await updateMissionProgress(mission.id, newProgress, newStatus);
     }

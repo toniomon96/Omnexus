@@ -246,6 +246,17 @@ describe('Weight unit storage', () => {
     localStorageMock.setItem('omnexus_weight_unit', JSON.stringify('stone'));
     expect(getWeightUnit()).toBe('lbs');
   });
+
+  it('emits a same-tab weight unit change event', () => {
+    const dispatchEvent = vi.fn();
+    (window as unknown as { dispatchEvent: (event: Event) => void }).dispatchEvent = dispatchEvent;
+
+    setWeightUnit('kg');
+
+    expect(dispatchEvent).toHaveBeenCalledTimes(1);
+    const event = dispatchEvent.mock.calls[0][0] as Event;
+    expect(event.type).toBe('omnexus:weight-unit-changed');
+  });
 });
 
 // ── Measurements ──

@@ -88,7 +88,7 @@ export function ExerciseProgressChart({ data }: ExerciseProgressChartProps) {
               fill="currentColor"
               fillOpacity={0.4}
             >
-              {tick.toFixed(0)}
+              {formatWeightValue(tick, weightUnit)}
             </text>
           </g>
         ))}

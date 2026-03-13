@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { canSendNotificationNow, getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
 import { sendNotificationReliably } from './_notify.js';
+import { cleanAiText } from './_aiResponse.js';
 
 const DIGEST_PROMPT = `You are a supportive fitness coach. Based on a user's workout data from the past week, write exactly 2 sentences:
 1. A data-driven observation about their volume trend compared to the prior week, or their consistency.
@@ -103,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const block = msg.content[0];
         if (block.type !== 'text') return;
 
-        const body = block.text.trim();
+        const body = cleanAiText(block.text);
         const result = await sendNotificationReliably({
           supabaseAdmin,
           userId,

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { normalizeExperience, normalizeGoal, sanitizeFreeText } from './_aiSafety.js';
+import { cleanAiText } from './_aiResponse.js';
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
@@ -131,16 +132,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');
 
-    return res.status(200).json({ briefing: block.text });
+    return res.status(200).json({ briefing: cleanAiText(block.text) });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to generate briefing';
     if (msg.includes('timed out')) {
       return res.status(200).json({
-        briefing: buildFallbackBriefing(
+        briefing: cleanAiText(buildFallbackBriefing(
           safeExerciseNames,
           normalizeGoal(userContext?.goal),
           normalizeExperience(userContext?.experienceLevel),
-        ),
+        )),
         degraded: true,
       });
     }

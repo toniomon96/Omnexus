@@ -104,7 +104,7 @@ export function SetRow({
           {prevSet ? (
             <>
               <span className="block text-slate-300 dark:text-slate-600 text-[9px] uppercase tracking-wide">last</span>
-              {formatWeightValue(prevSet.weight, weightUnit)}{weightUnit}x{prevSet.reps}
+              {formatWeightValue(prevSet.weight, weightUnit)} {weightUnit} x {prevSet.reps}
             </>
           ) : '—'}
         </span>

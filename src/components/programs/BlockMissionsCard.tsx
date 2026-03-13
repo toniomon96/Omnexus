@@ -6,6 +6,7 @@ import { Skeleton } from '../ui/Skeleton';
 import { generateMissions } from '../../services/adaptService';
 import { useApp } from '../../store/AppContext';
 import type { BlockMission } from '../../types';
+import { getMissionProgressLabel, getMissionProgressPercent } from '../../lib/missionUtils';
 
 async function loadBlockMissions(userId: string, programId: string) {
   const { getBlockMissions } = await import('../../lib/db');
@@ -37,6 +38,7 @@ export function BlockMissionsCard({ programId, programName, daysPerWeek, duratio
   const { state } = useApp();
   const user = state.user;
   const userId = user?.id ?? '';
+  const isGuest = Boolean(user?.isGuest);
 
   const [missions, setMissions] = useState<BlockMission[]>([]);
   const [loading, setLoading] = useState(Boolean(userId));
@@ -66,7 +68,7 @@ export function BlockMissionsCard({ programId, programName, daysPerWeek, duratio
   }, [userId, programId]);
 
   async function handleGenerate() {
-    if (!user) return;
+    if (!user || isGuest) return;
     setGenerating(true);
     try {
       const res = await generateMissions({
@@ -95,7 +97,7 @@ export function BlockMissionsCard({ programId, programName, daysPerWeek, duratio
           </div>
           <p className="font-semibold text-sm text-slate-900 dark:text-white">Block Missions</p>
         </div>
-        {!loading && missions.length === 0 && (
+        {!loading && missions.length === 0 && !isGuest && (
           <Button
             size="sm"
             variant="ghost"
@@ -127,9 +129,7 @@ export function BlockMissionsCard({ programId, programName, daysPerWeek, duratio
       {!loading && missions.length > 0 && (
         <div className="space-y-3">
           {missions.map((m) => {
-            const safeTargetValue = Math.max(1, Number(m.target.value) || 1);
-            const safeCurrent = Math.max(0, Number(m.progress.current) || 0);
-            const pct = Math.min(100, Math.round((safeCurrent / safeTargetValue) * 100));
+            const pct = getMissionProgressPercent(m);
             const isComplete = m.status === 'completed';
             return (
               <div key={m.id}>
@@ -144,7 +144,7 @@ export function BlockMissionsCard({ programId, programName, daysPerWeek, duratio
                     <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">{m.description}</p>
                   </div>
                   <span className="text-xs font-bold tabular-nums text-slate-500 shrink-0">
-                    {safeCurrent}/{safeTargetValue} {m.target.unit}
+                    {getMissionProgressLabel(m)}
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">

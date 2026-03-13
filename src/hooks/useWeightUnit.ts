@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { WeightUnit } from '../types';
-import { getWeightUnit } from '../utils/localStorage';
+import { getWeightUnit, WEIGHT_UNIT_CHANGED_EVENT } from '../utils/localStorage';
 
 export function useWeightUnit(): WeightUnit {
   const [unit, setUnit] = useState<WeightUnit>(() => getWeightUnit());
@@ -12,8 +12,16 @@ export function useWeightUnit(): WeightUnit {
       }
     }
 
+    function onWeightUnitChanged() {
+      setUnit(getWeightUnit());
+    }
+
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(WEIGHT_UNIT_CHANGED_EVENT, onWeightUnitChanged);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(WEIGHT_UNIT_CHANGED_EVENT, onWeightUnitChanged);
+    };
   }, []);
 
   return unit;

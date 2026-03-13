@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { buildCacheKey, getMemoryCache, setMemoryCache } from './_cache.js';
+import { cleanAiText } from './_aiResponse.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach providing encouraging peer comparison insights.
 
@@ -145,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');
-    narrative = block.text.trim();
+    narrative = cleanAiText(block.text);
   } catch (err) {
     console.error('[/api/peer-insights]', err);
     return res.status(500).json({ error: 'Failed to generate peer insights' });

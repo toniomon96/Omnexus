@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { exercises } from '../../data/exercises';
+import { filterExercises } from '../../lib/exerciseSearch';
 import { SearchBar } from '../exercise-library/SearchBar';
 import { Badge } from '../ui/Badge';
 
@@ -13,10 +14,7 @@ interface AddExerciseDrawerProps {
 export function AddExerciseDrawer({ open, onClose, onAdd }: AddExerciseDrawerProps) {
   const [query, setQuery] = useState('');
 
-  const filtered = exercises.filter((e) =>
-    e.name.toLowerCase().includes(query.toLowerCase()) ||
-    e.primaryMuscles.some((m) => m.includes(query.toLowerCase())),
-  );
+  const filtered = filterExercises(exercises, { query });
 
   if (!open) return null;
 
@@ -53,6 +51,9 @@ export function AddExerciseDrawer({ open, onClose, onAdd }: AddExerciseDrawerPro
                 <p className="font-medium text-slate-900 dark:text-white text-sm">
                   {ex.name}
                 </p>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  {(ex.pattern ?? 'strength').replace('-', ' ')} · {(ex.equipment[0] ?? 'bodyweight').replace('-', ' ')}
+                </p>
                 <div className="mt-1 flex gap-1 flex-wrap">
                   {ex.primaryMuscles.slice(0, 2).map((m) => (
                     <Badge key={m} color="brand" size="sm">{m}</Badge>
@@ -62,8 +63,17 @@ export function AddExerciseDrawer({ open, onClose, onAdd }: AddExerciseDrawerPro
             </li>
           ))}
           {filtered.length === 0 && (
-            <li className="text-center py-8 text-slate-400 text-sm">
-              No exercises found
+            <li className="text-center py-8 text-slate-400 text-sm space-y-2">
+              <p>No exercises found</p>
+              {query.trim().length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:border-brand-400 hover:text-brand-500"
+                >
+                  Clear search
+                </button>
+              )}
             </li>
           )}
         </ul>
