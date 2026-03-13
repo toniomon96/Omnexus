@@ -6,6 +6,7 @@ import { EXERCISE_LIBRARY } from '../../data/exercises';
 import type { TrainingDNA } from '../../types';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const KG_TO_LBS = 2.2046;
 
 function computeTrainingDNA(sessions: ReturnType<typeof getWorkoutHistory>): TrainingDNA {
   const dominantPatterns: Record<string, number> = {};
@@ -102,7 +103,7 @@ export function TrainingDNA() {
     .map(([exerciseId, points]) => {
       const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
       const first = sorted[0]!.weight;
-      const last = sorted.at(-1)!.weight;
+      const last = sorted[sorted.length - 1]!.weight;
       const gain = last - first;
       const exercise = EXERCISE_LIBRARY.find((e) => e.id === exerciseId);
       return { name: exercise?.name ?? exerciseId, gain, first, last };
@@ -156,7 +157,7 @@ export function TrainingDNA() {
               <div key={muscle}>
                 <div className="flex justify-between text-xs text-slate-400 mb-1">
                   <span className="capitalize">{muscle}</span>
-                  <span>{Math.round(weightUnit === 'lbs' ? vol * 2.2046 : vol).toLocaleString()} {weightUnit} total</span>
+                  <span>{Math.round(weightUnit === 'lbs' ? vol * KG_TO_LBS : vol).toLocaleString()} {weightUnit} total</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800">
                   <div
@@ -207,8 +208,8 @@ export function TrainingDNA() {
               <div key={lift.name} className="flex justify-between items-center">
                 <span className="text-sm text-slate-600 dark:text-slate-300 truncate pr-2">{lift.name}</span>
                 <div className="text-right flex-shrink-0">
-                  <span className="text-sm font-semibold text-amber-400">+{weightUnit === 'lbs' ? (lift.gain * 2.2046).toFixed(1) : lift.gain} {weightUnit}</span>
-                  <p className="text-[10px] text-slate-400">{weightUnit === 'lbs' ? `${(lift.first * 2.2046).toFixed(1)} → ${(lift.last * 2.2046).toFixed(1)}` : `${lift.first} → ${lift.last}`} {weightUnit}</p>
+                  <span className="text-sm font-semibold text-amber-400">+{weightUnit === 'lbs' ? (lift.gain * KG_TO_LBS).toFixed(1) : lift.gain} {weightUnit}</span>
+                  <p className="text-[10px] text-slate-400">{weightUnit === 'lbs' ? `${(lift.first * KG_TO_LBS).toFixed(1)} → ${(lift.last * KG_TO_LBS).toFixed(1)}` : `${lift.first} → ${lift.last}`} {weightUnit}</p>
                 </div>
               </div>
             ))}

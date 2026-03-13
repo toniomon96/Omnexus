@@ -217,27 +217,63 @@ Replaces the flat exercise list with five discovery modes. **Shipped in `Exercis
 
 ---
 
-### Sprint J — Celebration Animations + Share Cards
-**Epic 2** · 1 week · **Requires Sprints C–F**
+### Sprint J — Celebration Animations + Share Cards ✅
+**Epic 2** · 1 week · **COMPLETE**
 
-- Rank-up full-screen celebration (confetti + new rank badge)
-- Perfect quiz gold flash + 2× XP overlay
-- Streak milestone full-screen celebrations (7/30/100/365 days)
-- Achievement toast (auto-dismisses after 4s)
-- Course completion certificate screen
-- Share card generator (PNG output for streak milestones, course completions, Progression Report)
-- All animations respect `prefers-reduced-motion`
+**Delivered:**
+
+- **CelebrationOverlay** — rank-up full-screen (confetti + new rank badge) and streak milestone (7/30/100/365-day) full-screen celebrations; perfect quiz gold flash + 2× XP overlay.
+- **GamificationNotifier** — achievement toast (auto-dismisses after 4 s); drains `pendingCelebrations` queue in `App.tsx`.
+- **Course completion certificate screen** — shown at end of `CourseDetailPage`; share button wired.
+- **Share card generator** — canvas-based PNG (1080 × 1080) for streak milestones, course completions, and Progression Report; `generateStreakMilestoneCard`, `generateCourseCompletionCard`, `generateProgressionReportCard` functions in `src/utils/shareCard.ts`.
+- All animations respect `prefers-reduced-motion`.
+- `PendingCelebration` type + `pendingAchievements` / `pendingCelebrations` queues added to `AppContext`.
+
+**New files:**
+- `src/components/gamification/CelebrationOverlay.tsx`
+- `src/components/gamification/GamificationNotifier.tsx`
+
+**Modified files:**
+- `src/types/index.ts` — PendingCelebration type
+- `src/store/AppContext.tsx` — celebration queue state + actions
+- `src/utils/shareCard.ts` — generateStreakMilestoneCard, generateCourseCompletionCard
+- `src/components/learn/QuizBlock.tsx` — perfect-score gold flash
+- `src/pages/CourseDetailPage.tsx` — course completion certificate + share
+- `src/App.tsx` — GamificationNotifier mounted
 
 ---
 
-### Sprint H — Program Continuation + Training DNA
-**Epic 5** · 2 weeks · **Requires Sprint J (share card generator)**
+### Sprint H — Program Continuation + Training DNA ✅
+**Epic 5** · 2 weeks · **COMPLETE**
 
-- Progression Report screen at end of each program (summary of all 8 weeks)
-- Three continuation options: repeat program, advance to harder, AI-generate custom
-- Program chaining: selected next program queued and auto-starts
-- Training DNA: persistent profile built from training history, surfaced on Profile page
-- Share button for Progression Report (uses Sprint J share card generator)
+**Delivered:**
+
+- **Progression Report screen** (`src/pages/ProgressionReportPage.tsx`) — full-screen scrollable report triggered at the end of an 8-week block. Sections: header (program name + date range), SVG consistency ring, Omni narrative (Claude API call), volume bar chart per muscle group, PR list with trophy icons, milestones.
+- **Three continuation options** — "Continue and intensify" (intensification block), "Change training goal" (new custom program), "Take a deload week" (single-week deload) — each navigates to the AI generation flow with appropriate `blockType` + `predecessorProgramId` state.
+- **Program chaining** — `blockType`, `continuationOption`, `predecessorProgramId`, `completedAt` fields on the `Program` type.
+- **Block-end detection** — `isBlockComplete()` in `programUtils.ts` fires after the final workout of week N (`estimatedDurationWeeks`); `ActiveWorkoutPage` navigates to `/workout/progression-report` instead of showing the normal completion modal.
+- **Share button** — calls `generateProgressionReportCard()` from Sprint J share card generator; downloads PNG.
+- **Training DNA** (`src/components/profile/TrainingDNA.tsx`) — four data visualizations on the Profile page: dominant movement patterns, strongest muscles by volume, weekly training-day heatmap, strength progression trend for key lifts.
+- **`api/progression-report.ts`** — Vercel serverless endpoint that calls Claude Haiku to generate a personalized 2–4 sentence block narrative with graceful fallback.
+- **`docs/migrations/016_program_continuation.sql`** — ALTER TABLE programs (3 new columns), `progression_reports` table with RLS, `program_chains` view.
+- **`saveProgressionReportToDb()`** added to `src/lib/db.ts`.
+- **localStorage helpers** — `getProgressionReports`, `saveProgressionReportLocal`, `getProgressionReportForProgram`, `getTrainingDNALocal`, `setTrainingDNALocal`.
+
+**New files:**
+- `docs/migrations/016_program_continuation.sql`
+- `api/progression-report.ts`
+- `src/pages/ProgressionReportPage.tsx`
+- `src/components/profile/TrainingDNA.tsx`
+
+**Modified files:**
+- `src/types/index.ts` — BlockType, ContinuationOption, ProgressionReport, TrainingDNA types; Program extended
+- `src/utils/programUtils.ts` — isBlockComplete, getBlockStartDate
+- `src/utils/localStorage.ts` — progression report + Training DNA cache helpers
+- `src/lib/db.ts` — saveProgressionReportToDb
+- `src/utils/shareCard.ts` — generateProgressionReportCard
+- `src/pages/ActiveWorkoutPage.tsx` — block-end detection + navigate to progression report
+- `src/pages/ProfilePage.tsx` — Training DNA section added
+- `src/router.tsx` — /workout/progression-report route
 
 ---
 
@@ -250,11 +286,11 @@ Sprint D  → Courses + Quiz ✅ COMPLETE
 Sprint E  → Remaining Courses + Spaced Repetition ✅ COMPLETE
 Sprint F  → Social + Leaderboard ✅ COMPLETE
 Sprint G  → Omni AI Coach ✅ COMPLETE
-Sprint J  → Celebrations + Share Cards
-Sprint H  → Program Continuation
+Sprint J  → Celebrations + Share Cards ✅ COMPLETE
+Sprint H  → Program Continuation ✅ COMPLETE
 ```
 
-**Total remaining estimated timeline: ~18 weeks** at one sprint at a time, or ~12 weeks with Sprint I and Sprint C run in parallel.
+**All sprints complete. 0 TypeScript errors · 392 tests passing.**
 
 ---
 

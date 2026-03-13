@@ -35,6 +35,8 @@ import type { ProgressionReport, BlockType } from '../types';
 import { getBlockStartDate } from '../utils/programUtils';
 import { generateProgressionReportCard, shareOrDownload } from '../utils/shareCard';
 
+const KG_TO_LBS = 2.2046;
+
 export function ProgressionReportPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -323,7 +325,7 @@ export function ProgressionReportPage() {
                 <div key={muscle}>
                   <div className="flex justify-between text-xs text-slate-400 mb-1">
                     <span className="capitalize">{muscle}</span>
-                    <span>{Math.round(weightUnit === 'lbs' ? vol * 2.2046 : vol).toLocaleString()} {weightUnit}</span>
+                    <span>{Math.round(weightUnit === 'lbs' ? vol * KG_TO_LBS : vol).toLocaleString()} {weightUnit}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-800">
                     <div
@@ -349,7 +351,7 @@ export function ProgressionReportPage() {
                 <div key={pr.exerciseId} className="flex justify-between items-center">
                   <span className="text-sm text-slate-300">{pr.exerciseName}</span>
                   <span className="text-sm font-semibold text-amber-400">
-                    {weightUnit === 'lbs' ? `${(pr.weight * 2.2046).toFixed(1)} lbs` : `${pr.weight} kg`} × {pr.reps}
+                    {weightUnit === 'lbs' ? `${(pr.weight * KG_TO_LBS).toFixed(1)} lbs` : `${pr.weight} kg`} × {pr.reps}
                   </span>
                 </div>
               ))}
