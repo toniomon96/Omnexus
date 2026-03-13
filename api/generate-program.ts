@@ -21,22 +21,25 @@ const EXERCISE_IDS = [
   // Chest
   'barbell-bench-press', 'dumbbell-bench-press', 'incline-dumbbell-press',
   'incline-barbell-press', 'cable-chest-fly', 'push-up', 'dips',
+  'close-grip-bench-press', 'dumbbell-fly',
   // Back
   'barbell-row', 'dumbbell-row', 'lat-pulldown', 'pull-up', 'seated-cable-row',
-  'face-pull', 't-bar-row',
+  'face-pull', 't-bar-row', 'chest-supported-row',
   // Shoulders
   'overhead-press', 'dumbbell-lateral-raise', 'dumbbell-shoulder-press',
   'arnold-press', 'rear-delt-fly',
   // Arms
   'barbell-curl', 'hammer-curl', 'tricep-pushdown', 'skull-crusher', 'overhead-tricep-extension',
+  'preacher-curl', 'incline-dumbbell-curl',
   // Legs — Quads
   'barbell-back-squat', 'goblet-squat', 'leg-press', 'leg-extension',
-  'walking-lunge', 'bulgarian-split-squat', 'step-up',
+  'walking-lunge', 'bulgarian-split-squat', 'step-up', 'hack-squat', 'front-squat',
   // Legs — Posterior chain
   'romanian-deadlift', 'deadlift', 'hip-thrust', 'glute-bridge',
-  'leg-curl', 'nordic-hamstring-curl',
+  'leg-curl', 'nordic-hamstring-curl', 'single-leg-romanian-deadlift',
   // Calves & Core
   'standing-calf-raise', 'plank', 'hanging-leg-raise', 'ab-wheel-rollout', 'cable-crunch',
+  'pallof-press', 'hyperextension',
   // Cardio / Conditioning
   'kettlebell-swing', 'box-jump', 'mountain-climbers',
 ];
@@ -49,17 +52,20 @@ const VALID_DAY_TYPES = new Set(['full-body', 'upper', 'lower', 'push', 'pull', 
 const PUSH_IDS = new Set([
   'barbell-bench-press', 'dumbbell-bench-press', 'incline-dumbbell-press', 'incline-barbell-press',
   'cable-chest-fly', 'push-up', 'dips', 'overhead-press', 'dumbbell-shoulder-press', 'arnold-press',
+  'close-grip-bench-press', 'dumbbell-fly',
 ]);
 const PULL_IDS = new Set([
   'barbell-row', 'dumbbell-row', 'lat-pulldown', 'pull-up', 'seated-cable-row', 'face-pull', 't-bar-row',
+  'chest-supported-row',
 ]);
 const LOWER_IDS = new Set([
   'barbell-back-squat', 'goblet-squat', 'leg-press', 'leg-extension', 'walking-lunge', 'bulgarian-split-squat',
   'step-up', 'romanian-deadlift', 'deadlift', 'hip-thrust', 'glute-bridge', 'leg-curl', 'nordic-hamstring-curl',
-  'standing-calf-raise',
+  'standing-calf-raise', 'hack-squat', 'front-squat', 'single-leg-romanian-deadlift', 'hyperextension',
 ]);
 const CORE_OR_CARDIO_IDS = new Set([
   'plank', 'hanging-leg-raise', 'ab-wheel-rollout', 'cable-crunch', 'kettlebell-swing', 'box-jump', 'mountain-climbers',
+  'pallof-press',
 ]);
 
 const DEFAULT_EXERCISE_PROGRESS = 'W1: 3x10 @RPE7 | W2: 4x8 @RPE7 | W3: 4x8 @RPE8 | W4: Deload 2x10 @RPE6 | W5: 4x8 @RPE8 | W6: 4x6 @RPE8 | W7: 5x5 @RPE9 | W8: Test or deload';
@@ -79,6 +85,11 @@ interface UserTrainingProfile {
   priorityMuscles?: string[];
   programStyle?: string;
   includeCardio?: boolean;
+  // Optional strength context — used to give realistic weight/load guidance in notes
+  bodyweightKg?: number;
+  currentLiftsKg?: { bench?: number; squat?: number; deadlift?: number; press?: number };
+  // Recent workout feedback — summarised for program personalisation
+  recentFeedback?: string;
 }
 
 interface SetScheme {
@@ -271,6 +282,8 @@ function normalizeWeeklyProgressionNotes(notes: unknown, fallback: string[]): st
 function normalizeProgramCandidate(raw: GeneratedProgram, profile: UserTrainingProfile, fallback: GeneratedProgram): GeneratedProgram {
   const targetDays = clampDays(profile.daysPerWeek);
   const { min, max } = exerciseCountRange(profile);
+  // Pre-compute the expected split pattern so it can be enforced per-day below.
+  const splitPattern = expectedDayTypePattern(profile);
 
   const fallbackExercisesById = new Map<string, ProgramExercise>();
   for (const day of fallback.schedule) {
@@ -291,9 +304,13 @@ function normalizeProgramCandidate(raw: GeneratedProgram, profile: UserTrainingP
         : undefined;
     const fallbackDay = fallback.schedule[i % fallback.schedule.length]!;
 
-    const dayType = typeof candidateDay?.type === 'string' && VALID_DAY_TYPES.has(candidateDay.type)
-      ? candidateDay.type
-      : fallbackDay.type;
+    // Enforce the user-requested split when one is specified. This prevents
+    // split_structure_mismatch failures in assessProgramIntegrity when Claude
+    // outputs correct exercises under the wrong day-type label.
+    const dayType = splitPattern?.[i]
+      ?? (typeof candidateDay?.type === 'string' && VALID_DAY_TYPES.has(candidateDay.type)
+        ? candidateDay.type
+        : fallbackDay.type);
 
     const dayLabel = typeof candidateDay?.label === 'string' && candidateDay.label.trim().length > 0
       ? candidateDay.label.trim().slice(0, 80)
@@ -395,7 +412,12 @@ function assessProgramIntegrity(program: GeneratedProgram, profile: UserTraining
   if (!program.weeklyProgressionNotes || program.weeklyProgressionNotes.length !== 8) {
     reasons.push('weekly_progression_missing');
   } else {
-    if (!program.weeklyProgressionNotes.every((note, idx) => note.toLowerCase().includes(`week ${idx + 1}`))) {
+    // Accept both long form ("Week N") and short form ("WN:") to match what normalizeWeeklyProgressionNotes accepts.
+    if (!program.weeklyProgressionNotes.every((note, idx) => {
+      const n = note.toLowerCase().trimStart();
+      const num = idx + 1;
+      return n.includes(`week ${num}`) || n.startsWith(`w${num}:`);
+    })) {
       reasons.push('weekly_progression_sequence_invalid');
     }
     if (!/deload/i.test(program.weeklyProgressionNotes[3] ?? '')) {
@@ -419,8 +441,9 @@ function assessProgramIntegrity(program: GeneratedProgram, profile: UserTraining
     }
 
     const estimatedMinutes = estimateDayDurationMinutes(day);
-    const minDuration = Math.max(20, profile.sessionDurationMinutes - 30);
-    const maxDuration = profile.sessionDurationMinutes + 20;
+    // Wider window (−35 / +30) accounts for estimation variance in the duration model.
+    const minDuration = Math.max(20, profile.sessionDurationMinutes - 35);
+    const maxDuration = profile.sessionDurationMinutes + 30;
     if (estimatedMinutes < minDuration) reasons.push('session_duration_too_short');
     if (estimatedMinutes > maxDuration) reasons.push('session_duration_too_long');
 
@@ -454,65 +477,151 @@ function assessProgramIntegrity(program: GeneratedProgram, profile: UserTraining
 function buildFallback(profile: UserTrainingProfile): GeneratedProgram {
   const goal = (profile.goals[0] ?? 'general-fitness') as string;
   const days = clampDays(profile.daysPerWeek);
-  const level = profile.trainingAgeYears === 0
-    ? 'beginner'
-    : profile.trainingAgeYears <= 2
-      ? 'intermediate'
-      : 'advanced';
+  const level = inferExperienceLevel(profile);
+  const style = normalizeProgramStyle(profile.programStyle);
 
   const hasBarbell = !profile.equipment.length ||
     profile.equipment.some(e => /barbell|full|gym/i.test(e));
   const hasCable = !profile.equipment.length ||
     profile.equipment.some(e => /cable|full|gym/i.test(e));
 
+  // Shared progression note shorthand
+  const compoundNote = (main: string) =>
+    `W1: 3×10 @RPE7 | W2: 4×8 @RPE7 | W3: 4×8 @RPE8 | W4: Deload 2×10 @RPE6 | W5: 4×8 @RPE8 | W6: 4×6 @RPE8 | W7: 5×5 @RPE9 | W8: ${main}`;
+  const strengthNote = (main: string) =>
+    `W1: 3×6 @RPE7 | W2: 4×5 @RPE7 | W3: 4×5 @RPE8 | W4: Deload 2×6 @RPE6 | W5: 4×5 @RPE8 | W6: 4×4 @RPE8 | W7: 5×3 @RPE9 | W8: ${main}`;
+  const pplNote = (main: string) =>
+    `W1: 3×8 @RPE7 | W2: 4×6 @RPE7 | W3: 4×6 @RPE8 | W4: Deload 2×8 @RPE6 | W5: 4×6 @RPE8 | W6: 4×5 @RPE8 | W7: 5×4 @RPE9 | W8: ${main}`;
+
+  // ── Full-body templates ──────────────────────────────────────────────────────
   const fullBodyA: ProgramExercise[] = [
-    {
-      exerciseId: hasBarbell ? 'barbell-back-squat' : 'goblet-squat',
-      scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 },
-      notes: 'W1: 3×10 @RPE7 | W2: 4×8 @RPE7 | W3: 4×8 @RPE8 | W4: Deload 2×10 @RPE6 | W5: 4×8 @RPE8 | W6: 4×6 @RPE8 | W7: 5×5 @RPE9 | W8: Test 5RM or deload',
-    },
-    {
-      exerciseId: hasBarbell ? 'barbell-bench-press' : 'dumbbell-bench-press',
-      scheme: { sets: 3, reps: '8-10', restSeconds: 90, rpe: 7 },
-      notes: 'W1: 3×10 @RPE7 | W2: 4×8 @RPE7 | W3: 4×8 @RPE8 | W4: Deload 2×10 @RPE6 | W5: 4×8 @RPE8 | W6: 4×6 @RPE8 | W7: 5×5 @RPE9 | W8: Test',
-    },
-    {
-      exerciseId: hasBarbell ? 'barbell-row' : 'dumbbell-row',
-      scheme: { sets: 3, reps: '8-10', restSeconds: 90, rpe: 7 },
-      notes: 'W1: 3×10 @RPE7 | W2: 4×8 @RPE7 | W3: 4×8 @RPE8 | W4: Deload 2×10 @RPE6 | W5: 4×8 @RPE8 | W6: 4×6 @RPE8 | W7: 5×5 @RPE9 | W8: Test',
-    },
-    { exerciseId: 'overhead-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 } },
-    { exerciseId: 'romanian-deadlift', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 } },
-    { exerciseId: 'plank', scheme: { sets: 3, reps: '30-45s', restSeconds: 60 } },
+    { exerciseId: hasBarbell ? 'barbell-back-squat' : 'goblet-squat', scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: compoundNote('Test 5RM or deload') },
+    { exerciseId: hasBarbell ? 'barbell-bench-press' : 'dumbbell-bench-press', scheme: { sets: 3, reps: '8-10', restSeconds: 90, rpe: 7 }, notes: compoundNote('Test or deload') },
+    { exerciseId: hasBarbell ? 'barbell-row' : 'dumbbell-row', scheme: { sets: 3, reps: '8-10', restSeconds: 90, rpe: 7 }, notes: compoundNote('Test or deload') },
+    { exerciseId: hasBarbell ? 'overhead-press' : 'dumbbell-shoulder-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'romanian-deadlift', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'plank', scheme: { sets: 3, reps: '30-45s', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
   ];
   const fullBodyB: ProgramExercise[] = [
-    {
-      exerciseId: 'romanian-deadlift',
-      scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 },
-      notes: 'W1: 3×10 @RPE7 | W2: 4×8 @RPE7 | W3: 4×8 @RPE8 | W4: Deload 2×10 @RPE6 | W5: 4×8 @RPE8 | W6: 4×6 @RPE8 | W7: 5×5 @RPE9 | W8: Test',
-    },
-    { exerciseId: 'incline-dumbbell-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 } },
-    { exerciseId: hasCable ? 'lat-pulldown' : 'pull-up', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 } },
-    { exerciseId: 'dumbbell-shoulder-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 } },
-    { exerciseId: 'leg-press', scheme: { sets: 3, reps: '12-15', restSeconds: 90, rpe: 7 } },
-    { exerciseId: 'hanging-leg-raise', scheme: { sets: 3, reps: '10-15', restSeconds: 60 } },
+    { exerciseId: 'romanian-deadlift', scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: compoundNote('Test or deload') },
+    { exerciseId: 'incline-dumbbell-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'lat-pulldown' : 'pull-up', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'dumbbell-shoulder-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'leg-press' : 'walking-lunge', scheme: { sets: 3, reps: '12-15', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'hanging-leg-raise', scheme: { sets: 3, reps: '10-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
   ];
 
-  const schedule: TrainingDay[] = [];
-  for (let i = 0; i < days; i++) {
-    schedule.push({
-      label: `Day ${i + 1} — Full Body ${i % 2 === 0 ? 'A' : 'B'}`,
-      type: 'full-body',
-      exercises: i % 2 === 0 ? fullBodyA : fullBodyB,
-    });
-  }
+  // ── Upper/Lower templates ────────────────────────────────────────────────────
+  const upperA: ProgramExercise[] = [
+    { exerciseId: hasBarbell ? 'barbell-bench-press' : 'dumbbell-bench-press', scheme: { sets: 4, reps: '5-6', restSeconds: 180, rpe: 8 }, notes: strengthNote('Test 3RM or deload') },
+    { exerciseId: hasBarbell ? 'barbell-row' : 'dumbbell-row', scheme: { sets: 4, reps: '6-8', restSeconds: 150, rpe: 8 }, notes: strengthNote('Test or deload') },
+    { exerciseId: hasBarbell ? 'overhead-press' : 'dumbbell-shoulder-press', scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'lat-pulldown' : 'pull-up', scheme: { sets: 3, reps: '8-10', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'dumbbell-lateral-raise', scheme: { sets: 3, reps: '12-15', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'plank', scheme: { sets: 3, reps: '30-45s', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+  const upperB: ProgramExercise[] = [
+    { exerciseId: 'incline-dumbbell-press', scheme: { sets: 4, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'seated-cable-row' : 'dumbbell-row', scheme: { sets: 4, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'dumbbell-shoulder-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'lat-pulldown' : 'pull-up', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'tricep-pushdown' : 'skull-crusher', scheme: { sets: 3, reps: '12-15', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'hanging-leg-raise', scheme: { sets: 3, reps: '10-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+  const lowerA: ProgramExercise[] = [
+    { exerciseId: hasBarbell ? 'barbell-back-squat' : 'goblet-squat', scheme: { sets: 4, reps: '5-6', restSeconds: 180, rpe: 8 }, notes: strengthNote('Test 3RM or deload') },
+    { exerciseId: hasBarbell ? 'romanian-deadlift' : 'glute-bridge', scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'leg-press' : 'walking-lunge', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'leg-extension' : 'step-up', scheme: { sets: 3, reps: '12-15', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'standing-calf-raise', scheme: { sets: 4, reps: '12-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'plank', scheme: { sets: 3, reps: '30-45s', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+  const lowerB: ProgramExercise[] = [
+    { exerciseId: hasBarbell ? 'deadlift' : 'romanian-deadlift', scheme: { sets: 4, reps: '4-6', restSeconds: 180, rpe: 8 }, notes: 'W1: 3×5 @RPE7 | W2: 4×4 @RPE7 | W3: 4×4 @RPE8 | W4: Deload 2×5 @RPE6 | W5: 4×4 @RPE8 | W6: 4×3 @RPE8 | W7: 5×3 @RPE9 | W8: Test 1-3RM or deload' },
+    { exerciseId: 'hip-thrust', scheme: { sets: 4, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'bulgarian-split-squat', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'leg-curl' : 'nordic-hamstring-curl', scheme: { sets: 3, reps: '10-12', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'standing-calf-raise', scheme: { sets: 4, reps: '12-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'ab-wheel-rollout', scheme: { sets: 3, reps: '10-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+
+  // ── Push / Pull / Legs templates ─────────────────────────────────────────────
+  const pushDay: ProgramExercise[] = [
+    { exerciseId: hasBarbell ? 'barbell-bench-press' : 'dumbbell-bench-press', scheme: { sets: 4, reps: '6-8', restSeconds: 150, rpe: 8 }, notes: pplNote('Test or deload') },
+    { exerciseId: hasBarbell ? 'overhead-press' : 'dumbbell-shoulder-press', scheme: { sets: 3, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'incline-dumbbell-press', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'dumbbell-lateral-raise', scheme: { sets: 3, reps: '12-15', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'tricep-pushdown' : 'skull-crusher', scheme: { sets: 3, reps: '12-15', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'cable-crunch' : 'plank', scheme: { sets: 3, reps: '15-20', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+  const pullDay: ProgramExercise[] = [
+    { exerciseId: hasBarbell ? 'barbell-row' : 'dumbbell-row', scheme: { sets: 4, reps: '6-8', restSeconds: 150, rpe: 8 }, notes: pplNote('Test or deload') },
+    { exerciseId: hasCable ? 'lat-pulldown' : 'pull-up', scheme: { sets: 4, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'seated-cable-row' : 'dumbbell-row', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'face-pull' : 'rear-delt-fly', scheme: { sets: 3, reps: '15-20', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasBarbell ? 'barbell-curl' : 'hammer-curl', scheme: { sets: 3, reps: '10-12', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'hanging-leg-raise', scheme: { sets: 3, reps: '10-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+  const legsDay: ProgramExercise[] = [
+    { exerciseId: hasBarbell ? 'barbell-back-squat' : 'goblet-squat', scheme: { sets: 4, reps: '6-8', restSeconds: 180, rpe: 8 }, notes: pplNote('Test or deload') },
+    { exerciseId: hasBarbell ? 'romanian-deadlift' : 'glute-bridge', scheme: { sets: 4, reps: '8-10', restSeconds: 120, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'leg-press' : 'walking-lunge', scheme: { sets: 3, reps: '10-12', restSeconds: 90, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: hasCable ? 'leg-curl' : 'nordic-hamstring-curl', scheme: { sets: 3, reps: '12-15', restSeconds: 60, rpe: 7 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'standing-calf-raise', scheme: { sets: 4, reps: '12-15', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+    { exerciseId: 'plank', scheme: { sets: 3, reps: '30-45s', restSeconds: 60 }, notes: DEFAULT_EXERCISE_PROGRESS },
+  ];
+
+  // ── Build schedule from expected split pattern ────────────────────────────────
+  const splitPattern = expectedDayTypePattern(profile) ?? Array.from({ length: days }, () => 'full-body' as string);
+  const dayTypeSeen: Record<string, number> = {};
+
+  const schedule: TrainingDay[] = splitPattern.slice(0, days).map((type, i) => {
+    const seenCount = dayTypeSeen[type] ?? 0;
+    dayTypeSeen[type] = seenCount + 1;
+    const isB = seenCount % 2 === 1;
+
+    let exercises: ProgramExercise[];
+    let subLabel: string;
+
+    if (type === 'upper') {
+      exercises = isB ? upperB : upperA;
+      subLabel = isB ? 'Upper B — Volume' : 'Upper A — Strength';
+    } else if (type === 'lower') {
+      exercises = isB ? lowerB : lowerA;
+      subLabel = isB ? 'Lower B — Hip Dominant' : 'Lower A — Quad Dominant';
+    } else if (type === 'push') {
+      exercises = pushDay;
+      subLabel = 'Push';
+    } else if (type === 'pull') {
+      exercises = pullDay;
+      subLabel = 'Pull';
+    } else if (type === 'legs') {
+      exercises = legsDay;
+      subLabel = 'Legs';
+    } else {
+      exercises = isB ? fullBodyB : fullBodyA;
+      subLabel = isB ? 'Full Body B' : 'Full Body A';
+    }
+
+    return { label: `Day ${i + 1} — ${subLabel}`, type, exercises };
+  });
+
+  // ── Program metadata ─────────────────────────────────────────────────────────
+  const splitTitles: Record<CanonicalProgramStyle, string> = {
+    'upper-lower': 'Upper/Lower Split',
+    'push-pull-legs': 'Push/Pull/Legs',
+    'full-body': 'Full-Body Foundation',
+    'any': 'Full-Body Foundation',
+  };
+  const programName = `${splitTitles[style]} Program`;
+  const splitTag = style === 'any' ? 'full-body' : style;
 
   return {
     id: '',
-    name: 'Full-Body Foundation Program',
+    name: programName,
     goal,
     experienceLevel: level,
-    description: 'A balanced full-body program hitting every major movement pattern each session. Designed to build strength and muscle simultaneously while establishing solid technique fundamentals.',
+    description: `A structured ${days}-day ${splitTitles[style].toLowerCase()} program. Designed for ${goal.replace('-', ' ')} with realistic 8-week progression.`,
     trainingPhilosophy: 'This program uses a linear periodization model. Each week you add either a rep or a small amount of weight to the main lifts, building strength progressively. The deload in Week 4 is mandatory — it lets your nervous system and joints recover so you can push harder in Weeks 5-8.',
     weeklyProgressionNotes: [
       'Week 1: Orientation — 3 sets, RPE 6-7. Focus entirely on form. Leave 3+ reps in the tank on every set.',
@@ -527,7 +636,7 @@ function buildFallback(profile: UserTrainingProfile): GeneratedProgram {
     daysPerWeek: days,
     estimatedDurationWeeks: 8,
     schedule,
-    tags: ['ai-generated', 'full-body', goal],
+    tags: ['ai-generated', splitTag, goal],
     isCustom: true,
     isAiGenerated: true,
     aiLifecycleStatus: 'draft',
@@ -566,6 +675,17 @@ function buildSystemPrompt(profile: UserTrainingProfile): string {
   const cardioText = profile.includeCardio
     ? 'YES — build 1-2 conditioning sessions into the weekly schedule'
     : 'NO — pure lifting only';
+
+  // Optional profile enrichment context
+  const bodyweightLine = profile.bodyweightKg
+    ? `Bodyweight: ${profile.bodyweightKg} kg — use for dip/pull-up progressions and bodyweight exercise scaling`
+    : '';
+  const liftsLine = profile.currentLiftsKg
+    ? `Current working lifts (kg): bench=${profile.currentLiftsKg.bench ?? '?'}, squat=${profile.currentLiftsKg.squat ?? '?'}, deadlift=${profile.currentLiftsKg.deadlift ?? '?'}, press=${profile.currentLiftsKg.press ?? '?'} — use to calibrate realistic load recommendations in notes`
+    : '';
+  const feedbackLine = profile.recentFeedback
+    ? `RECENT FEEDBACK FROM ATHLETE: "${sanitize(profile.recentFeedback)}" — reflect this in your exercise selection, volume, and notes`
+    : '';
 
   // Determine the mandatory split
   const style = profile.programStyle;
@@ -623,10 +743,26 @@ Session duration: ${profile.sessionDurationMinutes} minutes
 Equipment available: ${profile.equipment.map(sanitize).join(', ') || 'full commercial gym (all equipment)'}
 Injuries/limitations: ${profile.injuries.map(sanitize).join(', ') || 'none'}
 Include cardio/conditioning: ${cardioText}
-
+${bodyweightLine ? bodyweightLine + '\n' : ''}${liftsLine ? liftsLine + '\n' : ''}${feedbackLine ? feedbackLine + '\n' : ''}
 MANDATORY SPLIT FOR THIS PERSON: ${mandatorySplit}
 ${equipRestrictions.length ? '\nEQUIPMENT RESTRICTIONS — apply strictly:\n' + equipRestrictions.map(r => '• ' + r).join('\n') : ''}
 ${injuryMods.length ? '\nINJURY ACCOMMODATIONS — apply immediately:\n' + injuryMods.map(n => '• ' + n).join('\n') : ''}
+${expLevel === 'beginner' ? `
+BEGINNER RULES — MANDATORY:
+• MAX 5 exercises per session. Big compounds only — no more than 1 isolation per session.
+• Rep ranges: 3 sets × 8-12 reps on everything. Simple linear progression.
+• No RPE targets above 8. Technique over intensity always.
+• Notes format simplified: "W1-W3: 3×10 — add 2.5 kg each week when all reps clean | W4: Deload 2×10 | W5-W7: 3×8 heavier — same small jumps | W8: Test top set of 5"
+• Do NOT include advanced techniques (drop sets, supersets, rest-pause).` : ''}
+${profile.daysPerWeek >= 4 ? `
+A/B SESSION DIFFERENTIATION — MANDATORY:
+When the program includes multiple sessions of the same day type (e.g. Upper A and Upper B, or Push A and Push B):
+• The two sessions MUST use DIFFERENT primary exercises. No repeating the same main lift on both.
+• Upper A example: barbell-bench-press as horizontal push → Upper B example: incline-dumbbell-press or dips
+• Push A: barbell-bench-press + overhead-press → Push B: incline-dumbbell-press + dumbbell-shoulder-press
+• Lower A (quad-dominant): barbell-back-squat or front-squat → Lower B (hip-dominant): romanian-deadlift or deadlift
+• Pull A: barbell-row → Pull B: chest-supported-row or cable-row
+• This variation is essential to prevent overuse injury and to stimulate all muscle fibres across the week.` : ''}
 
 ═══════════════════ PERIODIZATION — MANDATORY 8-WEEK STRUCTURE ═══════════════════
 You MUST follow this exact periodization model:
@@ -749,7 +885,10 @@ FINAL CHECKLIST before generating:
 - Priority muscles (${priorityText}) have highest volume allocation
 - Session duration respected: ${durationGuide}
 - All injury accommodations applied
-- weeklyProgressionNotes has exactly 8 entries`;
+- weeklyProgressionNotes has exactly 8 entries
+${profile.daysPerWeek >= 4 ? '- A and B sessions of the same day type use DIFFERENT primary exercises (no duplicate main lifts)' : ''}
+${expLevel === 'beginner' ? '- Max 5 exercises per session, 3 sets, 8-12 reps, no advanced techniques' : ''}
+${feedbackLine ? '- Recent athlete feedback is addressed in exercise selection or notes' : ''}`;
 }
 
 function extractProgramJsonCandidate(text: string): string {

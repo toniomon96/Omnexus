@@ -120,6 +120,26 @@ export interface UserTrainingProfile {
   programStyle?: 'full-body' | 'upper-lower' | 'push-pull-legs' | 'any';
   /** Whether the user wants cardio/conditioning built into the program */
   includeCardio?: boolean;
+  /** Athlete's bodyweight in kg — used for dip/pull-up progressions */
+  bodyweightKg?: number;
+  /** Current working lifts in kg — used to calibrate realistic load recommendations */
+  currentLiftsKg?: {
+    bench?: number;
+    squat?: number;
+    deadlift?: number;
+    press?: number;
+  };
+  /** Most recent workout feedback — injected into next program generation */
+  recentFeedback?: string;
+}
+
+// ─── Workout Feedback ─────────────────────────────────────────────────────────
+
+export interface WorkoutFeedback {
+  sessionId: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  notes?: string;
+  savedAt: string;
 }
 
 // ─── Exercise Library ─────────────────────────────────────────────────────────
@@ -134,6 +154,10 @@ export interface Exercise {
   instructions: string[];
   tips: string[];
   pattern?: MovementPattern;
+  /** Relative difficulty tier — used for equipment-swap matching and filtering */
+  difficulty?: ExperienceLevel;
+  /** Variant links for equipment-swap: other exercise IDs sharing the same pattern+muscles */
+  exerciseVariants?: string[];
 }
 
 // ─── Program Structure ────────────────────────────────────────────────────────
@@ -572,3 +596,100 @@ export interface NutritionGoals {
   carbsG: number;
   fatG: number;
 }
+
+// ─── XP / Gamification ───────────────────────────────────────────────────────
+
+export type XpEventType =
+  | 'workout_completed'
+  | 'pr_achieved'
+  | 'streak_milestone'
+  | 'lesson_completed'
+  | 'quiz_passed'
+  | 'challenge_joined'
+  | 'challenge_completed'
+  | 'friend_reaction_sent'
+  | 'daily_checkin';
+
+export interface XpEvent {
+  id: string;
+  userId: string;
+  type: XpEventType;
+  /** XP awarded (always ≥ 0; computed server-side) */
+  amount: number;
+  /** Human-readable label shown to the user */
+  label: string;
+  /** Optional reference to the triggering resource */
+  referenceId?: string;
+  occurredAt: string;
+}
+
+export interface XpProfile {
+  userId: string;
+  totalXp: number;
+  /** Current level (1-based, derived from totalXp) */
+  level: number;
+  /** XP needed to reach the next level */
+  xpToNextLevel: number;
+  /** XP accumulated within the current level */
+  xpInCurrentLevel: number;
+  /** Rank label for the current level */
+  rankLabel: string;
+}
+
+// ─── Streak Freeze ───────────────────────────────────────────────────────────
+
+export interface StreakFreeze {
+  id: string;
+  userId: string;
+  /** ISO date string (YYYY-MM-DD) the freeze was consumed on (null = unused) */
+  consumedDate: string | null;
+  awardedAt: string;
+}
+
+// ─── Progressive Overload ────────────────────────────────────────────────────
+
+export type ProgressionAction =
+  | 'increase_load'
+  | 'increase_reps'
+  | 'hold'
+  | 'deload';
+
+export interface ProgressionRecommendation {
+  exerciseId: string;
+  exerciseName: string;
+  action: ProgressionAction;
+  /** Suggested new load in the same unit the user logged */
+  suggestedLoad?: number;
+  currentLoad?: number;
+  reason: string;
+  /** ACSM-aligned confidence: 'high' when clear over-performance; 'medium' otherwise */
+  confidence: 'high' | 'medium' | 'low';
+}
+
+// ─── Equipment Swap ──────────────────────────────────────────────────────────
+
+export interface SwapCandidate {
+  exercise: Exercise;
+  /** 0–100 score: higher = better swap match */
+  score: number;
+  matchReasons: string[];
+}
+
+// ─── Spaced Repetition ───────────────────────────────────────────────────────
+
+export interface SpacedRepCard {
+  /** Quiz question or lesson ID */
+  cardId: string;
+  userId: string;
+  /** SM-2 easiness factor (default 2.5) */
+  easinessFactor: number;
+  /** Current interval in days */
+  intervalDays: number;
+  /** Number of consecutive successful reviews */
+  repetitions: number;
+  /** ISO date string for when the card is next due */
+  nextDueAt: string;
+  lastReviewedAt: string;
+}
+
+export type SpacedRepQuality = 0 | 1 | 2 | 3 | 4 | 5;

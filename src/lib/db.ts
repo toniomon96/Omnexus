@@ -1047,17 +1047,26 @@ function toSafeMissionProgress(value: unknown): BlockMission['progress'] {
   return { current, history };
 }
 
+const VALID_MISSION_TYPES = new Set<BlockMission['type']>(['pr', 'consistency', 'volume', 'rpe']);
+const VALID_MISSION_STATUSES = new Set<BlockMission['status']>(['active', 'completed', 'failed']);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapMission(row: any): BlockMission {
+  const type: BlockMission['type'] = VALID_MISSION_TYPES.has(row.type)
+    ? (row.type as BlockMission['type'])
+    : 'volume';
+  const status: BlockMission['status'] = VALID_MISSION_STATUSES.has(row.status)
+    ? (row.status as BlockMission['status'])
+    : 'active';
   return {
     id: row.id,
     userId: row.user_id,
     programId: row.program_id,
-    type: row.type as BlockMission['type'],
+    type,
     description: row.description,
     target: toSafeMissionTarget(row.target),
     progress: toSafeMissionProgress(row.progress),
-    status: row.status as BlockMission['status'],
+    status,
     createdAt: row.created_at,
     completedAt: row.completed_at ?? undefined,
   };

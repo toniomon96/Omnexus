@@ -12,6 +12,7 @@ import type {
   WorkoutTemplate,
   HealthArticle,
   WeightUnit,
+  WorkoutFeedback,
 } from '../types';
 
 const KEYS = {
@@ -33,6 +34,7 @@ const KEYS = {
   MEASUREMENTS: 'omnexus_measurements',
   WEIGHT_UNIT: 'omnexus_weight_unit',
   EXPERIENCE_MODE: 'omnexus_experience_mode',
+  WORKOUT_FEEDBACK: 'omnexus_workout_feedback',
 } as const;
 
 export const WEIGHT_UNIT_CHANGED_EVENT = 'omnexus:weight-unit-changed';
@@ -397,4 +399,28 @@ export function clearGuestProfile(): void {
 /** Remove all app-owned keys without touching third-party entries (e.g. cookie consent). */
 export function clearAppStorage(): void {
   Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
+}
+
+// ─── Workout Feedback ─────────────────────────────────────────────────────────
+
+/** Save feedback for a completed workout. Keeps the 20 most recent entries. */
+export function saveWorkoutFeedback(feedback: WorkoutFeedback): void {
+  const existing = safeRead<WorkoutFeedback[]>(KEYS.WORKOUT_FEEDBACK, []);
+  // Deduplicate by sessionId — replace if already exists
+  const filtered = existing.filter((f) => f.sessionId !== feedback.sessionId);
+  const updated = [feedback, ...filtered].slice(0, 20);
+  safeWrite(KEYS.WORKOUT_FEEDBACK, updated);
+}
+
+/** Return the most recent feedback note as a plain string, or undefined if none. */
+export function getMostRecentFeedbackNote(): string | undefined {
+  const all = safeRead<WorkoutFeedback[]>(KEYS.WORKOUT_FEEDBACK, []);
+  if (!all.length) return undefined;
+  const latest = all[0];
+  const parts: string[] = [];
+  if (latest.rating <= 2) parts.push('Last workout felt very hard / unsatisfying');
+  else if (latest.rating === 3) parts.push('Last workout felt average');
+  else if (latest.rating >= 4) parts.push('Last workout felt great');
+  if (latest.notes?.trim()) parts.push(latest.notes.trim());
+  return parts.join('. ') || undefined;
 }

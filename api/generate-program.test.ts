@@ -415,7 +415,11 @@ describe('generate-program integrity pipeline', () => {
     await generateProgram(createReq({ ...baseProfile, programStyle: 'upper-lower' }), res);
 
     expect(getStatusCode()).toBe(200);
-    const body = getBody() as { program?: { name?: string } };
-    expect(body.program?.name).toBe('Full-Body Foundation Program');
+    const body = getBody() as { program?: { name?: string; schedule?: Array<{ type: string }> } };
+    // normalizeProgramCandidate now enforces the expected split pattern on every day before
+    // integrity validation. Claude's mislabelled 'full-body' days are corrected to
+    // 'upper'/'lower', so the AI program passes integrity and is returned — not the fallback.
+    const types = body.program?.schedule?.map(d => d.type);
+    expect(types).toEqual(['upper', 'lower', 'upper', 'lower']);
   });
 });

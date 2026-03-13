@@ -27,20 +27,22 @@ Omnexus uses a single model call with a staged server-side acceptance pipeline.
   - schemes clamped (sets, rest, optional RPE)
   - missing progression notes backfilled
   - unknown values replaced with safe defaults
+  - **split pattern enforced per-day**: when the user requested a specific split (`upper-lower`, `push-pull-legs`, `full-body`), `expectedDayTypePattern()` is applied to each day before integrity validation, preventing `split_structure_mismatch` failures caused by mislabelled AI-generated days.
 
 4. Integrity validation
 - Program is accepted only if it passes quality gates:
   - valid schema and known exercise IDs
-  - progression structure completeness (W1-W8 markers and deload checks)
+  - progression structure completeness: both long-form (`Week N`) and short-form (`WN:`) week markers are accepted in weekly progression notes and per-exercise notes
   - movement-balance checks (pull >= push)
   - lower-body volume floor
   - core/conditioning presence
-  - duration realism checks per day
+  - duration realism: each day must be within −35 / +30 minutes of the requested session duration (wider window than initial implementation to account for estimation variance)
   - explicit split enforcement when user requests `upper-lower`, `push-pull-legs`, or `full-body`
 
 5. Fallback safety
-- If parsing, normalization, or integrity checks fail, server returns deterministic fallback program.
-- API still returns usable `200` response so user flow remains resilient.
+- If parsing, normalization, or integrity checks fail, server returns a deterministic fallback program.
+- The fallback is **split-aware**: it respects the user's requested `programStyle` (`upper-lower`, `push-pull-legs`, or `full-body`) using pre-defined, equipment-aware workout templates with full W1-W8 progression notes.
+- API always returns a usable `200` response so the user flow remains resilient.
 
 ## Split Validation Rules
 

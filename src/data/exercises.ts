@@ -17,6 +17,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your shoulder blades retracted and depressed throughout.', 'Drive your feet into the floor for leg drive.'],
     pattern: 'push-horizontal',
+    difficulty: 'intermediate',
+    exerciseVariants: ['dumbbell-bench-press', 'close-grip-bench-press', 'push-up'],
   },
   {
     id: 'dumbbell-bench-press',
@@ -33,6 +35,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Greater range of motion than barbell press.', 'Keep your wrists neutral, not bent.'],
     pattern: 'push-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-bench-press', 'dumbbell-fly', 'push-up'],
   },
   {
     id: 'incline-dumbbell-press',
@@ -49,6 +53,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Targets the upper chest. Avoid going above 45° or it becomes mainly a shoulder exercise.'],
     pattern: 'push-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['incline-barbell-press', 'dumbbell-bench-press'],
   },
   {
     id: 'cable-chest-fly',
@@ -65,6 +71,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Constant tension throughout the movement. Squeeze hard at the peak contraction.'],
     pattern: 'push-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['dumbbell-fly', 'dumbbell-bench-press'],
   },
   {
     id: 'push-up',
@@ -80,6 +88,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your core tight and hips in line with your shoulders throughout.'],
     pattern: 'push-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['dumbbell-bench-press', 'barbell-bench-press', 'dips'],
   },
 
   // ── BACK ───────────────────────────────────────────────────────────────────
@@ -98,6 +108,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your lower back neutral. Do not round.', 'Lead with your elbows, not your hands.'],
     pattern: 'pull-horizontal',
+    difficulty: 'intermediate',
+    exerciseVariants: ['dumbbell-row', 'seated-cable-row', 'chest-supported-row', 't-bar-row'],
   },
   {
     id: 'dumbbell-row',
@@ -114,6 +126,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Think "elbow to the sky", not "hand to hip".'],
     pattern: 'pull-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-row', 'chest-supported-row', 'seated-cable-row'],
   },
   {
     id: 'lat-pulldown',
@@ -130,6 +144,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Lean back slightly at the bottom. Avoid excessive swinging.'],
     pattern: 'pull-vertical',
+    difficulty: 'beginner',
+    exerciseVariants: ['pull-up', 'seated-cable-row'],
   },
   {
     id: 'pull-up',
@@ -145,6 +161,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Avoid kipping (swinging). Slow negatives build strength fast.'],
     pattern: 'pull-vertical',
+    difficulty: 'intermediate',
+    exerciseVariants: ['lat-pulldown', 'seated-cable-row'],
   },
   {
     id: 'seated-cable-row',
@@ -161,6 +179,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Do not round your back at the start. Stay upright throughout.'],
     pattern: 'pull-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-row', 'dumbbell-row', 'chest-supported-row'],
   },
   {
     id: 'face-pull',
@@ -177,6 +197,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Essential for shoulder health. Use light weight and high reps.'],
     pattern: 'pull-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['rear-delt-fly', 'dumbbell-lateral-raise'],
   },
 
   // ── SHOULDERS ──────────────────────────────────────────────────────────────
@@ -194,6 +216,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Squeeze your glutes to protect your lower back. Keep your core braced.'],
     pattern: 'push-vertical',
+    difficulty: 'intermediate',
+    exerciseVariants: ['dumbbell-shoulder-press', 'arnold-press'],
   },
   {
     id: 'dumbbell-lateral-raise',
@@ -209,6 +233,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Lead with your elbows, not your hands. Use lighter weight than you think.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['face-pull', 'overhead-press'],
   },
   {
     id: 'dumbbell-shoulder-press',
@@ -224,6 +250,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Slightly angle the dumbbells inward at the top for a natural arc.'],
     pattern: 'push-vertical',
+    difficulty: 'beginner',
+    exerciseVariants: ['overhead-press', 'arnold-press'],
   },
 
   // ── ARMS ───────────────────────────────────────────────────────────────────
@@ -241,6 +269,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Avoid swinging your torso. Control the negative.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['hammer-curl', 'preacher-curl', 'incline-dumbbell-curl'],
   },
   {
     id: 'hammer-curl',
@@ -256,6 +286,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Hits the brachialis and brachioradialis as well as the biceps.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-curl', 'incline-dumbbell-curl'],
   },
   {
     id: 'tricep-pushdown',
@@ -272,6 +304,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your elbows tucked and stationary throughout the movement.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['overhead-tricep-extension', 'skull-crusher', 'close-grip-bench-press'],
   },
   {
     id: 'skull-crusher',
@@ -287,6 +321,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your upper arms vertical. Go slow on the way down.'],
     pattern: 'isolation',
+    difficulty: 'intermediate',
+    exerciseVariants: ['overhead-tricep-extension', 'tricep-pushdown', 'close-grip-bench-press'],
   },
   {
     id: 'overhead-tricep-extension',
@@ -302,6 +338,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Full overhead position maximally stretches the long head of the tricep.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['skull-crusher', 'tricep-pushdown'],
   },
 
   // ── QUADS / LEGS ───────────────────────────────────────────────────────────
@@ -320,6 +358,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your chest up and knees tracking over your toes.', 'Brace your core before descending.'],
     pattern: 'squat',
+    difficulty: 'intermediate',
+    exerciseVariants: ['goblet-squat', 'leg-press', 'hack-squat', 'front-squat'],
   },
   {
     id: 'goblet-squat',
@@ -336,6 +376,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Great for beginners to learn squat mechanics. Keep your chest tall throughout.'],
     pattern: 'squat',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-back-squat', 'leg-press', 'bulgarian-split-squat'],
   },
   {
     id: 'leg-press',
@@ -351,6 +393,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Higher foot placement emphasizes glutes/hamstrings; lower placement emphasizes quads.'],
     pattern: 'squat',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-back-squat', 'goblet-squat', 'hack-squat'],
   },
   {
     id: 'leg-extension',
@@ -366,6 +410,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Isolation exercise. Use as a finisher after compound movements.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-back-squat', 'walking-lunge'],
   },
   {
     id: 'walking-lunge',
@@ -381,6 +427,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep your front knee over your ankle, not your toes.'],
     pattern: 'squat',
+    difficulty: 'beginner',
+    exerciseVariants: ['bulgarian-split-squat', 'step-up', 'goblet-squat'],
   },
   {
     id: 'bulgarian-split-squat',
@@ -396,6 +444,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['One of the best single-leg exercises. Expect quad soreness!'],
     pattern: 'squat',
+    difficulty: 'intermediate',
+    exerciseVariants: ['walking-lunge', 'step-up', 'barbell-back-squat'],
   },
 
   // ── HAMSTRINGS / GLUTES ────────────────────────────────────────────────────
@@ -414,6 +464,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Keep the bar in contact with your legs throughout. Maintain a neutral spine.'],
     pattern: 'hinge',
+    difficulty: 'beginner',
+    exerciseVariants: ['deadlift', 'single-leg-romanian-deadlift', 'hip-thrust', 'hyperextension'],
   },
   {
     id: 'deadlift',
@@ -430,6 +482,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Think "push the floor away" not "pull the bar up". Keep your lats engaged.'],
     pattern: 'hinge',
+    difficulty: 'intermediate',
+    exerciseVariants: ['romanian-deadlift', 'hip-thrust', 'hyperextension'],
   },
   {
     id: 'hip-thrust',
@@ -446,6 +500,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['The best glute isolation exercise. Use a barbell pad for comfort.'],
     pattern: 'hinge',
+    difficulty: 'beginner',
+    exerciseVariants: ['glute-bridge', 'romanian-deadlift'],
   },
   {
     id: 'glute-bridge',
@@ -461,6 +517,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Beginner-friendly version of hip thrust. Can add a dumbbell on hips for resistance.'],
     pattern: 'hinge',
+    difficulty: 'beginner',
+    exerciseVariants: ['hip-thrust', 'romanian-deadlift'],
   },
   {
     id: 'leg-curl',
@@ -476,6 +534,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Plantar flex your feet (toes pointed) to maximize hamstring activation.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['romanian-deadlift', 'nordic-hamstring-curl'],
   },
 
   // ── CALVES & CORE ──────────────────────────────────────────────────────────
@@ -493,6 +553,7 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Full range of motion is key — go all the way up and all the way down.'],
     pattern: 'isolation',
+    difficulty: 'beginner',
   },
   {
     id: 'plank',
@@ -508,6 +569,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Do not let your hips sag or rise. Think "long body".'],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['pallof-press', 'ab-wheel-rollout'],
   },
   {
     id: 'hanging-leg-raise',
@@ -523,6 +586,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Posterior pelvic tilt at the top for full ab activation.'],
     pattern: 'isolation',
+    difficulty: 'intermediate',
+    exerciseVariants: ['cable-crunch', 'plank'],
   },
   {
     id: 'ab-wheel-rollout',
@@ -538,6 +603,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['One of the most demanding core exercises. Start with small range of motion.'],
     pattern: 'isolation',
+    difficulty: 'advanced',
+    exerciseVariants: ['plank', 'pallof-press'],
   },
 
   // ── CARDIO ─────────────────────────────────────────────────────────────────
@@ -556,6 +623,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['It is a hip hinge, not a squat. Power comes from your hips, not your arms.'],
     pattern: 'hinge',
+    difficulty: 'intermediate',
+    exerciseVariants: ['romanian-deadlift', 'hip-thrust'],
   },
   {
     id: 'box-jump',
@@ -572,6 +641,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Start with a lower box and build up. Step down, do not jump down.'],
     pattern: 'squat',
+    difficulty: 'intermediate',
+    exerciseVariants: ['mountain-climbers', 'step-up'],
   },
   {
     id: 'mountain-climbers',
@@ -587,6 +658,8 @@ export const exercises: Exercise[] = [
     ],
     tips: ['Speed it up for a cardio challenge; slow it down for core work.'],
     pattern: 'cardio',
+    difficulty: 'beginner',
+    exerciseVariants: ['plank', 'box-jump'],
   },
 
   // ── NEW EXERCISES ───────────────────────────────────────────────────────────
@@ -609,6 +682,8 @@ export const exercises: Exercise[] = [
       'Add weight with a dip belt once bodyweight becomes too easy.',
     ],
     pattern: 'push-horizontal',
+    difficulty: 'intermediate',
+    exerciseVariants: ['push-up', 'skull-crusher', 'close-grip-bench-press'],
   },
   {
     id: 'incline-barbell-press',
@@ -629,6 +704,8 @@ export const exercises: Exercise[] = [
       'Control the eccentric (lowering) for maximum upper chest development.',
     ],
     pattern: 'push-horizontal',
+    difficulty: 'intermediate',
+    exerciseVariants: ['incline-dumbbell-press', 'barbell-bench-press'],
   },
   {
     id: 'rear-delt-fly',
@@ -650,6 +727,8 @@ export const exercises: Exercise[] = [
       'Critical for shoulder health and posture — include it every upper-body session.',
     ],
     pattern: 'pull-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['face-pull', 'dumbbell-lateral-raise'],
   },
   {
     id: 'arnold-press',
@@ -670,6 +749,8 @@ export const exercises: Exercise[] = [
       'Slightly lighter weight than standard dumbbell shoulder press is normal.',
     ],
     pattern: 'push-vertical',
+    difficulty: 'intermediate',
+    exerciseVariants: ['overhead-press', 'dumbbell-shoulder-press'],
   },
   {
     id: 'step-up',
@@ -691,6 +772,8 @@ export const exercises: Exercise[] = [
       'Pause at the top for 1 second to maximise glute activation.',
     ],
     pattern: 'squat',
+    difficulty: 'beginner',
+    exerciseVariants: ['walking-lunge', 'bulgarian-split-squat'],
   },
   {
     id: 'nordic-hamstring-curl',
@@ -712,6 +795,8 @@ export const exercises: Exercise[] = [
       'Keep hips extended throughout — avoid piking at the hips.',
     ],
     pattern: 'hinge',
+    difficulty: 'advanced',
+    exerciseVariants: ['leg-curl', 'romanian-deadlift'],
   },
   {
     id: 'cable-crunch',
@@ -733,6 +818,8 @@ export const exercises: Exercise[] = [
       'A slow 3-second descent (eccentric) doubles the time under tension.',
     ],
     pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['plank', 'hanging-leg-raise'],
   },
   {
     id: 't-bar-row',
@@ -754,6 +841,232 @@ export const exercises: Exercise[] = [
       'A controlled 2-second negative builds more muscle than letting the weight drop.',
     ],
     pattern: 'pull-horizontal',
+    difficulty: 'intermediate',
+    exerciseVariants: ['barbell-row', 'chest-supported-row', 'dumbbell-row'],
+  },
+
+  // ── PHASE 2 EXERCISES ────────────────────────────────────────────────────────
+  {
+    id: 'close-grip-bench-press',
+    name: 'Close-Grip Bench Press',
+    category: 'strength',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: ['chest', 'shoulders'],
+    equipment: ['barbell'],
+    instructions: [
+      'Lie on a flat bench. Grip the bar with hands roughly shoulder-width apart (narrower than a standard bench grip).',
+      'Unrack and lower the bar to your lower chest, keeping elbows tucked close to your sides.',
+      'Press explosively back to full extension, squeezing your triceps at the top.',
+    ],
+    tips: [
+      'Hands too close (less than 6 inches apart) strains the wrists — shoulder-width is optimal.',
+      'Tuck the elbows at 45° to the torso, not perpendicular, to protect the shoulder joint.',
+      'This is the king of tricep mass builders — prioritise progressive overload here.',
+    ],
+    pattern: 'push-horizontal',
+    difficulty: 'intermediate',
+    exerciseVariants: ['tricep-pushdown', 'skull-crusher', 'dips'],
+  },
+  {
+    id: 'preacher-curl',
+    name: 'Preacher Curl',
+    category: 'strength',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['core'],
+    equipment: ['barbell', 'dumbbell', 'cable'],
+    instructions: [
+      'Sit at a preacher bench. Rest the backs of your upper arms flat against the pad.',
+      'Hold the bar or dumbbells with an underhand grip, arms extended.',
+      'Curl the weight up by flexing your elbows, keeping upper arms pinned against the pad.',
+      'Lower with control until your arms are nearly fully extended.',
+    ],
+    tips: [
+      'The pad eliminates any body English — every rep is honest work.',
+      'Stop just short of full extension at the bottom to keep tension on the bicep tendon.',
+      'The stretched position (near the bottom) is where hypertrophy stimulus is greatest.',
+      'Use a slightly wider than shoulder-width grip on the EZ bar to reduce wrist strain.',
+    ],
+    pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-curl', 'incline-dumbbell-curl', 'hammer-curl'],
+  },
+  {
+    id: 'incline-dumbbell-curl',
+    name: 'Incline Dumbbell Curl',
+    category: 'strength',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['core'],
+    equipment: ['dumbbell'],
+    instructions: [
+      'Set a bench to a 45–60° incline. Sit back with a dumbbell in each hand, arms hanging straight down.',
+      'Curl both dumbbells simultaneously, keeping your elbows stationary behind your torso.',
+      'Squeeze hard at the top, then lower with a slow 3-second eccentric.',
+    ],
+    tips: [
+      'The incline angle places the long head of the bicep in a deep stretch — its most productive position.',
+      'Do not let your elbows drift forward; keep them behind the plane of your torso the entire time.',
+      'This is one of the most effective exercises for developing bicep peak.',
+      'Use lighter weight than standing curls — the stretched position dramatically increases the challenge.',
+    ],
+    pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['barbell-curl', 'hammer-curl', 'preacher-curl'],
+  },
+  {
+    id: 'hack-squat',
+    name: 'Hack Squat',
+    category: 'strength',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes', 'hamstrings', 'calves'],
+    equipment: ['machine'],
+    instructions: [
+      'Position yourself in the hack squat machine with your back flat against the pad and feet shoulder-width on the platform.',
+      'Release the safety handles and lower yourself until your knees reach 90° or deeper.',
+      'Drive through your full foot to press back to the start, without fully locking out the knees.',
+    ],
+    tips: [
+      'Placing feet higher on the platform increases glute/hamstring involvement; lower placement emphasises quads.',
+      'The machine tracks the path for you — focus entirely on depth and quad contraction.',
+      'An excellent option when lower back fatigue limits barbell squatting.',
+      'Try pausing 1 second in the hole for a brutal quad pump.',
+    ],
+    pattern: 'squat',
+    difficulty: 'intermediate',
+    exerciseVariants: ['barbell-back-squat', 'leg-press', 'goblet-squat'],
+  },
+  {
+    id: 'chest-supported-row',
+    name: 'Chest-Supported Dumbbell Row',
+    category: 'strength',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps', 'shoulders'],
+    equipment: ['dumbbell'],
+    instructions: [
+      'Set a bench to a low incline (20–30°). Lie face-down with your chest against the pad, dumbbells hanging below.',
+      'Row both dumbbells up by driving your elbows back and squeezing your shoulder blades together.',
+      'Lower with control to a full hang before the next rep.',
+    ],
+    tips: [
+      'The chest support eliminates all lower back stress — ideal for high-fatigue training days.',
+      'This allows you to isolate the upper back without any compensatory hip extension or trunk rotation.',
+      'Lead with your elbows, not your hands, to maximise lat and rhomboid engagement.',
+      'Use a neutral (palms-in) grip to target the mid-back; underhand grip shifts more load to the biceps.',
+    ],
+    pattern: 'pull-horizontal',
+    difficulty: 'beginner',
+    exerciseVariants: ['dumbbell-row', 'barbell-row', 'seated-cable-row'],
+  },
+  {
+    id: 'single-leg-romanian-deadlift',
+    name: 'Single-Leg Romanian Deadlift',
+    category: 'strength',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['glutes', 'core'],
+    equipment: ['dumbbell', 'barbell'],
+    instructions: [
+      'Stand on one foot, holding a dumbbell in the opposite hand (or both hands for a barbell).',
+      'Hinge at the hip, extending the free leg behind you as a counterbalance, and lower the weight toward the floor.',
+      'Keep your back flat and hips square throughout the movement.',
+      'Return to standing by driving through the heel of the working leg.',
+    ],
+    tips: [
+      'Focus on the hip hinge — the foot goes back because the hip hinges, not the other way around.',
+      'Keep your pelvis level; avoid rotating your hips open toward the ceiling.',
+      'Start light — balance demands and unilateral hamstring loading are both significant.',
+      'Excellent for identifying and correcting strength asymmetries between legs.',
+    ],
+    pattern: 'hinge',
+    difficulty: 'intermediate',
+    exerciseVariants: ['romanian-deadlift', 'hip-thrust'],
+  },
+  {
+    id: 'dumbbell-fly',
+    name: 'Dumbbell Fly',
+    category: 'strength',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    equipment: ['dumbbell'],
+    instructions: [
+      'Lie on a flat bench with a dumbbell in each hand, arms extended above your chest, palms facing each other.',
+      'With a slight, fixed bend in the elbows, lower the dumbbells out to the sides in a wide arc.',
+      'Stop when you feel a deep stretch in the chest, then squeeze the pecs to return to the start.',
+    ],
+    tips: [
+      'This is a stretch-focused isolation movement — use light-to-moderate weight and prioritise the range of motion.',
+      'Keep the elbow angle constant (do not curl the weights up). Think of hugging a barrel.',
+      'The dumbbell fly targets the chest through a different range than pressing — it belongs in every hypertrophy program.',
+      'A 2-second pause in the stretched position dramatically increases time under tension.',
+    ],
+    pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['cable-chest-fly', 'dumbbell-bench-press'],
+  },
+  {
+    id: 'pallof-press',
+    name: 'Pallof Press',
+    category: 'strength',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['shoulders', 'back'],
+    equipment: ['cable', 'resistance-band'],
+    instructions: [
+      'Attach a handle to a cable at chest height. Stand sideways to the cable, feet shoulder-width, holding the handle at your chest.',
+      'Brace your core hard, then press the handle straight out in front of you to full arm extension.',
+      'Hold for 1–2 seconds, then return the handle to your chest. Do not rotate.',
+    ],
+    tips: [
+      'The Pallof press trains anti-rotation — resisting twisting forces — which is how your core works in real life.',
+      'The further you stand from the machine, the harder the anti-rotation demand.',
+      'Avoid letting your hips or shoulders turn toward the cable. Zero rotation is the goal.',
+      'This exercise is highly transferable to sport performance and injury prevention.',
+    ],
+    pattern: 'isolation',
+    difficulty: 'beginner',
+    exerciseVariants: ['plank', 'ab-wheel-rollout'],
+  },
+  {
+    id: 'hyperextension',
+    name: 'Hyperextension (Back Extension)',
+    category: 'strength',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    equipment: ['machine', 'bodyweight'],
+    instructions: [
+      'Position yourself face-down in a hyperextension bench, feet secured, hips at the pad edge.',
+      'Cross your arms over your chest or hold a weight plate. Lower your torso toward the floor.',
+      'Contract your glutes and lower back to raise your torso back to neutral (do not hyperextend beyond horizontal).',
+    ],
+    tips: [
+      'Stop at horizontal — excessive extension loads the lumbar spine unnecessarily.',
+      'To bias the glutes, round your back slightly and think "squeeze glutes" on the way up.',
+      'To bias the erectors, keep the spine neutral throughout the range.',
+      'Add a plate or dumbbell to the chest for progressive overload once bodyweight becomes easy.',
+    ],
+    pattern: 'hinge',
+    difficulty: 'beginner',
+    exerciseVariants: ['romanian-deadlift', 'deadlift', 'hip-thrust'],
+  },
+  {
+    id: 'front-squat',
+    name: 'Front Squat',
+    category: 'strength',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['core', 'back', 'glutes'],
+    equipment: ['barbell'],
+    instructions: [
+      'Rest the barbell across the front of your shoulders (front rack or crossed-arm position). Keep elbows high.',
+      'Stand with feet shoulder-width, toes turned slightly out.',
+      'Squat by breaking at the hips and knees simultaneously, keeping your torso as upright as possible.',
+      'Drive through your full foot to return to the start.',
+    ],
+    tips: [
+      'The front-loaded position forces an upright torso — this maximises quad involvement and reduces lower back stress.',
+      'Elbows must stay high throughout. If they drop, the bar will roll off your shoulders.',
+      'Ankle mobility is critical; work on it with heel-elevated squats or mobility drills if you struggle to hit depth.',
+      'Front squats transfer directly to athletic performance and Olympic lifting.',
+    ],
+    pattern: 'squat',
+    difficulty: 'advanced',
+    exerciseVariants: ['barbell-back-squat', 'goblet-squat', 'hack-squat'],
   },
 ];
 
@@ -809,6 +1122,17 @@ const EXERCISE_YOUTUBE_IDS: Record<string, string> = {
   'nordic-hamstring-curl':     '0a_fVS2s4Ho', // Jeff Nippard — hamstring training
   'cable-crunch':              '1G0y8D5rFDc', // Jeff Nippard — core training
   't-bar-row':                 'BPXjwGiKOmo', // Athlean-X — back workout
+  // Phase 2 additions
+  'close-grip-bench-press':    '8Nkfuhxsl-0', // Athlean-X — tricep workout
+  'preacher-curl':             'i1YgFZB6alI', // Jeff Nippard — biceps
+  'incline-dumbbell-curl':     'i1YgFZB6alI', // Jeff Nippard — biceps (long head)
+  'hack-squat':                'H6mRkx1x77k', // Jeff Nippard — leg day
+  'chest-supported-row':       'axoeDmW0oAY', // Jeff Nippard — rowing technique
+  'single-leg-romanian-deadlift': '_oyxCn2iSjU', // Jeff Nippard — RDL
+  'dumbbell-fly':              'NsEbXsTwas8', // Jeff Nippard — chest exercises
+  'pallof-press':              '1G0y8D5rFDc', // Jeff Nippard — core training
+  'hyperextension':            'VL5Ab0T07e4', // Jeff Nippard — posterior chain
+  'front-squat':               'bs_Ej32IYgo', // Alan Thrall — squat technique
 };
 
 export function getExerciseYouTubeId(id: string): string | undefined {
