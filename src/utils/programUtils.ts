@@ -50,3 +50,20 @@ export function recommendProgram(
 ): Program | undefined {
   return programs.find((p) => p.goal === goal && p.experienceLevel === level);
 }
+
+export function isBlockComplete(program: Program): boolean {
+  const week = getProgramWeekCursor(program.id);
+  const day = getProgramDayCursor(program.id);
+  return week > (program.estimatedDurationWeeks ?? 8) && day === 0;
+}
+
+export function getBlockStartDate(
+  programId: string,
+  sessions: Array<{ programId: string; startedAt: string }>,
+): string | null {
+  const sorted = sessions
+    .filter((s) => s.programId === programId)
+    .map((s) => s.startedAt)
+    .sort();
+  return sorted[0] ?? null;
+}

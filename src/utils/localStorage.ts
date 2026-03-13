@@ -16,6 +16,8 @@ import type {
   GamificationData,
   SpacedRepCard,
   DailyCheckin,
+  ProgressionReport,
+  TrainingDNA,
 } from '../types';
 
 const KEYS = {
@@ -512,4 +514,57 @@ export function getTodayCheckin(): DailyCheckin | null {
 export function saveDailyCheckinLocal(checkin: DailyCheckin): void {
   const existing = getDailyCheckins().filter((c) => c.checkinDate !== checkin.checkinDate);
   safeWrite(KEYS.DAILY_CHECKINS, [checkin, ...existing].slice(0, 30));
+}
+
+// ─── Workout History Accessors ────────────────────────────────────────────────
+
+export function getWorkoutHistory(): WorkoutSession[] {
+  return getHistory().sessions;
+}
+
+export function getPersonalRecords(): PersonalRecord[] {
+  return getHistory().personalRecords;
+}
+
+// ─── Progression Report Cache ─────────────────────────────────────────────────
+
+const PROGRESSION_REPORT_KEY = 'omnexus_progression_reports';
+
+export function getProgressionReports(): ProgressionReport[] {
+  try {
+    const raw = localStorage.getItem(PROGRESSION_REPORT_KEY);
+    return raw ? (JSON.parse(raw) as ProgressionReport[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveProgressionReportLocal(report: ProgressionReport): void {
+  try {
+    const existing = getProgressionReports().filter((r) => r.programId !== report.programId);
+    localStorage.setItem(PROGRESSION_REPORT_KEY, JSON.stringify([...existing, report]));
+  } catch { /* quota */ }
+}
+
+export function getProgressionReportForProgram(programId: string): ProgressionReport | null {
+  return getProgressionReports().find((r) => r.programId === programId) ?? null;
+}
+
+// ─── Training DNA Cache ────────────────────────────────────────────────────────
+
+const TRAINING_DNA_KEY = 'omnexus_training_dna';
+
+export function getTrainingDNALocal(): TrainingDNA | null {
+  try {
+    const raw = localStorage.getItem(TRAINING_DNA_KEY);
+    return raw ? (JSON.parse(raw) as TrainingDNA) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setTrainingDNALocal(dna: TrainingDNA): void {
+  try {
+    localStorage.setItem(TRAINING_DNA_KEY, JSON.stringify(dna));
+  } catch { /* quota */ }
 }

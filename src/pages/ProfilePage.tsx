@@ -31,6 +31,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Avatar } from '../components/ui/Avatar';
 import { RankBadge } from '../components/gamification/RankBadge';
+import { TrainingDNA } from '../components/profile/TrainingDNA';
 import {
   getPushPermission,
   isSubscribed,
@@ -571,6 +572,9 @@ export function ProfilePage() {
             <RankBadge xpProfile={state.xpProfile} />
           </div>
         )}
+
+        {/* Training DNA */}
+        <TrainingDNA />
 
         {/* Subscription */}
         {!isGuest && (

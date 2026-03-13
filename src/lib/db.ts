@@ -26,6 +26,7 @@ import type {
   XpEvent,
   SpacedRepCard,
   DailyCheckin,
+  ProgressionReport,
 } from '../types';
 
 let supabasePromise: Promise<(typeof import('./supabase'))['supabase']> | null = null;
@@ -1233,5 +1234,30 @@ export async function saveDailyCheckinToDb(checkin: DailyCheckin, userId: string
   }, { onConflict: 'user_id,checkin_date' });
   if (error) {
     console.warn('[saveDailyCheckinToDb]', error.message);
+  }
+}
+
+// ─── Progression Reports ──────────────────────────────────────────────────────
+
+export async function saveProgressionReportToDb(
+  report: ProgressionReport,
+  userId: string,
+): Promise<void> {
+  try {
+    const { supabase } = await import('./supabase');
+    await supabase.from('progression_reports').upsert({
+      id: report.id,
+      user_id: userId,
+      program_id: report.programId,
+      generated_at: report.generatedAt,
+      consistency_percent: report.consistencyPercent,
+      total_workouts: report.totalWorkouts,
+      planned_workouts: report.plannedWorkouts,
+      top_prs: report.topPRs,
+      volume_by_muscle: report.volumeByMuscle,
+      omni_narrative: report.omniNarrative,
+    });
+  } catch (err) {
+    console.warn('[saveProgressionReportToDb]', err);
   }
 }

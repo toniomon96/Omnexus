@@ -382,3 +382,105 @@ export async function shareOrDownload(blob: Blob, filename: string): Promise<voi
     URL.revokeObjectURL(url);
   }
 }
+
+// ─── Progression Report Card ──────────────────────────────────────────────────
+
+export async function generateProgressionReportCard(params: {
+  programName: string;
+  consistencyPercent: number;
+  totalWorkouts: number;
+  topPRs: Array<{ exerciseName: string; weight: number }>;
+  omniNarrative: string;
+  weightUnit?: 'kg' | 'lbs';
+}): Promise<Blob> {
+  const { programName, consistencyPercent, totalWorkouts, topPRs, omniNarrative, weightUnit = 'kg' } = params;
+  const canvas = document.createElement('canvas');
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+  const ctx = canvas.getContext('2d')!;
+
+  drawBackground(ctx);
+  drawBrand(ctx, SIZE * 0.14);
+
+  let y = SIZE * 0.22;
+
+  // "Block Complete" label
+  ctx.font = `600 ${SIZE * 0.03}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = SLATE_400;
+  ctx.textAlign = 'center';
+  ctx.fillText('Block Complete', SIZE / 2, y);
+  y += SIZE * 0.07;
+
+  // Program name
+  ctx.font = `bold ${SIZE * 0.048}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = 'center';
+  ctx.fillText(programName, SIZE / 2, y);
+  y += SIZE * 0.1;
+
+  // Consistency ring (drawn as arc)
+  const cx = SIZE / 2;
+  const cy = y + SIZE * 0.1;
+  const radius = SIZE * 0.09;
+  const lineW = SIZE * 0.012;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = lineW;
+  ctx.stroke();
+  const frac = consistencyPercent / 100;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+  ctx.strokeStyle = BRAND;
+  ctx.lineWidth = lineW;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.font = `bold ${SIZE * 0.056}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = 'center';
+  ctx.fillText(`${Math.round(consistencyPercent)}%`, cx, cy + SIZE * 0.02);
+  ctx.font = `${SIZE * 0.024}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = SLATE_400;
+  ctx.fillText('Consistency', cx, cy + SIZE * 0.055);
+
+  y = cy + SIZE * 0.13;
+
+  // Total workouts
+  ctx.font = `${SIZE * 0.03}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = SLATE_400;
+  ctx.fillText(`${totalWorkouts} workouts completed`, cx, y);
+  y += SIZE * 0.07;
+
+  // Top PRs
+  if (topPRs.length > 0) {
+    ctx.font = `bold ${SIZE * 0.032}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = AMBER;
+    ctx.textAlign = 'center';
+    ctx.fillText('🏆 Top PRs', cx, y);
+    y += SIZE * 0.045;
+    ctx.font = `${SIZE * 0.026}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = WHITE;
+    for (const pr of topPRs.slice(0, 3)) {
+      const label = weightUnit === 'lbs'
+        ? `${pr.exerciseName}: ${(pr.weight * KG_TO_LBS).toFixed(1)} lbs`
+        : `${pr.exerciseName}: ${pr.weight} kg`;
+      ctx.fillText(label, cx, y);
+      y += SIZE * 0.04;
+    }
+    y += SIZE * 0.02;
+  }
+
+  // Omni narrative (wrapped)
+  if (omniNarrative) {
+    ctx.font = `italic ${SIZE * 0.026}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = SLATE_400;
+    ctx.textAlign = 'center';
+    wrapText(ctx, `"${omniNarrative}"`, cx, y, SIZE * 0.78, SIZE * 0.038);
+  }
+
+  drawFooter(ctx);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob!), 'image/png');
+  });
+}
