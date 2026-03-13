@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { identify } from '../lib/analytics';
-import type { User, WorkoutSession, WorkoutHistory, LearningProgress, QuizAttempt, XpProfile, GamificationData } from '../types';
+import type { User, WorkoutSession, WorkoutHistory, LearningProgress, QuizAttempt, XpProfile, GamificationData, Achievement, PendingCelebration } from '../types';
 import {
   getUser,
   getHistory,
@@ -43,6 +43,10 @@ export interface AppState {
   streak: number;
   sparks: number;
   unlockedAchievementIds: string[];
+  /** Achievements newly unlocked since the last toast drain. */
+  pendingAchievements: Achievement[];
+  /** Full-screen celebrations queued for display (rank-up, streak milestones). */
+  pendingCelebrations: PendingCelebration[];
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -67,7 +71,9 @@ export type Action =
   | { type: 'SET_GAMIFICATION'; payload: GamificationData }
   | { type: 'SET_STREAK'; payload: number }
   | { type: 'AWARD_SPARKS'; payload: number }
-  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string };
+  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
+  | { type: 'CONSUME_ALL_ACHIEVEMENT_UNLOCKS' }
+  | { type: 'CONSUME_CELEBRATION' };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 
@@ -221,10 +227,24 @@ export function reducer(state: AppState, action: Action): AppState {
           .catch((err) => { if (import.meta.env.DEV) console.error('[AppContext] recordXpEvent failed:', err); });
       }
 
+      // Detect rank-up: enqueue a full-screen celebration
+      const prevRank = state.xpProfile?.rankLabel ?? '';
+      const nextRank = finalProfile.rankLabel;
+      const rankUpCelebration: PendingCelebration | null =
+        prevRank && prevRank !== nextRank
+          ? { type: 'rank_up', fromRank: prevRank, toRank: nextRank, level: finalProfile.level }
+          : null;
+
       return {
         ...state,
         xpProfile: finalProfile,
         unlockedAchievementIds: newAchievementIds,
+        pendingAchievements: newUnlocks.length > 0
+          ? [...state.pendingAchievements, ...newUnlocks]
+          : state.pendingAchievements,
+        pendingCelebrations: rankUpCelebration
+          ? [...state.pendingCelebrations, rankUpCelebration]
+          : state.pendingCelebrations,
       };
     }
     case 'SET_GAMIFICATION': {
@@ -237,8 +257,23 @@ export function reducer(state: AppState, action: Action): AppState {
       const existing = getGamificationData();
       const updated: GamificationData = { ...existing, streak: action.payload, streakUpdatedDate: today };
       setGamificationData(updated);
-      return { ...state, streak: action.payload };
+      // Enqueue a celebration for notable streak milestones
+      const STREAK_MILESTONES = [7, 30, 100, 365];
+      const streakCelebration: PendingCelebration | null = STREAK_MILESTONES.includes(action.payload)
+        ? { type: 'streak_milestone', streakDays: action.payload }
+        : null;
+      return {
+        ...state,
+        streak: action.payload,
+        pendingCelebrations: streakCelebration
+          ? [...state.pendingCelebrations, streakCelebration]
+          : state.pendingCelebrations,
+      };
     }
+    case 'CONSUME_ALL_ACHIEVEMENT_UNLOCKS':
+      return { ...state, pendingAchievements: [] };
+    case 'CONSUME_CELEBRATION':
+      return { ...state, pendingCelebrations: state.pendingCelebrations.slice(1) };
     case 'AWARD_SPARKS': {
       const newSparks = state.sparks + action.payload;
       const existing = getGamificationData();
@@ -281,6 +316,8 @@ function getInitialState(): AppState {
     streak: gamification.streak,
     sparks: gamification.sparks,
     unlockedAchievementIds: gamification.unlockedAchievementIds,
+    pendingAchievements: [],
+    pendingCelebrations: [],
   };
 }
 

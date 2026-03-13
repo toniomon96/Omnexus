@@ -747,6 +747,13 @@ export interface GamificationData {
   weeklyXpResetDate: string;
 }
 
+// ─── Pending Celebrations ────────────────────────────────────────────────────
+
+/** A celebration event queued for full-screen display. */
+export type PendingCelebration =
+  | { type: 'rank_up'; fromRank: string; toRank: string; level: number }
+  | { type: 'streak_milestone'; streakDays: number };
+
 // ─── Streak Freeze ───────────────────────────────────────────────────────────
 
 export interface StreakFreeze {

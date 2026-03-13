@@ -117,23 +117,46 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
   // ── Score screen ────────────────────────────────────────────────────────────
   if (screen === 'score' && completedAttempt) {
     const passed = completedAttempt.score >= 70;
+    const perfect = completedAttempt.score === 100;
     const streak = completedAttempt.maxCorrectStreak ?? 0;
     const multiplier = streak >= 10 ? 2.0 : streak >= 5 ? 1.5 : streak >= 3 ? 1.25 : 1.0;
     return (
-      <div className="flex flex-col items-center text-center py-6 space-y-4">
+      <div
+        className={[
+          'flex flex-col items-center text-center py-6 space-y-4 rounded-2xl transition-all',
+          perfect
+            ? 'ring-2 ring-amber-400/60 bg-amber-50/30 dark:bg-amber-900/10'
+            : '',
+        ].join(' ')}
+      >
+        {/* Perfect score gold flash banner */}
+        {perfect && (
+          <div className="w-full rounded-xl bg-amber-400/20 border border-amber-400/50 px-4 py-2 flex items-center justify-center gap-2">
+            <span className="text-lg">🌟</span>
+            <span className="text-sm font-bold text-amber-600 dark:text-amber-300">
+              Perfect Score! {multiplier > 1 ? `${multiplier}× XP` : '+60 XP'}
+            </span>
+            <span className="text-lg">🌟</span>
+          </div>
+        )}
+
         <div
           className={`flex h-16 w-16 items-center justify-center rounded-3xl ${
-            passed
-              ? 'bg-green-100 dark:bg-green-900/30'
-              : 'bg-amber-100 dark:bg-amber-900/30'
+            perfect
+              ? 'bg-amber-100 dark:bg-amber-900/30 ring-2 ring-amber-400/40'
+              : passed
+                ? 'bg-green-100 dark:bg-green-900/30'
+                : 'bg-amber-100 dark:bg-amber-900/30'
           }`}
         >
           <Trophy
             size={30}
             className={
-              passed
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-amber-600 dark:text-amber-400'
+              perfect
+                ? 'text-amber-500 dark:text-amber-300'
+                : passed
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-amber-600 dark:text-amber-400'
             }
           />
         </div>

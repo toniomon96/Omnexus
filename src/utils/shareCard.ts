@@ -363,6 +363,159 @@ export async function generateWeeklyCard(data: WeeklyCardData): Promise<Blob> {
   return canvasToBlob(canvas);
 }
 
+// ─── Streak Milestone Card ────────────────────────────────────────────────────
+
+export interface StreakCardData {
+  streakDays: number;
+  milestoneLabel: string;
+}
+
+function drawStreakCard(ctx: CanvasRenderingContext2D, data: StreakCardData) {
+  const cx = SIZE / 2;
+
+  drawBackground(ctx);
+
+  // Warm orange glow
+  const glow = ctx.createRadialGradient(cx, SIZE * 0.42, 0, cx, SIZE * 0.42, SIZE * 0.32);
+  glow.addColorStop(0, 'rgba(249,115,22,0.18)');
+  glow.addColorStop(1, 'rgba(249,115,22,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  // Card panel
+  roundRect(ctx, SIZE * 0.07, SIZE * 0.09, SIZE * 0.86, SIZE * 0.8, 32);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  drawBrand(ctx, SIZE * 0.19);
+
+  // Badge
+  const badgeW = SIZE * 0.62;
+  const badgeH = SIZE * 0.065;
+  roundRect(ctx, cx - badgeW / 2, SIZE * 0.265 - badgeH / 2, badgeW, badgeH, badgeH / 2);
+  ctx.fillStyle = 'rgba(249,115,22,0.15)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(249,115,22,0.45)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.font = `700 ${SIZE * 0.03}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = '#fb923c';
+  ctx.textAlign = 'center';
+  ctx.fillText('✦  STREAK MILESTONE  ✦', cx, SIZE * 0.282);
+
+  // Flame emoji
+  ctx.font = `${SIZE * 0.12}px serif`;
+  ctx.fillText('🔥', cx, SIZE * 0.425);
+
+  // Day count — big number
+  ctx.font = `900 ${SIZE * 0.18}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  const numGrad = ctx.createLinearGradient(cx - SIZE * 0.2, 0, cx + SIZE * 0.2, 0);
+  numGrad.addColorStop(0, '#f97316');
+  numGrad.addColorStop(1, '#fbbf24');
+  ctx.fillStyle = numGrad;
+  ctx.fillText(String(data.streakDays), cx, SIZE * 0.61);
+
+  ctx.font = `700 ${SIZE * 0.055}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = WHITE;
+  ctx.fillText('DAYS IN A ROW', cx, SIZE * 0.68);
+
+  ctx.font = `400 italic ${SIZE * 0.036}px Georgia, serif`;
+  ctx.fillStyle = SLATE_400;
+  ctx.globalAlpha = 0.7;
+  ctx.fillText(`"${data.milestoneLabel}"`, cx, SIZE * 0.76);
+  ctx.globalAlpha = 1;
+
+  drawFooter(ctx);
+}
+
+export async function generateStreakMilestoneCard(data: StreakCardData): Promise<Blob> {
+  const { canvas, ctx } = makeCanvas();
+  drawStreakCard(ctx, data);
+  return canvasToBlob(canvas);
+}
+
+// ─── Course Completion Card ───────────────────────────────────────────────────
+
+export interface CourseCardData {
+  courseTitle: string;
+  courseEmoji: string;
+  lessonCount: number;
+  date?: string;
+}
+
+function drawCourseCard(ctx: CanvasRenderingContext2D, data: CourseCardData) {
+  const cx = SIZE / 2;
+
+  drawBackground(ctx);
+
+  // Violet/teal glow
+  const glow = ctx.createRadialGradient(cx, SIZE * 0.42, 0, cx, SIZE * 0.42, SIZE * 0.3);
+  glow.addColorStop(0, 'rgba(99,102,241,0.22)');
+  glow.addColorStop(1, 'rgba(99,102,241,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  // Card panel
+  roundRect(ctx, SIZE * 0.07, SIZE * 0.09, SIZE * 0.86, SIZE * 0.8, 32);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  drawBrand(ctx, SIZE * 0.19);
+
+  // Badge
+  const badgeW = SIZE * 0.64;
+  const badgeH = SIZE * 0.065;
+  roundRect(ctx, cx - badgeW / 2, SIZE * 0.265 - badgeH / 2, badgeW, badgeH, badgeH / 2);
+  ctx.fillStyle = 'rgba(99,102,241,0.18)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(99,102,241,0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.font = `700 ${SIZE * 0.03}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = BRAND;
+  ctx.textAlign = 'center';
+  ctx.fillText('✦  COURSE COMPLETE  ✦', cx, SIZE * 0.282);
+
+  // Course emoji
+  ctx.font = `${SIZE * 0.1}px serif`;
+  ctx.fillText(data.courseEmoji, cx, SIZE * 0.41);
+
+  // Course title
+  ctx.font = `700 ${SIZE * 0.065}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = WHITE;
+  wrapText(ctx, data.courseTitle, cx, SIZE * 0.505, SIZE * 0.74, SIZE * 0.078);
+
+  // Lesson count
+  ctx.font = `500 ${SIZE * 0.038}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = SLATE_400;
+  ctx.globalAlpha = 0.8;
+  ctx.fillText(`${data.lessonCount} lesson${data.lessonCount !== 1 ? 's' : ''} completed`, cx, SIZE * 0.68);
+  ctx.globalAlpha = 1;
+
+  if (data.date) {
+    ctx.font = `400 ${SIZE * 0.028}px -apple-system, system-ui, BlinkMacSystemFont, sans-serif`;
+    ctx.fillStyle = SLATE_400;
+    ctx.globalAlpha = 0.6;
+    ctx.fillText(data.date, cx, SIZE * 0.74);
+    ctx.globalAlpha = 1;
+  }
+
+  drawFooter(ctx);
+}
+
+export async function generateCourseCompletionCard(data: CourseCardData): Promise<Blob> {
+  const { canvas, ctx } = makeCanvas();
+  drawCourseCard(ctx, data);
+  return canvasToBlob(canvas);
+}
 /** Download the blob or use the native Web Share API (mobile). */
 export async function shareOrDownload(blob: Blob, filename: string): Promise<void> {
   const file = new File([blob], filename, { type: 'image/png' });

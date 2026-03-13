@@ -1,18 +1,35 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { ShareCardModal } from '../components/ui/ShareCardModal';
 import { getCourseById } from '../data/courses';
 import { useLearningProgress } from '../hooks/useLearningProgress';
-import { CheckCircle, Circle, ChevronRight, Clock, BookOpen } from 'lucide-react';
+import { generateCourseCompletionCard } from '../utils/shareCard';
+import { CheckCircle, Circle, ChevronRight, Clock, BookOpen, Share2 } from 'lucide-react';
 
 export function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const { isLessonComplete, isModuleComplete, progress } = useLearningProgress();
+  const { isLessonComplete, isModuleComplete, isCourseComplete, completeCourse, progress } = useLearningProgress();
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const course = courseId ? getCourseById(courseId) : undefined;
+
+  const allLessonIds = course?.modules.flatMap((m) => m.lessons.map((l) => l.id)) ?? [];
+  const completedCount = allLessonIds.filter((id) => isLessonComplete(id)).length;
+  const totalCount = allLessonIds.length;
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const isComplete = pct === 100 && totalCount > 0;
+
+  // Auto-record course completion when all lessons are done
+  useEffect(() => {
+    if (isComplete && courseId && !isCourseComplete(courseId)) {
+      completeCourse(courseId);
+    }
+  }, [isComplete, courseId, isCourseComplete, completeCourse]);
 
   if (!course) {
     return (
@@ -24,11 +41,6 @@ export function CourseDetailPage() {
       </AppShell>
     );
   }
-
-  const allLessonIds = course.modules.flatMap((m) => m.lessons.map((l) => l.id));
-  const completedCount = allLessonIds.filter((id) => isLessonComplete(id)).length;
-  const totalCount = allLessonIds.length;
-  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Find the first module that isn't fully complete
   const nextModule = course.modules.find((m) => !isModuleComplete(m.id));
@@ -82,6 +94,27 @@ export function CourseDetailPage() {
           </div>
         )}
 
+        {/* Course completion certificate banner */}
+        {isComplete && (
+          <div className="rounded-2xl bg-gradient-to-br from-brand-600/20 to-violet-600/10 border border-brand-500/30 p-5 text-center space-y-3">
+            <p className="text-3xl">🎓</p>
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">Course Complete!</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                You finished all {totalCount} lessons in {course.title}.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setShowShareModal(true)}
+              className="inline-flex items-center gap-2"
+            >
+              <Share2 size={15} />
+              Share certificate
+            </Button>
+          </div>
+        )}
+
         {/* Primary CTA */}
         {nextModule && (
           <Button
@@ -90,13 +123,6 @@ export function CourseDetailPage() {
           >
             {completedCount === 0 ? 'Start Course' : 'Continue'}
           </Button>
-        )}
-        {!nextModule && completedCount > 0 && (
-          <div className="text-center py-3">
-            <p className="text-green-600 dark:text-green-400 font-semibold text-sm">
-              🎉 Course complete!
-            </p>
-          </div>
         )}
 
         {/* Modules list */}
@@ -177,6 +203,22 @@ export function CourseDetailPage() {
         </p>
 
       </div>
+
+      {/* Course completion share modal */}
+      <ShareCardModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        generate={() => generateCourseCompletionCard({
+          courseTitle: course.title,
+          courseEmoji: course.coverEmoji,
+          lessonCount: totalCount,
+          date: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        })}
+        filename={`omnexus-course-${course.id}.png`}
+        title="Share your certificate"
+      />
     </AppShell>
   );
 }
+
+
