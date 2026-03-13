@@ -21,13 +21,23 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
   const [answers, setAnswers] = useState<number[]>([]);
   const [completedAttempt, setCompletedAttempt] = useState<QuizAttempt | null>(null);
   const [screen, setScreen] = useState<Screen>('quiz');
+  /** Running count of consecutive correct answers in this attempt. */
+  const [correctStreak, setCorrectStreak] = useState(0);
+  /** Maximum consecutive correct streak reached so far. */
+  const [maxCorrectStreak, setMaxCorrectStreak] = useState(0);
 
   const question = quiz.questions[questionIndex];
+  const isTrueFalse = question?.type === 'true-false';
   const isCorrect = selected !== null && selected === question?.correctIndex;
 
   function handleSelect(optionIndex: number) {
     if (phase !== 'answering') return;
     setSelected(optionIndex);
+    // Update correct streak
+    const correct = optionIndex === question.correctIndex;
+    const newStreak = correct ? correctStreak + 1 : 0;
+    setCorrectStreak(newStreak);
+    setMaxCorrectStreak((prev: number) => Math.max(prev, newStreak));
     setTimeout(() => setPhase('explained'), 200);
   }
 
@@ -38,11 +48,13 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
         (ans, i) => ans === quiz.questions[i].correctIndex,
       ).length;
       const score = Math.round((correctCount / quiz.questions.length) * 100);
+      const finalMaxStreak = Math.max(maxCorrectStreak, correctStreak);
       const attempt: QuizAttempt = {
         score,
         correctCount,
         totalQuestions: quiz.questions.length,
         attemptedAt: new Date().toISOString(),
+        maxCorrectStreak: finalMaxStreak,
       };
       setAnswers(newAnswers);
       setCompletedAttempt(attempt);
@@ -105,6 +117,8 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
   // ── Score screen ────────────────────────────────────────────────────────────
   if (screen === 'score' && completedAttempt) {
     const passed = completedAttempt.score >= 70;
+    const streak = completedAttempt.maxCorrectStreak ?? 0;
+    const multiplier = streak >= 10 ? 2.0 : streak >= 5 ? 1.5 : streak >= 3 ? 1.25 : 1.0;
     return (
       <div className="flex flex-col items-center text-center py-6 space-y-4">
         <div
@@ -131,6 +145,11 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
             {completedAttempt.correctCount} of {completedAttempt.totalQuestions}{' '}
             correct
           </p>
+          {passed && multiplier > 1.0 && (
+            <p className="text-xs font-semibold text-brand-500 mt-1">
+              🔥 {streak}-answer combo — {multiplier}× XP bonus!
+            </p>
+          )}
         </div>
         <p
           className={`text-sm font-semibold ${
@@ -180,51 +199,81 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
       </div>
 
       {/* Answer options */}
-      <div className="space-y-2">
-        {question.options.map((option, i) => {
-          let cls =
-            'w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 flex items-start gap-2.5 ';
+      {isTrueFalse ? (
+        /* True / False — two large buttons */
+        <div className="grid grid-cols-2 gap-3">
+          {question.options.map((option, i) => {
+            let cls = 'px-4 py-4 rounded-xl border text-sm font-semibold transition-all duration-200 flex flex-col items-center justify-center gap-1 ';
+            if (phase === 'answering') {
+              cls += 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-brand-400 dark:hover:border-brand-600 cursor-pointer';
+            } else if (i === question.correctIndex) {
+              cls += 'border-green-400 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 cursor-default';
+            } else if (i === selected) {
+              cls += 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 cursor-default';
+            } else {
+              cls += 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-default';
+            }
+            return (
+              <button
+                key={i}
+                className={cls}
+                onClick={() => handleSelect(i)}
+                disabled={phase !== 'answering'}
+              >
+                <span className="text-xl">{option === 'True' ? '✓' : '✗'}</span>
+                <span>{option}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        /* Multiple choice */
+        <div className="space-y-2">
+          {question.options.map((option, i) => {
+            let cls =
+              'w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-200 flex items-start gap-2.5 ';
 
-          if (phase === 'answering') {
-            cls +=
-              'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-brand-400 dark:hover:border-brand-600 cursor-pointer';
-          } else if (i === question.correctIndex) {
-            cls +=
-              'border-green-400 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 font-medium cursor-default';
-          } else if (i === selected) {
-            cls +=
-              'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 cursor-default';
-          } else {
-            cls +=
-              'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-default';
-          }
+            if (phase === 'answering') {
+              cls +=
+                'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-brand-400 dark:hover:border-brand-600 cursor-pointer';
+            } else if (i === question.correctIndex) {
+              cls +=
+                'border-green-400 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 font-medium cursor-default';
+            } else if (i === selected) {
+              cls +=
+                'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 cursor-default';
+            } else {
+              cls +=
+                'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-default';
+            }
 
-          return (
-            <button
-              key={i}
-              className={cls}
-              onClick={() => handleSelect(i)}
-              disabled={phase !== 'answering'}
-            >
-              {phase !== 'answering' ? (
-                i === question.correctIndex ? (
-                  <CheckCircle
-                    size={16}
-                    className="shrink-0 mt-0.5 text-green-500"
-                  />
-                ) : i === selected ? (
-                  <XCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+            return (
+              <button
+                key={i}
+                className={cls}
+                onClick={() => handleSelect(i)}
+                disabled={phase !== 'answering'}
+              >
+                {phase !== 'answering' ? (
+                  i === question.correctIndex ? (
+                    <CheckCircle
+                      size={16}
+                      className="shrink-0 mt-0.5 text-green-500"
+                    />
+                  ) : i === selected ? (
+                    <XCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                  ) : (
+                    <span className="w-4 h-4 shrink-0" />
+                  )
                 ) : (
-                  <span className="w-4 h-4 shrink-0" />
-                )
-              ) : (
-                <span className="w-4 h-4 shrink-0 rounded-full border-2 border-slate-300 dark:border-slate-600 mt-0.5" />
-              )}
-              <span>{option}</span>
-            </button>
-          );
-        })}
-      </div>
+                  <span className="w-4 h-4 shrink-0 rounded-full border-2 border-slate-300 dark:border-slate-600 mt-0.5" />
+                )}
+                <span>{option}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Explanation (shown after answering) */}
       {phase === 'explained' && (

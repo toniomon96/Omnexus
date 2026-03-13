@@ -5,7 +5,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Button } from '../components/ui/Button';
 import { TermHelpChips } from '../components/ui/TermHelpChips';
-import { GraduationCap, Sparkles, Search, BookOpen, Dumbbell, Loader2, Zap } from 'lucide-react';
+import { GraduationCap, Sparkles, Search, BookOpen, Dumbbell, Loader2, Zap, CalendarCheck } from 'lucide-react';
 import { courses } from '../data/courses';
 import { CourseCard } from '../components/learn/CourseCard';
 import { MicroLessonModal } from '../components/learn/MicroLessonModal';
@@ -13,6 +13,8 @@ import { useLearningProgress } from '../hooks/useLearningProgress';
 import { getContentRecommendations } from '../services/learningService';
 import type { ContentRecommendation } from '../types';
 import { getExperienceMode } from '../utils/localStorage';
+import { getTodaysDailyChallenge } from '../utils/dailyChallenge';
+import type { DailyChallengeState } from '../utils/localStorage';
 
 const DIFFICULTY_ORDER: Record<string, number> = { beginner: 0, intermediate: 1, advanced: 2 };
 
@@ -52,7 +54,12 @@ export function LearnPage() {
 
   const allCourses = courses;
 
-  // ── Semantic search state ─────────────────────────────────────────────────
+  // ── Daily Challenge state ─────────────────────────────────────────────────
+  const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeState | null>(null);
+
+  useEffect(() => {
+    setDailyChallenge(getTodaysDailyChallenge());
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ContentRecommendation[] | null>(null);
   const [hasContentGap, setHasContentGap] = useState(false);
@@ -172,6 +179,44 @@ export function LearnPage() {
               },
             ]}
           />
+        )}
+
+        {/* Daily Challenge */}
+        {!searchQuery.trim() && dailyChallenge && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3">
+              <CalendarCheck size={13} className="text-amber-500" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Daily Challenge
+              </p>
+            </div>
+            <div className={`rounded-2xl border p-4 ${dailyChallenge.completed ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/10' : 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/10'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mb-0.5">
+                    {dailyChallenge.courseTitle}
+                  </p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug truncate">
+                    {dailyChallenge.lessonTitle}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {dailyChallenge.completed ? '✓ Completed — bonus XP earned!' : 'Complete for +10 bonus XP'}
+                  </p>
+                </div>
+                {dailyChallenge.completed ? (
+                  <span className="shrink-0 text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Done ✓</span>
+                ) : (
+                  <button
+                    onClick={() => navigate(`/learn/${dailyChallenge.courseId}/${dailyChallenge.moduleId}`)}
+                    className="shrink-0 flex items-center gap-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 hover:bg-amber-600 transition-colors"
+                  >
+                    <Zap size={12} />
+                    Start
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Search results */}

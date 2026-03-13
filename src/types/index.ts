@@ -329,6 +329,8 @@ export interface ContentReference {
 export interface QuizQuestion {
   id: string;
   question: string;
+  /** Defaults to 'multiple-choice' when omitted. */
+  type?: 'multiple-choice' | 'true-false';
   options: string[];
   correctIndex: number;
   explanation: string;
@@ -433,6 +435,8 @@ export interface QuizAttempt {
   correctCount: number;
   totalQuestions: number;
   attemptedAt: string;
+  /** Longest consecutive-correct streak within this attempt (used for combo multiplier). */
+  maxCorrectStreak?: number;
 }
 
 export interface LearningProgress {
@@ -726,6 +730,10 @@ export interface GamificationData {
   sparks: number;
   /** IDs of achievements the user has unlocked */
   unlockedAchievementIds: string[];
+  /** XP earned in the current ISO week (resets each Monday UTC) */
+  weeklyXp: number;
+  /** YYYY-MM-DD of the Monday when weeklyXp was last reset */
+  weeklyXpResetDate: string;
 }
 
 // ─── Streak Freeze ───────────────────────────────────────────────────────────

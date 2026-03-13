@@ -9,6 +9,17 @@ import { getCourseById, getModuleById } from '../data/courses';
 import { useLearningProgress } from '../hooks/useLearningProgress';
 import type { QuizAttempt } from '../types';
 
+import { xpAmountFor } from '../lib/xpEngine';
+
+// ─── Combo multiplier ──────────────────────────────────────────────────────────
+
+function quizComboMultiplier(maxCorrectStreak: number): number {
+  if (maxCorrectStreak >= 10) return 2.0;
+  if (maxCorrectStreak >= 5) return 1.5;
+  if (maxCorrectStreak >= 3) return 1.25;
+  return 1.0;
+}
+
 export function LessonPage() {
   const { courseId, moduleId } = useParams<{
     courseId: string;
@@ -68,8 +79,13 @@ export function LessonPage() {
   }
 
   function handleQuizComplete(attempt: QuizAttempt) {
+    // Compute combo XP multiplier based on max consecutive correct streak
+    const multiplier = quizComboMultiplier(attempt.maxCorrectStreak ?? 0);
+    const baseXp = xpAmountFor('quiz_passed');
+    const amountOverride = multiplier > 1.0 ? Math.round(baseXp * multiplier) : undefined;
+
     if (mod!.quiz) {
-      recordQuizAttempt(mod!.quiz.id, attempt);
+      recordQuizAttempt(mod!.quiz.id, attempt, amountOverride);
     }
     // Mark all lessons in this module as complete (in case user jumped to quiz)
     mod!.lessons.forEach((l) => completeLesson(l.id));

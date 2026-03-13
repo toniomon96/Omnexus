@@ -37,6 +37,7 @@ const KEYS = {
   EXPERIENCE_MODE: 'omnexus_experience_mode',
   WORKOUT_FEEDBACK: 'omnexus_workout_feedback',
   GAMIFICATION: 'omnexus_gamification',
+  DAILY_CHALLENGE: 'omnexus_daily_challenge',
 } as const;
 
 export const WEIGHT_UNIT_CHANGED_EVENT = 'omnexus:weight-unit-changed';
@@ -435,6 +436,8 @@ const EMPTY_GAMIFICATION: GamificationData = {
   streakUpdatedDate: '',
   sparks: 0,
   unlockedAchievementIds: [],
+  weeklyXp: 0,
+  weeklyXpResetDate: '',
 };
 
 export function getGamificationData(): GamificationData {
@@ -443,4 +446,25 @@ export function getGamificationData(): GamificationData {
 
 export function setGamificationData(data: GamificationData): void {
   safeWrite(KEYS.GAMIFICATION, data);
+}
+
+// ─── Daily Challenge ──────────────────────────────────────────────────────────
+
+export interface DailyChallengeState {
+  /** YYYY-MM-DD UTC — the day this challenge applies to */
+  date: string;
+  courseId: string;
+  moduleId: string;
+  lessonId: string;
+  lessonTitle: string;
+  courseTitle: string;
+  completed: boolean;
+}
+
+export function getDailyChallengeState(): DailyChallengeState | null {
+  return safeRead<DailyChallengeState | null>(KEYS.DAILY_CHALLENGE, null);
+}
+
+export function setDailyChallengeState(state: DailyChallengeState): void {
+  safeWrite(KEYS.DAILY_CHALLENGE, state);
 }

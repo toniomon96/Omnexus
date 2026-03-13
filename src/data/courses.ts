@@ -650,10 +650,10 @@ Fat loss: TDEE − 300–500 kcal (aggressive: up to −750 kcal)
   },
 ];
 
-// ─── Course Scaffolds (Sprint D–E will populate full content) ─────────────────
+// ─── Course Scaffolds (Sprint E will populate remaining content) ──────────────
 
 const courseScaffolds: Course[] = [
-  // ── Foundations (3 more — Sprint D will add full lessons) ──────────────────
+  // ── Foundations (3 more — Sprint D) ───────────────────────────────────────
   {
     id: 'recovery-science',
     title: 'Recovery & Sleep Science',
@@ -664,7 +664,218 @@ const courseScaffolds: Course[] = [
     relatedGoals: ['hypertrophy', 'general-fitness'],
     tags: ['sleep', 'recovery', 'cortisol', 'HRV'],
     coverEmoji: '😴',
-    modules: [],
+    modules: [
+      // ── Module 1: Sleep & Adaptation ──────────────────────────────────────
+      {
+        id: 'sleep-adaptation',
+        title: 'Sleep & Training Adaptation',
+        lessons: [
+          {
+            id: 'rs-sleep-why',
+            title: 'Why Sleep Is Non-Negotiable',
+            estimatedMinutes: 5,
+            content: `Sleep is the single most powerful recovery tool available — and it costs nothing. During slow-wave sleep (SWS), the pituitary gland releases the majority of the day's growth hormone, which drives muscle protein synthesis, tissue repair, and fat metabolism.
+
+Research from the Stanford Sleep Research Center by Cheri Mah et al. (2011) found that extending sleep to 10 hours per night in basketball players produced measurable improvements in sprint times, shooting accuracy, and reaction time. Conversely, even one night of partial sleep deprivation (< 6 hours) impairs protein synthesis rates, elevates cortisol, and reduces testosterone — the hormonal environment for adaptation shifts sharply negative.
+
+The NSCA recommends 7–9 hours for adults engaged in regular resistance training. Athletes and those in high-volume training phases may benefit from 9–10 hours. The practical rule: if you're setting an alarm, you may not be getting enough sleep.
+
+**Slow-wave sleep and REM sleep both matter.** SWS dominates the first half of the night and drives physical repair. REM sleep — concentrated in the second half — consolidates motor learning and procedural memory (how to perform lifts correctly). Cutting a night short by 90 minutes significantly shortens REM duration.`,
+            keyPoints: [
+              'Growth hormone secretion peaks during slow-wave sleep — cutting sleep short blunts muscle repair.',
+              'One night of < 6 hours raises cortisol, lowers testosterone, and impairs protein synthesis.',
+              'REM sleep consolidates motor learning — critical for technique refinement.',
+              'Target 7–9 hours; athletes in high-volume phases benefit from 9–10.',
+            ],
+            references: [
+              {
+                title: 'The Effects of Sleep Extension on the Athletic Performance of Collegiate Basketball Players',
+                authors: 'Mah CD, Mah KE, Kezirian EJ, Dement WC',
+                journal: 'Sleep',
+                year: 2011,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/21731144/',
+                type: 'journal',
+              },
+            ],
+          },
+          {
+            id: 'rs-sleep-quality',
+            title: 'Optimising Sleep Quality',
+            estimatedMinutes: 5,
+            content: `Sleep duration is necessary but not sufficient — quality (sleep architecture) matters too. Fragmented sleep with frequent awakenings reduces time in restorative SWS and REM regardless of total hours in bed.
+
+**Temperature.** Core body temperature must drop ~1–1.5°C to initiate sleep. A bedroom temperature of 16–19°C (60–67°F) is optimal. A warm shower 1–2 hours before bed paradoxically accelerates sleep onset by causing rapid peripheral heat loss afterward.
+
+**Light.** Blue-wavelength light (from screens, LED lighting) suppresses melatonin secretion — the signal that tells the body it's dark and time to sleep. Bright overhead lights in the evening delay circadian rhythm. Dimming lights and removing blue light exposure 60–90 minutes before bed significantly reduces sleep latency.
+
+**Consistency.** The circadian rhythm operates on a 24-hour clock synchronized to light exposure. Consistent wake times — even on weekends — are the most effective anchor for circadian alignment. Variable sleep schedules (social jet lag) create the same cortisol dysregulation as crossing time zones.
+
+**Caffeine.** Caffeine has a half-life of approximately 5–7 hours. A 200 mg dose at 2 pm still leaves ~100 mg active at 7 pm — enough to increase nighttime wakefulness and reduce SWS. Cutting off caffeine by early-mid afternoon protects sleep architecture.`,
+            keyPoints: [
+              'Bedroom temperature 16–19°C optimises sleep initiation by facilitating core cooling.',
+              'Blue light before bed suppresses melatonin; dim lights 60–90 minutes before sleep.',
+              'A consistent wake time is the strongest circadian anchor — including weekends.',
+              'Caffeine cut-off in early afternoon protects slow-wave sleep.',
+            ],
+            references: [
+              {
+                title: 'Sleep and Human Aging',
+                authors: 'Mander BA, Winer JR, Walker MP',
+                journal: 'Neuron',
+                year: 2017,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/28384471/',
+                type: 'journal',
+              },
+            ],
+          },
+        ],
+        quiz: {
+          id: 'sleep-quiz',
+          questions: [
+            {
+              id: 'slq-1',
+              question: 'When does the majority of daily growth hormone release occur?',
+              options: [
+                'During intense resistance training sets',
+                'Immediately after eating a high-protein meal',
+                'During slow-wave sleep (deep sleep) at night',
+                'In the first 30 minutes after waking',
+              ],
+              correctIndex: 2,
+              explanation: 'Growth hormone is primarily secreted in pulses during slow-wave sleep (SWS), especially in the first half of the night. This is why sleep is the key window for muscle repair and anabolic recovery.',
+            },
+            {
+              id: 'slq-2',
+              question: 'Which type of sleep is most important for motor learning and technique consolidation?',
+              options: [
+                'Slow-wave sleep (SWS)',
+                'REM sleep',
+                'Light sleep (stage 1–2)',
+                'All stages contribute equally',
+              ],
+              correctIndex: 1,
+              explanation: 'REM sleep — concentrated in the second half of the night — is when the brain consolidates procedural and motor memories. Cutting a night short typically reduces REM disproportionately, impairing technique learning.',
+            },
+            {
+              id: 'slq-3',
+              question: 'What is the optimal bedroom temperature range for sleep?',
+              options: [
+                '22–25°C (72–77°F) — warm and comfortable',
+                '10–14°C (50–57°F) — cold room, warm duvet',
+                '16–19°C (60–67°F) — cool environment',
+                'Temperature has no meaningful effect on sleep quality',
+              ],
+              correctIndex: 2,
+              explanation: 'Core body temperature must drop ~1°C to initiate sleep. A cool room of 16–19°C facilitates this drop. A room that is too warm impairs the transition into deep sleep and increases nighttime awakenings.',
+            },
+          ],
+        },
+      },
+
+      // ── Module 2: Recovery Strategies ─────────────────────────────────────
+      {
+        id: 'recovery-strategies',
+        title: 'Stress, Cortisol & Active Recovery',
+        lessons: [
+          {
+            id: 'rs-cortisol',
+            title: 'Stress, Cortisol & Training Adaptation',
+            estimatedMinutes: 5,
+            content: `Cortisol is often portrayed as a purely negative hormone — but this is an oversimplification. Acute cortisol spikes during training are normal and facilitate energy mobilisation, immune function, and alertness. The problem arises with chronically elevated cortisol, which actively opposes the anabolic environment needed for adaptation.
+
+**The allostatic load.** The body does not distinguish between sources of stress. Work deadlines, relationship conflict, financial pressure, poor sleep, and training volume all draw from the same stress-response pool. An athlete managing high life stress should consider reducing training volume — not adding more.
+
+**Cortisol and muscle protein balance.** Cortisol promotes proteolysis (muscle breakdown) and inhibits protein synthesis. Chronically elevated cortisol suppresses testosterone and growth hormone, directly impairing hypertrophy. Studies measuring salivary cortisol in athletes show that overreaching (excessive training volume without adequate recovery) produces sustained cortisol elevation lasting weeks.
+
+**Practical management.** Deload weeks (a planned 40–50% reduction in volume every 4–8 weeks) allow systemic stress to resolve. Monitoring subjective markers — training motivation, morning mood, resting heart rate, and sleep quality — provides early warning of accumulation before it becomes overtraining syndrome.`,
+            keyPoints: [
+              'Acute cortisol spikes during training are normal; chronically high cortisol impairs adaptation.',
+              'All stressors — physical and psychological — deplete the same systemic stress budget.',
+              'Cortisol promotes muscle breakdown and suppresses testosterone and growth hormone.',
+              'Deload weeks and subjective monitoring are the primary tools for managing allostatic load.',
+            ],
+            references: [
+              {
+                title: 'Neuroendocrine Responses and Adaptations to Strength and Power Training',
+                authors: 'Kraemer WJ, Ratamess NA',
+                journal: 'Sports Medicine',
+                year: 2005,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/15831061/',
+                type: 'journal',
+              },
+            ],
+          },
+          {
+            id: 'rs-active-recovery',
+            title: 'Active Recovery: What Actually Works',
+            estimatedMinutes: 5,
+            content: `Active recovery refers to low-intensity movement performed on rest days or after hard training sessions. The evidence on active recovery is more nuanced than popular belief suggests — some methods have real benefit; others have little effect.
+
+**What works:**
+**Light aerobic movement** (walking, easy cycling, light swimming at < 60% max HR) increases blood flow, enhances metabolite clearance, and can reduce muscle soreness (DOMS) perception without adding meaningful training stress.
+
+**Cold water immersion (CWI)** — ice baths or cold showers — reduces acute inflammation and DOMS perception. However, research by Roberts et al. (2015) found that regular CWI blunts hypertrophic signalling by suppressing satellite cell activity and mTOR pathway activation. Use sparingly if hypertrophy is the goal; more appropriate for competition phases where rapid recovery between sessions matters.
+
+**Foam rolling / soft-tissue work** reduces perceived soreness and transiently improves range of motion through neurological mechanisms. The effect on actual tissue repair is negligible, but reduced perception of tightness may improve subsequent session quality.
+
+**What doesn't work:** Passive rest alone is not "active recovery" and does not accelerate metabolite clearance. Sauna use post-exercise may feel restorative but the evidence for accelerating structural recovery is weak.`,
+            keyPoints: [
+              'Light aerobic movement on rest days enhances blood flow and reduces DOMS perception.',
+              'Cold water immersion reduces soreness but may blunt hypertrophy if used chronically.',
+              'Foam rolling reduces perceived tightness via neurological effects — not tissue repair.',
+              'The best recovery strategy combines sleep, sufficient protein, and managed training stress.',
+            ],
+            references: [
+              {
+                title: 'Post-exercise cold water immersion attenuates acute anabolic signalling',
+                authors: 'Roberts LA, Raastad T, Markworth JF, et al.',
+                journal: 'Journal of Physiology',
+                year: 2015,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/26174323/',
+                type: 'journal',
+              },
+            ],
+          },
+        ],
+        quiz: {
+          id: 'recovery-strat-quiz',
+          questions: [
+            {
+              id: 'rsq-1',
+              question: 'Regular cold water immersion may blunt muscle growth because it:',
+              options: [
+                'Reduces blood flow to muscles for up to 24 hours',
+                'Suppresses satellite cell activity and mTOR signalling',
+                'Lowers body temperature, reducing protein synthesis rates',
+                'Cold immersion has no effect on hypertrophy',
+              ],
+              correctIndex: 1,
+              explanation: 'Research by Roberts et al. (2015) found that post-exercise cold water immersion suppresses satellite cell activity and mTOR pathway activation — the cellular machinery driving muscle growth. It may benefit recovery speed in competition phases but is counterproductive for maximising hypertrophy.',
+            },
+            {
+              id: 'rsq-2',
+              question: 'Chronically elevated cortisol negatively affects muscle growth primarily by:',
+              options: [
+                'Reducing appetite, leading to insufficient protein intake',
+                'Increasing heart rate, making training less efficient',
+                'Promoting muscle breakdown and suppressing anabolic hormones',
+                'Blocking glucose uptake in muscle cells',
+              ],
+              correctIndex: 2,
+              explanation: 'Chronically elevated cortisol promotes proteolysis (muscle protein breakdown) and suppresses both testosterone and growth hormone secretion. This creates a sustained catabolic environment that directly opposes hypertrophic adaptation.',
+            },
+            {
+              id: 'rsq-3',
+              type: 'true-false',
+              question: 'Performing light aerobic activity (walking, easy cycling) on rest days can reduce delayed onset muscle soreness (DOMS) without significantly adding to training stress.',
+              options: ['True', 'False'],
+              correctIndex: 0,
+              explanation: 'True. Light aerobic movement at under 60% max HR increases blood flow and promotes metabolite clearance, reducing the perception of DOMS — without the intensity needed to accumulate meaningful additional training stress.',
+            },
+          ],
+        },
+      },
+    ],
   },
   {
     id: 'mobility-flexibility',
@@ -676,7 +887,225 @@ const courseScaffolds: Course[] = [
     relatedGoals: ['general-fitness'],
     tags: ['mobility', 'flexibility', 'range of motion', 'warmup'],
     coverEmoji: '🤸',
-    modules: [],
+    modules: [
+      // ── Module 1: Understanding Mobility ──────────────────────────────────
+      {
+        id: 'mobility-basics',
+        title: 'Understanding Mobility',
+        lessons: [
+          {
+            id: 'mob-vs-flex',
+            title: "Mobility vs Flexibility — What's the Difference?",
+            estimatedMinutes: 5,
+            content: `Mobility and flexibility are often used interchangeably, but they describe distinct qualities with different training implications.
+
+**Flexibility** is the passive range of motion of a muscle or joint — how far a limb can be moved when no muscular force is applied (e.g., a partner stretching your hamstring). Flexibility is a tissue property.
+
+**Mobility** is the active, usable range of motion — the range through which you can move with control and strength. You can be flexible without being mobile: a hypermobile person who cannot control end-range positions is injury-prone precisely because they lack the strength to stabilise extreme positions.
+
+The training goal is **mobile strength** — range of motion that is both available and under neuromuscular control. This is what translates to safer, more effective lifting.
+
+**Why it matters for lifting.** Deep squat mobility allows a more upright torso and less spinal loading. Hip mobility affects hip hinge mechanics in the deadlift. Thoracic mobility determines how safely you can overhead press. Deficiencies in joint mobility create compensations upstream and downstream in the kinetic chain — the famous "joint-by-joint" model by Gray Cook and Mike Boyle describes how restricted joints force adjacent joints to become hypermobile, predisposing them to injury.`,
+            keyPoints: [
+              'Flexibility = passive range of motion. Mobility = active, controlled range of motion.',
+              'Hypermobility without neuromuscular control increases injury risk.',
+              'The goal is mobile strength — range of motion with control and stability.',
+              'Mobility restrictions in one joint force compensations at adjacent joints.',
+            ],
+            references: [
+              {
+                title: 'Movement: Functional Movement Systems',
+                authors: 'Cook G',
+                journal: 'On Target Publications',
+                year: 2010,
+                url: 'https://functionalmovement.com/',
+                type: 'guideline',
+              },
+            ],
+          },
+          {
+            id: 'mob-principles',
+            title: 'Principles of Mobility Training',
+            estimatedMinutes: 5,
+            content: `Effective mobility training follows a few core principles that distinguish it from simple static stretching.
+
+**1. Progressive overload applies.** Like strength training, mobility adapts to progressive stimulus. Consistently working at the limit of your comfortable range — and gradually pushing that edge — is more effective than the same stretches performed at the same range indefinitely.
+
+**2. Neurological vs structural change.** Most acute gains from stretching are neurological — the nervous system relaxes its protective tone. Sustained structural change (actual tissue lengthening) requires consistent practice over weeks to months. Stretching once a week produces minimal lasting change.
+
+**3. End-range strengthening.** The most durable mobility gains come from strengthening muscles in their lengthened positions. This signals to the nervous system that the range is safe to access. Exercises like the Romanian deadlift (hamstrings under load at length) or the deep squat with heel elevation develop end-range strength.
+
+**4. Frequency over duration.** 10 minutes of mobility work 5× per week produces more adaptation than 50 minutes once a week, because connective tissue responds to consistent stimulation rather than infrequent overload.
+
+**5. Warm tissue is more extensible.** Mobility work is more effective after a general warm-up (5–10 minutes light aerobic activity) than cold. Dynamic stretching (controlled movement through range) is preferable to static stretching before a training session, as static stretching immediately before can transiently reduce force production.`,
+            keyPoints: [
+              'Progressive overload applies to mobility — gradually push range limits.',
+              'Most acute stretch gains are neurological; structural change takes weeks of consistency.',
+              'Strengthening muscles at end range produces the most durable mobility gains.',
+              '10 min × 5 days beats 50 min × 1 day for connective tissue adaptation.',
+            ],
+            references: [
+              {
+                title: 'A Review of the Acute Effects of Static and Dynamic Stretching on Performance',
+                authors: 'Behm DG, Chaouachi A',
+                journal: 'European Journal of Applied Physiology',
+                year: 2011,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/21373870/',
+                type: 'meta-analysis',
+              },
+            ],
+          },
+        ],
+        quiz: {
+          id: 'mob-basics-quiz',
+          questions: [
+            {
+              id: 'mbq-1',
+              question: 'Which best defines "mobility" in the context of movement training?',
+              options: [
+                'The maximum range of motion achievable when a partner assists the stretch',
+                'Active range of motion with neuromuscular control and strength',
+                'The total length of a muscle measured from origin to insertion',
+                'The flexibility of tendons and ligaments around a joint',
+              ],
+              correctIndex: 1,
+              explanation: 'Mobility is active, controllable range of motion — the range through which you can move under your own muscular control. Flexibility is the passive range when no active force is applied. Mobility = flexibility + control.',
+            },
+            {
+              id: 'mbq-2',
+              question: 'Why is static stretching immediately before lifting generally not recommended?',
+              options: [
+                'It raises core temperature too much, increasing injury risk',
+                'It can transiently reduce force production in the stretched muscles',
+                'Static stretching shortens muscle fibres before training',
+                'It increases joint laxity permanently, reducing stability',
+              ],
+              correctIndex: 1,
+              explanation: 'Research shows acute static stretching (especially > 30–60 seconds) can transiently reduce maximal force output by 5–8% in the stretched muscle. Dynamic warm-up and mobility drills are preferred pre-session; static stretching is better placed post-session or in a dedicated mobility block.',
+            },
+            {
+              id: 'mbq-3',
+              type: 'true-false',
+              question: 'Performing 10 minutes of mobility work five days per week is generally more effective than 50 minutes once per week.',
+              options: ['True', 'False'],
+              correctIndex: 0,
+              explanation: 'True. Connective tissue (tendons, ligaments, fascia) responds better to frequent, consistent stimulation than infrequent overload. Regular short sessions maintain the adaptive signal throughout the week, producing greater long-term range of motion gains.',
+            },
+          ],
+        },
+      },
+
+      // ── Module 2: Practical Mobility Work ─────────────────────────────────
+      {
+        id: 'mobility-practice',
+        title: 'The Warm-Up Blueprint & Key Drills',
+        lessons: [
+          {
+            id: 'mob-warmup',
+            title: 'The Warm-Up Blueprint',
+            estimatedMinutes: 5,
+            content: `A well-structured warm-up does three things: raises tissue temperature, activates neuromuscular patterns specific to the session ahead, and addresses the mobility limitations most relevant to the day's training.
+
+**Phase 1 — General warm-up (3–5 min).** Light cardio (row, bike, skip, brisk walk) to elevate heart rate, increase blood flow, and raise tissue temperature. Warm muscle is more extensible and neurons fire more efficiently. Never skip this phase.
+
+**Phase 2 — Targeted mobility (5–8 min).** Address the joints that will be under load in the session. For a squat session: hip flexors (couch stretch or lunge with rotation), hip internal rotation (90/90 stretch), ankle dorsiflexion (wall ankle mobilisation). For pressing: thoracic extension, shoulder external rotation. Use dynamic movements rather than long static holds at this stage.
+
+**Phase 3 — Activation (3–5 min).** Activate the muscles that tend to be inhibited — commonly glutes, scapular stabilisers, and core. Banded clamshells for hip abductors, face pulls for scapular retractors, dead bugs for core. This "turns on" the muscles before they are needed.
+
+**Phase 4 — Specific warm-up sets.** Perform 2–3 progressively heavier sets of the main movement at reduced load (e.g., bar only, then 50%, then 70% before working sets). This rehearses the movement pattern and primes the CNS.
+
+The total warm-up time is 15–20 minutes. Cutting corners on the warm-up is a false economy — it is where injury prevention happens.`,
+            keyPoints: [
+              'Phase 1: general aerobic warm-up to raise tissue temperature.',
+              'Phase 2: targeted dynamic mobility for the joints being loaded.',
+              'Phase 3: activation of inhibited muscles (glutes, scapular stabilisers, core).',
+              'Phase 4: specific warm-up sets in the main movement.',
+            ],
+            references: [
+              {
+                title: 'The Effect of a Warm-Up on Physical Performance: A Systematic Review',
+                authors: 'Fradkin AJ, Zazryn TR, Smoliga JM',
+                journal: 'Journal of Strength and Conditioning Research',
+                year: 2010,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/20072040/',
+                type: 'meta-analysis',
+              },
+            ],
+          },
+          {
+            id: 'mob-key-drills',
+            title: 'Key Mobility Drills for Lifters',
+            estimatedMinutes: 5,
+            content: `The following mobility areas are the most commonly limited in people who train with weights and the most impactful to address.
+
+**Hip flexors.** Prolonged sitting shortens hip flexors (psoas, rectus femoris), pulling the pelvis into anterior tilt and limiting hip extension — essential for the deadlift lockout, sprint mechanics, and upright squat posture. The couch stretch (knee against wall, hip into extension) is one of the most effective tools. 2 × 60 seconds per side daily is a practical starting point.
+
+**Ankle dorsiflexion.** Limited ankle ROM is the most common reason trainees cannot achieve a full-depth squat with heels flat. The talus must glide posteriorly to allow the shin to move forward. Wall ankle mobilisations (knee tracking over the 4th toe toward the wall) address this specific restriction. If a heel raise resolves the problem, ankle mobility is the limiting factor.
+
+**Thoracic spine extension.** A stiff thoracic spine limits overhead pressing, causes excessive lumbar extension as compensation, and impairs scapular mechanics. Foam rolling thoracic extension over a roller (segmental extension across the roller, moving it up the spine) restores extension. Thoracic rotation — seated twists with arms across chest — improves rotation for unilateral pressing and rotational sports.
+
+**Hip internal rotation.** Many lifters lack internal rotation, which forces the knees to cave inward during the squat (valgus collapse). The 90/90 stretch — sitting with both hips at 90° and alternating between internal and external rotation — is highly effective for developing hip rotational range.`,
+            keyPoints: [
+              'Hip flexor restriction causes anterior pelvic tilt, limiting hip extension and squat depth.',
+              'Ankle dorsiflexion limits are the most common cause of limited squat depth with heels flat.',
+              'Thoracic stiffness forces lumbar compensation during pressing and overhead movements.',
+              'Hip internal rotation deficits contribute to knee valgus collapse during the squat.',
+            ],
+            references: [
+              {
+                title: 'Muscle imbalances and the importance of functional assessment in rehabilitation of athletes',
+                authors: 'Page P',
+                journal: 'International Journal of Sports Physical Therapy',
+                year: 2011,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/21655453/',
+                type: 'journal',
+              },
+            ],
+          },
+        ],
+        quiz: {
+          id: 'mob-practice-quiz',
+          questions: [
+            {
+              id: 'mpq-1',
+              question: 'If a lifter can achieve a full-depth squat with their heels raised on a plate, but not with heels flat, what is most likely the limiting factor?',
+              options: [
+                'Weak glutes and quadriceps',
+                'Poor thoracic spine mobility',
+                'Limited ankle dorsiflexion range of motion',
+                'Tight hip flexors pulling the pelvis into anterior tilt',
+              ],
+              correctIndex: 2,
+              explanation: 'Heel elevation compensates for limited ankle dorsiflexion by shifting the angle required at the ankle. When the problem resolves with a heel raise, ankle dorsiflexion is the primary restriction. Wall ankle mobilisations (knee to wall) address this directly.',
+            },
+            {
+              id: 'mpq-2',
+              question: 'What is the correct order of a well-structured training warm-up?',
+              options: [
+                'Activation → Specific warm-up sets → General cardio → Targeted mobility',
+                'Targeted mobility → General cardio → Activation → Specific warm-up sets',
+                'General cardio → Targeted mobility → Activation → Specific warm-up sets',
+                'Specific warm-up sets → General cardio → Targeted mobility → Activation',
+              ],
+              correctIndex: 2,
+              explanation: 'The correct sequence is: general cardio (raise tissue temperature) → targeted dynamic mobility (prepare specific joints) → activation (turn on inhibited muscles) → specific warm-up sets (rehearse the movement). Skipping the cardio phase means performing mobility work on cold tissue, which reduces effectiveness.',
+            },
+            {
+              id: 'mpq-3',
+              question: 'Thoracic spine stiffness most commonly causes problems during which movements?',
+              options: [
+                'Romanian deadlifts and leg press',
+                'Barbell back squat and calf raises',
+                'Overhead pressing and front squat',
+                'Seated cable rows and lat pulldown',
+              ],
+              correctIndex: 2,
+              explanation: 'Thoracic extension is required for safe overhead pressing (the ribcage must extend to allow the arms to reach vertical). In the front squat, a stiff thoracic spine prevents an upright torso position, causing the elbows to drop and the bar to shift forward. These movements require the most thoracic mobility.',
+            },
+          ],
+        },
+      },
+    ],
   },
   {
     id: 'cardio-conditioning',
@@ -688,7 +1117,226 @@ const courseScaffolds: Course[] = [
     relatedGoals: ['fat-loss', 'general-fitness'],
     tags: ['cardio', 'VO2max', 'HIIT', 'zone 2'],
     coverEmoji: '🏃',
-    modules: [],
+    modules: [
+      // ── Module 1: Energy Systems & Heart Rate ──────────────────────────────
+      {
+        id: 'energy-systems',
+        title: 'Energy Systems & Heart Rate Zones',
+        lessons: [
+          {
+            id: 'cc-energy-systems',
+            title: 'The Three Energy Systems',
+            estimatedMinutes: 5,
+            content: `All physical activity is fuelled by ATP (adenosine triphosphate) — the universal energy currency of cells. The body has three overlapping systems to regenerate ATP from food, each dominant at different durations and intensities.
+
+**1. Phosphocreatine (PCr) system — 0 to 10 seconds.** The fastest system; uses stored creatine phosphate to regenerate ATP without oxygen. Powers maximal-effort sprints, Olympic lifts, and throws. Depletes rapidly — a 100m sprint nearly exhausts PCr stores. Replenished fully within 3–5 minutes of rest.
+
+**2. Glycolytic system — 10 seconds to ~2 minutes.** Breaks down glucose (from blood or stored glycogen) to produce ATP without oxygen (anaerobic glycolysis). Also produces lactate — not the cause of the "burn" (that is hydrogen ions), but a useful energy substrate. Dominant during 400m runs, short HIIT intervals, and sets of 10–20 reps close to failure.
+
+**3. Oxidative (aerobic) system — 2 minutes and beyond.** Uses oxygen to completely oxidise carbohydrates and fats. Highly efficient — can produce far more ATP per substrate molecule than the other systems. Dominant during moderate to low-intensity efforts sustained beyond 2 minutes: jogging, cycling, longer swimming. Fat oxidation increases as intensity drops and duration extends.
+
+The systems are not switches — they overlap continuously. A 10-second sprint still uses the oxidative system (just to a small degree). What changes is the proportion. Training specific systems increases the capacity and efficiency of each pathway.`,
+            keyPoints: [
+              'PCr system (0–10s): maximal efforts; replenishes in 3–5 min.',
+              'Glycolytic system (10s–2min): moderate-to-high intensity; produces lactate.',
+              'Aerobic system (2min+): burns fat and carbs with oxygen; dominant at sustained moderate effort.',
+              'All three systems operate simultaneously — intensity determines which predominates.',
+            ],
+            references: [
+              {
+                title: 'Exercise Physiology: Nutrition, Energy, and Human Performance',
+                authors: 'McArdle WD, Katch FI, Katch VL',
+                journal: 'Lippincott Williams & Wilkins',
+                year: 2015,
+                url: 'https://www.ncbi.nlm.nih.gov/nlmcatalog/101241016',
+                type: 'guideline',
+              },
+            ],
+          },
+          {
+            id: 'cc-hr-zones',
+            title: 'Heart Rate Zones Explained',
+            estimatedMinutes: 5,
+            content: `Heart rate zones are a practical framework for quantifying training intensity. They roughly map to the energy systems being used and the physiological adaptations being targeted.
+
+**Zone 1 (50–60% HRmax): Very light.** Recovery and movement. Fat oxidation is high. Minimal cardiovascular stress. Suitable for active recovery days.
+
+**Zone 2 (60–70% HRmax): Aerobic base / fat burning.** The training zone most associated with mitochondrial biogenesis — growth of new mitochondria in muscle cells. Sustained Zone 2 work (20–90 min sessions) is the primary driver of aerobic capacity and fat-burning efficiency. Conversational pace — you can speak in full sentences. Elite endurance athletes spend ~80% of their volume here.
+
+**Zone 3 (70–80% HRmax): Aerobic threshold.** The "moderate" intensity zone — harder than a comfortable pace but not a full effort. Cardiorespiratory stress increases. Less effective at producing aerobic adaptations per unit of fatigue than Zone 2 (hence why many coaches advise against spending too much time here).
+
+**Zone 4 (80–90% HRmax): Lactate threshold.** Just above the point where lactate clearance can keep pace with production. Sustainable for 20–60 minutes. Interval sessions targeting VO2max often operate here.
+
+**Zone 5 (90–100% HRmax): VO2max / maximal.** Short intervals (30s–4min). Dramatically improves maximal oxygen uptake. Very taxing — requires significant recovery. Use sparingly.
+
+**Estimating max HR:** 220 − age is a rough population estimate. A more accurate method: 208 − (0.7 × age) (Tanaka formula).`,
+            keyPoints: [
+              'Zone 2 (60–70% HRmax) drives mitochondrial growth and fat-burning efficiency.',
+              'Elite endurance athletes spend ~80% of volume in Zone 2.',
+              'Zone 3 ("moderate") produces high fatigue relative to aerobic adaptation — often a zone to avoid lingering in.',
+              'Zones 4–5 target VO2max and lactate threshold — high benefit but high recovery cost.',
+            ],
+            references: [
+              {
+                title: 'Age-predicted maximal heart rate revisited',
+                authors: 'Tanaka H, Monahan KD, Seals DR',
+                journal: 'Journal of the American College of Cardiology',
+                year: 2001,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/11153730/',
+                type: 'journal',
+              },
+            ],
+          },
+        ],
+        quiz: {
+          id: 'energy-systems-quiz',
+          questions: [
+            {
+              id: 'esq-1',
+              question: 'Which energy system is the primary fuel source for a 10-second maximal sprint?',
+              options: [
+                'Aerobic (oxidative) system',
+                'Glycolytic system',
+                'Phosphocreatine (PCr) system',
+                'All three systems contribute equally',
+              ],
+              correctIndex: 2,
+              explanation: 'The PCr (phosphocreatine) system regenerates ATP without oxygen at the fastest rate — making it dominant for maximal efforts lasting under 10 seconds such as sprints, jumps, and Olympic lifts. It fully replenishes within 3–5 minutes of rest.',
+            },
+            {
+              id: 'esq-2',
+              question: 'Zone 2 training (60–70% HRmax) is particularly valuable because it:',
+              options: [
+                'Maximises calorie burn per unit of time versus other zones',
+                'Primarily drives mitochondrial biogenesis and fat oxidation efficiency',
+                'Develops maximal oxygen uptake (VO2max) faster than any other zone',
+                'Is the only zone that uses fat as a fuel source',
+              ],
+              correctIndex: 1,
+              explanation: 'Zone 2 is the primary driver of mitochondrial biogenesis — the growth of new mitochondria in muscle cells. More mitochondria increases aerobic capacity and the rate of fat oxidation. Elite endurance athletes spend approximately 80% of training volume in Zone 2 for this reason.',
+            },
+            {
+              id: 'esq-3',
+              question: 'After a maximal sprint, how long does the PCr system require to fully replenish its energy stores?',
+              options: [
+                '30–60 seconds',
+                '1–2 minutes',
+                '3–5 minutes',
+                '10–15 minutes',
+              ],
+              correctIndex: 2,
+              explanation: 'Phosphocreatine stores fully replenish within approximately 3–5 minutes of rest after a maximal sprint. This is why Olympic lifting and sprint training programs prescribe 3–5 minute rest periods between sets — shorter rests mean incomplete PCr recovery and reduced performance on subsequent sets.',
+            },
+          ],
+        },
+      },
+
+      // ── Module 2: Programming Cardio ───────────────────────────────────────
+      {
+        id: 'cardio-programming',
+        title: 'Programming Cardio with Strength Training',
+        lessons: [
+          {
+            id: 'cc-zone2',
+            title: 'Zone 2 Training: The Aerobic Base',
+            estimatedMinutes: 5,
+            content: `Zone 2 training has undergone a renaissance in both elite sport and general fitness communities — and the science supports the enthusiasm.
+
+**Mitochondrial adaptations.** Zone 2 work is the most potent stimulus for mitochondrial biogenesis (the synthesis of new mitochondria). Mitochondria are the cellular organelles that perform aerobic energy production. More mitochondria means greater aerobic capacity, faster fat oxidation, and improved lactate clearance — benefits that translate to both endurance and strength training recovery.
+
+**Practical implementation.** Zone 2 is a conversational pace. A rough test: you should be able to speak in complete sentences (unlike Zone 3 where you can manage only a few words). For most people, this corresponds to light jogging, cycling, or rowing at 60–70% of max HR, or using the Maffetone Method: 180 − age as a rough upper HR limit.
+
+**Duration and frequency.** Research suggests meaningful adaptations accumulate at around 150–180 minutes of Zone 2 per week. This can be split into 3–4 sessions of 40–60 minutes. For strength-focused athletes, even 2 × 30-minute Zone 2 sessions per week produces measurable aerobic improvement.
+
+**Interference effect.** Concern exists that concurrent aerobic and strength training attenuates hypertrophy gains. Research by Wilson et al. (2012) found this effect is real but modest when cardio is kept to Zone 2 intensity and sessions are separated from strength training by several hours (or scheduled on different days). High-intensity cardio (HIIT) produces a larger interference effect.`,
+            keyPoints: [
+              'Zone 2 drives mitochondrial biogenesis — the primary adaptation for aerobic capacity.',
+              'Target 150–180 minutes per week of Zone 2 for meaningful aerobic adaptation.',
+              'Conversational pace (full sentences) is the practical Zone 2 test.',
+              'Concurrent training interference is minimised with low-intensity cardio and session separation.',
+            ],
+            references: [
+              {
+                title: 'Concurrent Training: A Meta-Analysis Examining Interference of Aerobic and Resistance Exercises',
+                authors: 'Wilson JM, Marin PJ, Rhea MR, et al.',
+                journal: 'Journal of Strength and Conditioning Research',
+                year: 2012,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/22002517/',
+                type: 'meta-analysis',
+              },
+            ],
+          },
+          {
+            id: 'cc-hiit',
+            title: 'HIIT and High-Intensity Conditioning',
+            estimatedMinutes: 5,
+            content: `High-Intensity Interval Training (HIIT) alternates short bursts of near-maximal effort with periods of rest or light activity. It is time-efficient and produces significant cardiovascular and metabolic adaptations — but it comes with a higher recovery cost.
+
+**How HIIT works.** By repeatedly pushing into Zone 4–5, HIIT drives adaptations at the upper end of the aerobic system: increased VO2max (maximal oxygen uptake), improved stroke volume, enhanced lactate threshold. The "EPOC" effect (excess post-exercise oxygen consumption) also means calorie expenditure stays elevated for hours after a session.
+
+**Common HIIT formats:**
+- **Tabata (Izumi Tabata, 1996):** 20 seconds at ~170% VO2max, 10 seconds rest, × 8 rounds (4 minutes). Produces VO2max improvements comparable to much longer aerobic sessions.
+- **30/90 intervals:** 30 seconds hard (Zone 5), 90 seconds easy (Zone 1–2), repeated 6–10 times.
+- **4×4 intervals:** 4 minutes at 85–95% HRmax, 3 minutes easy, × 4 rounds. The most studied HIIT protocol for VO2max.
+
+**Programming considerations.** HIIT is taxing on the CNS and musculoskeletal system. For strength athletes, 1–2 HIIT sessions per week is typically sufficient, with sessions scheduled on non-lower-body strength days to minimise interference and injury risk. More is not better — exceeding 2 high-intensity sessions per week for strength-focused athletes increases injury risk and may impair recovery.`,
+            keyPoints: [
+              'HIIT improves VO2max, lactate threshold, and metabolic efficiency time-efficiently.',
+              'The Tabata protocol (4 minutes total) produces VO2max gains comparable to much longer sessions.',
+              '1–2 HIIT sessions per week is sufficient for strength athletes — more risks interference.',
+              'Schedule HIIT away from leg-dominant strength sessions to minimise interference.',
+            ],
+            references: [
+              {
+                title: 'Effects of Moderate-Intensity Endurance and High-Intensity Intermittent Training on Anaerobic Capacity and VO2max',
+                authors: 'Tabata I, Nishimura K, Kouzaki M, et al.',
+                journal: 'Medicine & Science in Sports & Exercise',
+                year: 1996,
+                url: 'https://pubmed.ncbi.nlm.nih.gov/8897392/',
+                type: 'journal',
+              },
+            ],
+          },
+        ],
+        quiz: {
+          id: 'cardio-prog-quiz',
+          questions: [
+            {
+              id: 'cpq-1',
+              question: 'For a strength-focused athlete, how many HIIT sessions per week is generally recommended?',
+              options: [
+                '0 — HIIT always impairs strength gains',
+                '1–2 sessions, scheduled away from heavy leg days',
+                '3–4 sessions to maximise cardiovascular adaptations',
+                '5+ sessions — more HIIT always produces more aerobic improvement',
+              ],
+              correctIndex: 1,
+              explanation: '1–2 HIIT sessions per week is the evidence-based recommendation for strength athletes. This provides meaningful aerobic adaptation without excessive CNS and musculoskeletal stress. Scheduling HIIT away from heavy leg days minimises the interference effect on lower-body hypertrophy and recovery.',
+            },
+            {
+              id: 'cpq-2',
+              question: 'What does the "interference effect" in concurrent training refer to?',
+              options: [
+                'The way strength training impairs endurance performance',
+                'How aerobic training can attenuate strength and hypertrophy gains',
+                'The scheduling conflict between morning and evening training sessions',
+                'The negative effect of fatigue on motivation',
+              ],
+              correctIndex: 1,
+              explanation: 'The interference effect describes how concurrent aerobic training can attenuate (reduce) strength and hypertrophy adaptations. It is most pronounced with high-intensity cardio, large cardio volumes, and sessions immediately before strength work. It is minimised with Zone 2 cardio, lower volumes, and session separation.',
+            },
+            {
+              id: 'cpq-3',
+              type: 'true-false',
+              question: 'The original Tabata protocol consists of just 4 minutes of total work (8 rounds of 20 seconds on, 10 seconds off).',
+              options: ['True', 'False'],
+              correctIndex: 0,
+              explanation: 'True. The original Tabata protocol by Dr. Izumi Tabata (1996) is 8 rounds of 20 seconds at ~170% VO2max followed by 10 seconds of rest — totalling 4 minutes. The study found it produced VO2max improvements comparable to much longer moderate-intensity training sessions, making it one of the most studied time-efficient interval protocols.',
+            },
+          ],
+        },
+      },
+    ],
   },
 
   // ── Nutrition (4) ──────────────────────────────────────────────────────────

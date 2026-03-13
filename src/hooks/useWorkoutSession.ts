@@ -10,12 +10,14 @@ import {
   appendSession,
   updateSessionSyncStatus,
   updatePersonalRecords,
+  getGamificationData,
 } from '../utils/localStorage';
 import { calculateTotalVolume, detectPersonalRecords } from '../utils/volumeUtils';
 import { advanceProgramCursor } from '../utils/programUtils';
 import { trackWorkoutCompleted } from '../lib/analytics';
 import { getSessionPersonalRecords } from '../utils/workoutSync';
 import { getSafeMissionCurrentValue, getSafeMissionTargetValue } from '../lib/missionUtils';
+import { computeNewStreak } from '../utils/streakUtils';
 
 function safeInitialSetCount(value: unknown): number {
   const numeric = Number(value);
@@ -356,6 +358,17 @@ export function useWorkoutSession() {
       dispatch({ type: 'AWARD_XP', payload: { eventType: 'workout_completed', referenceId: completed.id } });
       for (const pr of prs) {
         dispatch({ type: 'AWARD_XP', payload: { eventType: 'pr_achieved', referenceId: pr.exerciseId } });
+      }
+
+      // Update streak (workout counts as daily activity)
+      const { streak, streakUpdatedDate } = getGamificationData();
+      const { newStreak, isNewDay, hitMilestone } = computeNewStreak(streak, streakUpdatedDate);
+      if (isNewDay) {
+        dispatch({ type: 'SET_STREAK', payload: newStreak });
+        if (hitMilestone) {
+          dispatch({ type: 'AWARD_XP', payload: { eventType: 'streak_milestone' } });
+          dispatch({ type: 'AWARD_SPARKS', payload: 10 });
+        }
       }
 
       trackWorkoutCompleted({

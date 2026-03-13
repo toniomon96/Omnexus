@@ -23,6 +23,7 @@ import {
 } from '../utils/localStorage';
 import { buildXpProfile, createXpEvent } from '../lib/xpEngine';
 import { evaluateAchievements } from '../data/achievements';
+import { currentMondayUTC } from '../utils/streakUtils';
 import type { XpEventType } from '../types';
 
 async function syncLearningProgress(progress: LearningProgress, userId: string) {
@@ -62,7 +63,7 @@ export type Action =
   | { type: 'COMPLETE_MODULE'; payload: string }
   | { type: 'COMPLETE_COURSE'; payload: string }
   | { type: 'RECORD_QUIZ_ATTEMPT'; payload: { moduleId: string; attempt: QuizAttempt } }
-  | { type: 'AWARD_XP'; payload: { eventType: XpEventType; referenceId?: string } }
+  | { type: 'AWARD_XP'; payload: { eventType: XpEventType; referenceId?: string; amountOverride?: number } }
   | { type: 'SET_GAMIFICATION'; payload: GamificationData }
   | { type: 'SET_STREAK'; payload: number }
   | { type: 'AWARD_SPARKS'; payload: number }
@@ -170,8 +171,8 @@ export function reducer(state: AppState, action: Action): AppState {
     }
     case 'AWARD_XP': {
       if (!state.user) return state;
-      const { eventType, referenceId } = action.payload;
-      const event = createXpEvent({ userId: state.user.id, type: eventType, referenceId });
+      const { eventType, referenceId, amountOverride } = action.payload;
+      const event = createXpEvent({ userId: state.user.id, type: eventType, referenceId, amountOverride });
       const newTotal = (state.xpProfile?.totalXp ?? 0) + event.amount;
       const newProfile = buildXpProfile(state.user.id, newTotal);
 
@@ -194,12 +195,22 @@ export function reducer(state: AppState, action: Action): AppState {
       const finalTotal = newTotal + achievementXp;
       const finalProfile = achievementXp > 0 ? buildXpProfile(state.user.id, finalTotal) : newProfile;
 
+      // Weekly XP tracking — reset each Monday UTC
+      const thisMonday = currentMondayUTC();
+      const prevGamification = getGamificationData();
+      const weeklyBase = prevGamification.weeklyXpResetDate === thisMonday
+        ? (prevGamification.weeklyXp ?? 0)
+        : 0;
+      const newWeeklyXp = weeklyBase + event.amount + achievementXp;
+
       const gamification: GamificationData = {
         totalXp: finalTotal,
         streak: state.streak,
-        streakUpdatedDate: getGamificationData().streakUpdatedDate,
+        streakUpdatedDate: prevGamification.streakUpdatedDate,
         sparks: state.sparks,
         unlockedAchievementIds: newAchievementIds,
+        weeklyXp: newWeeklyXp,
+        weeklyXpResetDate: thisMonday,
       };
       setGamificationData(gamification);
 
