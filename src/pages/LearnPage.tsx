@@ -5,7 +5,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Button } from '../components/ui/Button';
 import { TermHelpChips } from '../components/ui/TermHelpChips';
-import { GraduationCap, Sparkles, Search, BookOpen, Dumbbell, Loader2, Zap, CalendarCheck, Brain } from 'lucide-react';
+import { GraduationCap, Sparkles, Search, BookOpen, Dumbbell, Loader2, Zap, CalendarCheck, Brain, CheckCircle2 } from 'lucide-react';
 import { courses } from '../data/courses';
 import { CourseCard } from '../components/learn/CourseCard';
 import { MicroLessonModal } from '../components/learn/MicroLessonModal';
@@ -58,6 +58,37 @@ export function LearnPage() {
     : [];
 
   const allCourses = courses;
+
+  // ── Recently Completed ───────────────────────────────────────────────────
+  interface CompletedLessonMeta {
+    lessonId: string;
+    lessonTitle: string;
+    courseId: string;
+    moduleId: string;
+    courseTitle: string;
+  }
+  const recentlyCompleted: CompletedLessonMeta[] = [];
+  if (progress.completedLessons.length > 0) {
+    // Walk completed IDs in reverse (most recent last in the array)
+    const toFind = [...progress.completedLessons].reverse().slice(0, 5);
+    for (const lessonId of toFind) {
+      outer: for (const course of courses) {
+        for (const mod of course.modules) {
+          const lesson = mod.lessons.find((l) => l.id === lessonId);
+          if (lesson) {
+            recentlyCompleted.push({
+              lessonId,
+              lessonTitle: lesson.title,
+              courseId: course.id,
+              moduleId: mod.id,
+              courseTitle: course.title,
+            });
+            break outer;
+          }
+        }
+      }
+    }
+  }
 
   // ── Daily Challenge state ─────────────────────────────────────────────────
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeState | null>(null);
@@ -333,6 +364,42 @@ export function LearnPage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Recently Completed */}
+        {!searchQuery.trim() && recentlyCompleted.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3">
+              <CheckCircle2 size={13} className="text-green-500" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Recently Completed
+              </p>
+            </div>
+            <div className="space-y-2">
+              {recentlyCompleted.map((item) => (
+                <button
+                  key={item.lessonId}
+                  onClick={() => navigate(`/learn/${item.courseId}/${item.moduleId}`)}
+                  className="w-full flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-800 transition-colors text-left"
+                >
+                  <div className="h-7 w-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={13} className="text-green-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white leading-tight truncate">
+                      {item.lessonTitle}
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-tight truncate">
+                      {item.courseTitle}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full px-2 py-0.5">
+                    Done ✓
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
