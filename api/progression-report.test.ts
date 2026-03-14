@@ -58,7 +58,7 @@ const validBody = {
   totalWorkouts: 28,
 };
 
-import handler from './progression-report';
+import handler from './progression-report.js';
 
 afterEach(() => vi.clearAllMocks());
 
@@ -81,7 +81,12 @@ describe('/api/progression-report', () => {
 
   describe('rate limiting', () => {
     it('returns 429 when rate limit is exceeded', async () => {
-      checkRateLimitMock.mockResolvedValueOnce({ allowed: false, reason: 'rate_limited' });
+      checkRateLimitMock.mockImplementationOnce(
+        async (_req: unknown, res: { status: (c: number) => { json: (b: unknown) => void } }) => {
+          res.status(429).json({ error: 'Too many requests' });
+          return false;
+        },
+      );
 
       const { res, getStatus } = createMockResponse();
       await handler(makeReq(validBody), res);

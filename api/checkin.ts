@@ -126,23 +126,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Persist to Supabase if user is authenticated
   if (supabaseAdmin && userId) {
-    supabaseAdmin.from('daily_checkins').upsert({
-      id: checkinId,
-      user_id: userId,
-      checkin_date: today,
-      energy_level: energyLevel,
-      sleep_quality: sleepQuality,
-      soreness_level: sorenessLevel,
-      pain_flag: painFlag,
-      pain_location: painLocation ?? null,
-      notes: notes ?? null,
-      omni_response: omniResponse,
-      created_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,checkin_date' })
-      .then(() => {/* fire-and-forget */})
-      .catch((err: unknown) => {
-        console.warn('[api/checkin] db write failed', err instanceof Error ? err.message : err);
-      });
+    void Promise.resolve(
+      supabaseAdmin.from('daily_checkins').upsert({
+        id: checkinId,
+        user_id: userId,
+        checkin_date: today,
+        energy_level: energyLevel,
+        sleep_quality: sleepQuality,
+        soreness_level: sorenessLevel,
+        pain_flag: painFlag,
+        pain_location: painLocation ?? null,
+        notes: notes ?? null,
+        omni_response: omniResponse,
+        created_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,checkin_date' }),
+    ).catch((err: unknown) => {
+      console.warn('[api/checkin] db write failed', err instanceof Error ? err.message : err);
+    });
   }
 
   return res.status(200).json({
