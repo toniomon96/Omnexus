@@ -1,7 +1,7 @@
 # Omnexus
 
 [![CI](https://github.com/toniomon96/fitness-app/actions/workflows/ci.yml/badge.svg)](https://github.com/toniomon96/fitness-app/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-115%20passing-22c55e)
+![Tests](https://img.shields.io/badge/tests-505%20passing-22c55e)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 [![Live](https://img.shields.io/badge/Live%20App-omnexus.fit-6366f1?logo=vercel&logoColor=white)](https://fitness-app-ten-eta.vercel.app)
@@ -16,7 +16,7 @@ A science-backed fitness platform powered by AI. Track workouts, generate person
 |---|---|
 | **AI Onboarding** | Multi-turn Claude conversation that builds your training profile and generates a custom 8-week periodized program |
 | **Workout Tracking** | Log sets, reps, weight, RPE — auto-detects personal records with confetti celebration |
-| **Exercise Library** | 51 exercises with instructions, muscle groups, YouTube demo embeds, and SVG progression charts |
+| **Exercise Library** | 307 exercises with instructions, muscle groups, YouTube demo embeds, and SVG progression charts |
 | **Training Programs** | Pre-built + custom-built programs with week/day cursor, builder UI, and AI-generated mesocycles |
 | **Ask Omnexus** | Claude-powered AI coach with multi-turn chat, follow-up chips, and RAG citations from PubMed |
 | **AI Insights** | Analyzes your last 4 weeks of training — personalized volume, frequency, and recovery recommendations |
@@ -55,7 +55,7 @@ A science-backed fitness platform powered by AI. Track workouts, generate person
 | Serverless | Vercel Functions (Node.js 20) + Cron Jobs |
 | External API | PubMed E-utilities |
 | Native | Capacitor v8 (iOS + Android) |
-| Testing | Vitest (115 unit tests), Playwright (E2E) |
+| Testing | Vitest (505 unit tests), Playwright (E2E) |
 | CI/CD | GitHub Actions |
 | Deployment | Vercel |
 
@@ -133,7 +133,7 @@ vercel dev
 ### 4. Run tests
 
 ```bash
-npm test          # Vitest unit tests (115 tests)
+npm test          # Vitest unit tests (505 tests)
 npm run test:e2e  # Playwright E2E tests (requires vercel dev running)
 ```
 
@@ -187,7 +187,7 @@ fitness-app/
 │   │
 │   ├── data/
 │   │   ├── courses.ts      Course/lesson/quiz content
-│   │   ├── exercises.ts    51 exercise definitions + YouTube IDs
+│   │   ├── exercises.ts    307 exercises (barbell, dumbbell, bodyweight + YouTube IDs)
 │   │   └── programs.ts     Pre-built training programs
 │   │
 │   ├── hooks/              useLearningProgress, useRestTimer, useWorkoutSession, useSubscription

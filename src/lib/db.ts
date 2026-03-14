@@ -36,10 +36,171 @@ async function getSupabase() {
   return supabasePromise;
 }
 
+// ─── Database Row Types ───────────────────────────────────────────────────────
+// Typed mirrors of Supabase table columns. JSONB columns are `unknown`.
+// Update these types if the database schema changes.
+
+type DbWorkoutSessionRow = {
+  id: string;
+  user_id: string;
+  program_id: string | null;
+  training_day_index: number;
+  started_at: string;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  exercises: unknown;
+  total_volume_kg: number | null;
+  notes: string | null;
+};
+
+type DbPersonalRecordRow = {
+  exercise_id: string;
+  weight: number;
+  reps: number;
+  achieved_at: string;
+  session_id: string;
+};
+
+type DbProfileRow = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+};
+
+type DbFriendshipRow = {
+  id: string;
+  status: string;
+  requester_id: string;
+  addressee_id: string;
+};
+
+type DbChallengeParticipantRow = {
+  user_id: string;
+  progress: number | null;
+};
+
+type DbChallengeRow = {
+  id: string;
+  created_by: string;
+  name: string;
+  description: string | null;
+  type: string;
+  target_value: number | null;
+  start_date: string;
+  end_date: string;
+  is_public: boolean;
+  is_cooperative: boolean | null;
+  challenge_participants: DbChallengeParticipantRow[];
+};
+
+type DbChallengeInvitationRow = {
+  id: string;
+  challenge_id: string;
+  challenge_name: string;
+  from_user_id: string;
+  from_user_name: string;
+  status: string;
+  created_at: string;
+};
+
+type DbFeedSessionRow = {
+  id: string;
+  user_id: string;
+  program_id: string | null;
+  started_at: string;
+  completed_at: string | null;
+  total_volume_kg: number | null;
+  duration_seconds: number | null;
+};
+
+type DbFeedSessionWithProfileRow = DbFeedSessionRow & {
+  profiles: { name: string } | null;
+};
+
+type DbNutritionLogRow = {
+  id: string;
+  user_id: string;
+  logged_at: string;
+  meal_name: string | null;
+  calories: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type DbMeasurementRow = {
+  id: string;
+  user_id: string;
+  metric: string;
+  value: number;
+  unit: string;
+  measured_at: string;
+  created_at: string;
+};
+
+type DbWorkoutTemplateRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  exercises: unknown;
+  created_at: string;
+};
+
+type DbFeedReactionRow = {
+  id: string;
+  session_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+type DbBlockMissionRow = {
+  id: string;
+  user_id: string;
+  program_id: string;
+  type: string;
+  description: string;
+  target: unknown;
+  progress: unknown;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+};
+
+type DbAiChallengeRow = {
+  id: string;
+  user_id: string | null;
+  type: string;
+  title: string;
+  description: string;
+  metric: string;
+  target: number | string;
+  unit: string;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+};
+
+type DbSpacedRepCardRow = {
+  card_id: string;
+  user_id: string;
+  easiness_factor: number;
+  interval_days: number;
+  repetitions: number;
+  next_due_at: string;
+  last_reviewed_at: string;
+};
+
+type DbLeaderboardSessionRow = {
+  user_id: string;
+  total_volume_kg: number | null;
+};
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapSession(row: any): WorkoutSession {
+function mapSession(row: DbWorkoutSessionRow): WorkoutSession {
   return {
     id: row.id,
     programId: row.program_id,
@@ -53,8 +214,7 @@ function mapSession(row: any): WorkoutSession {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapPR(row: any): PersonalRecord {
+function mapPR(row: DbPersonalRecordRow): PersonalRecord {
   return {
     exerciseId: row.exercise_id,
     weight: row.weight,
@@ -177,8 +337,9 @@ export async function fetchCustomPrograms(userId: string): Promise<Program[]> {
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).filter((row: any) => row.data != null).map((row: any) => row.data as Program);
+  return (data ?? [])
+    .filter((row): row is typeof row & { data: Program } => row.data != null)
+    .map((row) => row.data as Program);
 }
 
 export async function upsertCustomProgram(
@@ -298,8 +459,7 @@ export async function searchProfiles(
     .neq('id', excludeId)
     .eq('is_public', true)
     .limit(10);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((r: any) => ({
+  return (data ?? []).map((r: DbProfileRow) => ({
     id: r.id,
     name: r.name,
     avatarUrl: r.avatar_url ?? null,
@@ -319,13 +479,8 @@ export async function getFriendships(
   if (!data || data.length === 0) return [];
 
   // Collect all unique peer IDs to fetch their profiles in one query
-  const peerIds = data.map((row) =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (row as any).requester_id === userId
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (row as any).addressee_id
-      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (row as any).requester_id,
+  const peerIds = (data as DbFriendshipRow[]).map((row) =>
+    row.requester_id === userId ? row.addressee_id : row.requester_id,
   );
 
   const { data: profiles } = await supabase
@@ -334,12 +489,10 @@ export async function getFriendships(
     .in('id', peerIds);
 
   const profileMap = Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (profiles ?? []).map((p: any) => [p.id, p]),
+    (profiles as DbProfileRow[] ?? []).map((p) => [p.id, p]),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return data.map((row: any) => {
+  return (data as DbFriendshipRow[]).map((row) => {
     const isRequester = row.requester_id === userId;
     const friendId = isRequester ? row.addressee_id : row.requester_id;
     const profile = profileMap[friendId] ?? { id: friendId, name: 'Unknown', avatar_url: null };
@@ -387,9 +540,8 @@ export async function getWeeklyLeaderboard(
     .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
     .eq('status', 'accepted');
 
-  const friendIds = (friendships ?? []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (f: any) => (f.requester_id === userId ? f.addressee_id : f.requester_id),
+  const friendIds = (friendships as Pick<DbFriendshipRow, 'requester_id' | 'addressee_id'>[] ?? []).map(
+    (f) => (f.requester_id === userId ? f.addressee_id : f.requester_id),
   );
   const allIds = [userId, ...friendIds];
 
@@ -412,15 +564,12 @@ export async function getWeeklyLeaderboard(
   ]);
 
   const volumeMap: Record<string, number> = {};
-  for (const s of sessionsResult.data ?? []) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const row = s as any;
-    volumeMap[row.user_id] = (volumeMap[row.user_id] ?? 0) + (row.total_volume_kg ?? 0);
+  for (const s of (sessionsResult.data as DbLeaderboardSessionRow[] ?? [])) {
+    volumeMap[s.user_id] = (volumeMap[s.user_id] ?? 0) + (s.total_volume_kg ?? 0);
   }
 
-  return (profilesResult.data ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((p: any) => ({
+  return (profilesResult.data as Pick<DbProfileRow, 'id' | 'name'>[] ?? [])
+    .map((p) => ({
       userId: p.id,
       name: p.name,
       weeklyVolumeKg: Math.round(volumeMap[p.id] ?? 0),
@@ -440,11 +589,9 @@ export async function getChallenges(userId: string): Promise<Challenge[]> {
     .order('created_at', { ascending: false })
     .limit(30);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((c: any) => {
-    const parts = c.challenge_participants ?? [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userPart = parts.find((p: any) => p.user_id === userId);
+  return (data as DbChallengeRow[] ?? []).map((c) => {
+    const parts: DbChallengeParticipantRow[] = c.challenge_participants ?? [];
+    const userPart = parts.find((p) => p.user_id === userId);
     return {
       id: c.id,
       createdBy: c.created_by,
@@ -521,23 +668,20 @@ export async function getChallengeLeaderboard(
   if (error) throw new Error(`[getChallengeLeaderboard] ${error.message}`);
   if (!parts || parts.length === 0) return [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userIds = parts.map((r: any) => r.user_id as string);
+  const userIds = (parts as DbChallengeParticipantRow[]).map((r) => r.user_id);
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, name')
     .in('id', userIds);
 
   const nameMap: Record<string, string> = Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (profiles ?? []).map((p: any) => [p.id as string, p.name as string]),
+    (profiles as Pick<DbProfileRow, 'id' | 'name'>[] ?? []).map((p) => [p.id, p.name]),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return parts.map((r: any) => ({
-    userId: r.user_id as string,
+  return (parts as DbChallengeParticipantRow[]).map((r) => ({
+    userId: r.user_id,
     name: nameMap[r.user_id] ?? 'Unknown',
-    progress: (r.progress as number) ?? 0,
+    progress: r.progress ?? 0,
     isCurrentUser: r.user_id === currentUserId,
   }));
 }
@@ -550,8 +694,7 @@ export async function getCooperativeTotal(challengeId: string): Promise<number> 
     .eq('challenge_id', challengeId);
 
   if (error) throw new Error(`[getCooperativeTotal] ${error.message}`);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).reduce((sum: number, r: any) => sum + ((r.progress as number) ?? 0), 0);
+  return (data as DbChallengeParticipantRow[] ?? []).reduce((sum, r) => sum + (r.progress ?? 0), 0);
 }
 
 export async function sendChallengeInvitation(
@@ -581,10 +724,9 @@ export async function getPendingInvitations(userId: string): Promise<ChallengeIn
   if (error) throw new Error(`[getPendingInvitations] ${error.message}`);
   if (!rows || rows.length === 0) return [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const challengeIds = [...new Set(rows.map((r: any) => r.challenge_id as string))];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fromIds = [...new Set(rows.map((r: any) => r.from_user_id as string))];
+  const typedRows = rows as Pick<DbChallengeInvitationRow, 'id' | 'challenge_id' | 'from_user_id' | 'status' | 'created_at'> & { to_user_id: string }[];
+  const challengeIds = [...new Set(typedRows.map((r) => r.challenge_id))];
+  const fromIds = [...new Set(typedRows.map((r) => r.from_user_id))];
 
   const [{ data: challenges }, { data: profiles }] = await Promise.all([
     supabase.from('challenges').select('id, name').in('id', challengeIds),
@@ -592,24 +734,21 @@ export async function getPendingInvitations(userId: string): Promise<ChallengeIn
   ]);
 
   const challengeNameMap: Record<string, string> = Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (challenges ?? []).map((c: any) => [c.id as string, c.name as string]),
+    (challenges as Pick<DbChallengeRow, 'id' | 'name'>[] ?? []).map((c) => [c.id, c.name]),
   );
   const profileNameMap: Record<string, string> = Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (profiles ?? []).map((p: any) => [p.id as string, p.name as string]),
+    (profiles as Pick<DbProfileRow, 'id' | 'name'>[] ?? []).map((p) => [p.id, p.name]),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return rows.map((r: any) => ({
-    id: r.id as string,
-    challengeId: r.challenge_id as string,
+  return typedRows.map((r) => ({
+    id: r.id,
+    challengeId: r.challenge_id,
     challengeName: challengeNameMap[r.challenge_id] ?? 'Unknown Challenge',
-    fromUserId: r.from_user_id as string,
+    fromUserId: r.from_user_id,
     fromUserName: profileNameMap[r.from_user_id] ?? 'Unknown',
-    toUserId: r.to_user_id as string,
+    toUserId: r.to_user_id,
     status: r.status as ChallengeInvitation['status'],
-    createdAt: r.created_at as string,
+    createdAt: r.created_at,
   }));
 }
 
@@ -627,8 +766,7 @@ export async function respondChallengeInvitation(
 
 // ─── Nutrition ────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapNutritionLog(row: any): NutritionLog {
+function mapNutritionLog(row: DbNutritionLogRow): NutritionLog {
   return {
     id: row.id,
     userId: row.user_id,
@@ -719,8 +857,7 @@ export async function fetchNutritionLogDates(
 
 // ─── Measurements ─────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapMeasurement(row: any): Measurement {
+function mapMeasurement(row: DbMeasurementRow): Measurement {
   return {
     id: row.id,
     userId: row.user_id,
@@ -779,8 +916,7 @@ export async function deleteMeasurement(id: string, userId: string): Promise<voi
 
 // ─── Workout Templates ────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapTemplate(row: any): WorkoutTemplate {
+function mapTemplate(row: DbWorkoutTemplateRow): WorkoutTemplate {
   return {
     id: row.id,
     userId: row.user_id,
@@ -822,8 +958,7 @@ export async function deleteWorkoutTemplateDb(id: string): Promise<void> {
 
 // ─── Feed Reactions ───────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapReaction(row: any): FeedReaction {
+function mapReaction(row: DbFeedReactionRow): FeedReaction {
   return {
     id: row.id,
     sessionId: row.session_id,
@@ -876,9 +1011,8 @@ export async function getFriendFeed(userId: string): Promise<FeedSession[]> {
     .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
     .eq('status', 'accepted');
 
-  const friendIds = (friendships ?? []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (f: any) => (f.requester_id === userId ? f.addressee_id : f.requester_id),
+  const friendIds = (friendships as Pick<DbFriendshipRow, 'requester_id' | 'addressee_id'>[] ?? []).map(
+    (f) => (f.requester_id === userId ? f.addressee_id : f.requester_id),
   );
 
   if (friendIds.length === 0) return [];
@@ -896,8 +1030,7 @@ export async function getFriendFeed(userId: string): Promise<FeedSession[]> {
     .limit(30);
 
   if (!joinError && sessionsWithProfiles) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (sessionsWithProfiles as any[]).map((s) => ({
+    return (sessionsWithProfiles as DbFeedSessionWithProfileRow[]).map((s) => ({
       sessionId: s.id,
       userId: s.user_id,
       userName: s.profiles?.name ?? 'Unknown',
@@ -922,12 +1055,10 @@ export async function getFriendFeed(userId: string): Promise<FeedSession[]> {
   ]);
 
   const nameMap = Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (profilesResult.data ?? []).map((p: any) => [p.id, p.name]),
+    (profilesResult.data as Pick<DbProfileRow, 'id' | 'name'>[] ?? []).map((p) => [p.id, p.name]),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (sessionsResult.data ?? []).map((s: any) => ({
+  return (sessionsResult.data as DbFeedSessionRow[] ?? []).map((s) => ({
     sessionId: s.id,
     userId: s.user_id,
     userName: nameMap[s.user_id] ?? 'Unknown',
@@ -1054,8 +1185,7 @@ function toSafeMissionProgress(value: unknown): BlockMission['progress'] {
 const VALID_MISSION_TYPES = new Set<BlockMission['type']>(['pr', 'consistency', 'volume', 'rpe']);
 const VALID_MISSION_STATUSES = new Set<BlockMission['status']>(['active', 'completed', 'failed']);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapMission(row: any): BlockMission {
+function mapMission(row: DbBlockMissionRow): BlockMission {
   const type: BlockMission['type'] = VALID_MISSION_TYPES.has(row.type)
     ? (row.type as BlockMission['type'])
     : 'volume';
@@ -1085,8 +1215,7 @@ export async function getBlockMissions(userId: string, programId: string): Promi
     .eq('program_id', programId)
     .eq('status', 'active')
     .order('created_at', { ascending: true });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((row: any) => mapMission(row));
+  return (data as DbBlockMissionRow[] ?? []).map(mapMission);
 }
 
 export async function updateMissionProgress(
@@ -1111,8 +1240,7 @@ export async function updateMissionProgress(
 
 // ─── AI Challenges ────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapAiChallenge(row: any): AiChallenge {
+function mapAiChallenge(row: DbAiChallengeRow): AiChallenge {
   return {
     id: row.id,
     userId: row.user_id ?? null,
@@ -1150,8 +1278,10 @@ export async function getAiChallenges(userId: string): Promise<AiChallenge[]> {
     .order('created_at', { ascending: false })
     .limit(1);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return [...(personal ?? []).map((r: any) => mapAiChallenge(r)), ...(shared ?? []).map((r: any) => mapAiChallenge(r))];
+  return [
+    ...(personal as DbAiChallengeRow[] ?? []).map(mapAiChallenge),
+    ...(shared as DbAiChallengeRow[] ?? []).map(mapAiChallenge),
+  ];
 }
 
 // ─── XP Events ────────────────────────────────────────────────────────────────
@@ -1176,8 +1306,7 @@ export async function recordXpEvent(userId: string, event: XpEvent): Promise<voi
 
 // ─── Spaced Repetition (learning_review_queue) ────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapSpacedRepCard(row: any): SpacedRepCard {
+function mapSpacedRepCard(row: DbSpacedRepCardRow): SpacedRepCard {
   return {
     cardId: row.card_id,
     userId: row.user_id,
@@ -1196,8 +1325,7 @@ export async function fetchSpacedRepCards(userId: string): Promise<SpacedRepCard
     .select('*')
     .eq('user_id', userId);
   if (error) throw new Error(`[fetchSpacedRepCards] ${error.message}`);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((r: any) => mapSpacedRepCard(r));
+  return (data as DbSpacedRepCardRow[] ?? []).map(mapSpacedRepCard);
 }
 
 export async function upsertSpacedRepCard(card: SpacedRepCard): Promise<void> {

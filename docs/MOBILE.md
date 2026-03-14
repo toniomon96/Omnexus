@@ -321,6 +321,39 @@ This is only needed if you add magic link or social OAuth login — email/passwo
 
 ---
 
+## Current Build Status
+
+As of v1.0, the Capacitor native layer is **code-complete and committed**. Here is what has been done and what remains before App Store / Play Store submission:
+
+| Area | Status |
+|---|---|
+| Capacitor v8 configured (`capacitor.config.ts`) | ✅ Done |
+| iOS Xcode project generated (`ios/`) | ✅ Done |
+| Android Studio project generated (`android/`) | ✅ Done |
+| Haptics, status bar, splash screen, safe areas | ✅ Done |
+| Android hardware back button | ✅ Done |
+| `VITE_API_BASE_URL` env var documented | ✅ Done |
+| Privacy policy page (`/privacy`) | ✅ Done |
+| Exercise library (307 exercises) | ✅ Done |
+| Learning, gamification, progressive overload, program continuation | ✅ Done |
+| App icon (1024×1024 PNG) | ⚠️ Asset file needed in `resources/` |
+| Splash screen (2732×2732 PNG) | ⚠️ Asset file needed in `resources/` |
+| App icon injected into native projects | ⚠️ Run `npx capacitor-assets generate` after placing assets |
+| iOS: Archive + TestFlight upload | ⬜ Requires macOS + Xcode |
+| Android: Signed AAB + Play Store upload | ⬜ Requires Android Studio |
+| Tested on real iOS device | ⬜ |
+| Tested on real Android device | ⬜ |
+
+**Shortest path to store submission:**
+1. Place `resources/icon.png` (1024×1024) and `resources/splash.png` (2732×2732) in the repo
+2. Run `npm install --save-dev @capacitor/assets && npx capacitor-assets generate`
+3. Set `VITE_API_BASE_URL` in your build environment (`.env.local` for local builds)
+4. Run `npm run cap:sync`
+5. Open Xcode (`npm run cap:open:ios`) → Archive → TestFlight (requires Apple Developer Program)
+6. Open Android Studio (`npm run cap:open:android`) → Build Signed Bundle → Play Console
+
+---
+
 ## Checklist Before First Store Submission
 
 - [x] `VITE_API_BASE_URL` set to production Vercel URL (`https://fitness-app-ten-eta.vercel.app`)
@@ -328,9 +361,10 @@ This is only needed if you add magic link or social OAuth login — email/passwo
 - [x] Privacy policy hosted at `https://fitness-app-ten-eta.vercel.app/privacy`
 - [x] Apple Developer Program enrolled
 - [x] Google Play Console enrolled
-- [ ] `npx cap add ios && npx cap add android` run (platform directories generated)
-- [ ] App icon added to native projects via `npx capacitor-assets generate`
-- [ ] Splash screen: 2732×2732 PNG generated
+- [x] `npx cap add ios && npx cap add android` run (platform directories generated and committed)
+- [x] Capacitor native features wired: haptics, status bar, splash screen, safe areas, Android back button
+- [ ] App icon placed in `resources/icon.png` and injected via `npx capacitor-assets generate`
+- [ ] Splash screen: `resources/splash.png` (2732×2732 PNG) generated
 - [ ] **Do NOT add HealthKit** — wearables deferred to v1.1
 - [ ] iOS: `npm run cap:sync` → Xcode archive → TestFlight upload (requires Mac)
 - [ ] Android: `npm run cap:sync` → signed AAB generated → Play Console upload
