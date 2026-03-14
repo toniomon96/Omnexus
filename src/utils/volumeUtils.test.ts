@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { estimate1RM, calculateTotalVolume, getExerciseProgressionData, getWeeklyVolumeByMuscle } from './volumeUtils';
+import { estimate1RM, calculateTotalVolume, getExerciseProgressionData, getWeeklyVolumeByMuscle, countSessionsLast30Days, getTotalWeeklyVolumeKg, getAvgRpeRecent } from './volumeUtils';
 import type { WorkoutSession, WorkoutHistory } from '../types';
 
 // ─── estimate1RM ─────────────────────────────────────────────────────────────
@@ -181,5 +181,129 @@ describe('getWeeklyVolumeByMuscle', () => {
     for (const muscle of expectedMuscles) {
       expect(result).toHaveProperty(muscle);
     }
+  });
+});
+
+// ─── Helpers for new stat functions ──────────────────────────────────────────
+
+function makeCompletedSession(
+  daysAgo: number,
+  sets: Array<{ weight: number; reps: number; rpe?: number }>,
+): WorkoutSession {
+  const completedAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
+  return {
+    id: `s-${daysAgo}`,
+    programId: 'prog',
+    trainingDayIndex: 0,
+    startedAt: completedAt,
+    completedAt,
+    exercises: [
+      {
+        exerciseId: 'ex1',
+        sets: sets.map((s, i) => ({
+          setNumber: i + 1,
+          weight: s.weight,
+          reps: s.reps,
+          rpe: s.rpe,
+          completed: true,
+          timestamp: completedAt,
+        })),
+      },
+    ],
+    totalVolumeKg: sets.reduce((t, s) => t + s.weight * s.reps, 0),
+  };
+}
+
+// ─── countSessionsLast30Days ─────────────────────────────────────────────────
+
+describe('countSessionsLast30Days', () => {
+  it('counts sessions completed within the last 30 days', () => {
+    const sessions = [
+      makeCompletedSession(5, [{ weight: 100, reps: 5 }]),
+      makeCompletedSession(20, [{ weight: 80, reps: 8 }]),
+      makeCompletedSession(29, [{ weight: 60, reps: 10 }]),
+    ];
+    expect(countSessionsLast30Days(sessions)).toBe(3);
+  });
+
+  it('excludes sessions older than 30 days', () => {
+    const sessions = [
+      makeCompletedSession(31, [{ weight: 100, reps: 5 }]),
+      makeCompletedSession(60, [{ weight: 80, reps: 8 }]),
+    ];
+    expect(countSessionsLast30Days(sessions)).toBe(0);
+  });
+
+  it('returns 0 for an empty array', () => {
+    expect(countSessionsLast30Days([])).toBe(0);
+  });
+
+  it('excludes sessions that have no completedAt', () => {
+    const incomplete: WorkoutSession = {
+      id: 'inc',
+      programId: 'prog',
+      trainingDayIndex: 0,
+      startedAt: new Date().toISOString(),
+      exercises: [],
+      totalVolumeKg: 0,
+    };
+    expect(countSessionsLast30Days([incomplete])).toBe(0);
+  });
+});
+
+// ─── getTotalWeeklyVolumeKg ──────────────────────────────────────────────────
+
+describe('getTotalWeeklyVolumeKg', () => {
+  it('sums volume for sessions within the last 7 days', () => {
+    const sessions = [
+      makeCompletedSession(2, [{ weight: 100, reps: 5 }, { weight: 100, reps: 5 }]), // 1000
+      makeCompletedSession(6, [{ weight: 80, reps: 10 }]),                             // 800
+    ];
+    expect(getTotalWeeklyVolumeKg(sessions)).toBe(1800);
+  });
+
+  it('excludes sessions older than 7 days', () => {
+    const sessions = [
+      makeCompletedSession(8, [{ weight: 100, reps: 10 }]),
+    ];
+    expect(getTotalWeeklyVolumeKg(sessions)).toBe(0);
+  });
+
+  it('returns 0 for empty sessions', () => {
+    expect(getTotalWeeklyVolumeKg([])).toBe(0);
+  });
+});
+
+// ─── getAvgRpeRecent ─────────────────────────────────────────────────────────
+
+describe('getAvgRpeRecent', () => {
+  it('averages RPE across all sets in the last 30 days', () => {
+    const sessions = [
+      makeCompletedSession(3, [{ weight: 100, reps: 5, rpe: 7 }, { weight: 100, reps: 5, rpe: 9 }]),
+    ];
+    // (7 + 9) / 2 = 8
+    expect(getAvgRpeRecent(sessions)).toBe(8);
+  });
+
+  it('returns 0 when no sets have RPE data', () => {
+    const sessions = [
+      makeCompletedSession(3, [{ weight: 100, reps: 5 }]),
+    ];
+    expect(getAvgRpeRecent(sessions)).toBe(0);
+  });
+
+  it('returns 0 for empty sessions', () => {
+    expect(getAvgRpeRecent([])).toBe(0);
+  });
+
+  it('respects the custom days parameter', () => {
+    const sessions = [
+      makeCompletedSession(3, [{ weight: 100, reps: 5, rpe: 8 }]),
+      makeCompletedSession(10, [{ weight: 100, reps: 5, rpe: 6 }]),
+    ];
+    // With days=7, only the first session counts → avg = 8
+    expect(getAvgRpeRecent(sessions, 7)).toBe(8);
+    // With days=14, both count → avg = 7
+    expect(getAvgRpeRecent(sessions, 14)).toBe(7);
   });
 });

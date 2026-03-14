@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
-import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight, Activity } from 'lucide-react';
+import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight, Activity, Dumbbell, Flame, BarChart2 } from 'lucide-react';
 import { apiBase } from '../lib/api';
 import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../lib/passwordPolicy';
 import {
@@ -21,8 +21,10 @@ import {
   setWeightUnit,
   getExperienceMode,
   setExperienceMode,
+  getWorkoutHistory,
   type ExperienceMode,
 } from '../utils/localStorage';
+import { countSessionsLast30Days, getTotalWeeklyVolumeKg } from '../utils/volumeUtils';
 import type { Goal, ExperienceLevel, WeightUnit, NotificationPreferences } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
@@ -100,6 +102,14 @@ export function ProfilePage() {
   const { status: subStatus } = useSubscription();
 
   const currentUser = state.user;
+
+  const workoutStats = useMemo(() => {
+    const sessions = getWorkoutHistory();
+    return {
+      sessionsLast30Days: countSessionsLast30Days(sessions),
+      weeklyVolumeKg: Math.round(getTotalWeeklyVolumeKg(sessions)),
+    };
+  }, []);
 
   const [name, setName] = useState(currentUser?.name ?? '');
   const [goal, setGoal] = useState<Goal>(currentUser?.goal ?? 'general-fitness');
@@ -575,6 +585,42 @@ export function ProfilePage() {
 
         {/* Training DNA */}
         <TrainingDNA />
+
+        {/* Training Stats */}
+        <Card>
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
+            Training Stats
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <div className="h-8 w-8 rounded-xl bg-brand-500/10 flex items-center justify-center">
+                <Dumbbell size={15} className="text-brand-500" />
+              </div>
+              <p className="text-base font-bold text-slate-900 dark:text-white tabular-nums">
+                {workoutStats.sessionsLast30Days}
+              </p>
+              <p className="text-[10px] text-slate-400 text-center leading-tight">Sessions<br />last 30d</p>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div className="h-8 w-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Flame size={15} className="text-amber-500" />
+              </div>
+              <p className="text-base font-bold text-slate-900 dark:text-white tabular-nums">
+                {state.streak ?? 0}
+              </p>
+              <p className="text-[10px] text-slate-400 text-center leading-tight">Day<br />Streak</p>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div className="h-8 w-8 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <BarChart2 size={15} className="text-green-500" />
+              </div>
+              <p className="text-base font-bold text-slate-900 dark:text-white tabular-nums">
+                {workoutStats.weeklyVolumeKg > 0 ? `${workoutStats.weeklyVolumeKg}` : '—'}
+              </p>
+              <p className="text-[10px] text-slate-400 text-center leading-tight">kg this<br />week</p>
+            </div>
+          </div>
+        </Card>
 
         {/* Subscription */}
         {!isGuest && (

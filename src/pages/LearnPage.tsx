@@ -140,11 +140,18 @@ export function LearnPage() {
             <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-snug">
               Evidence-Based Learning
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {hasActivity
-                ? `${progress.completedLessons.length} lesson${progress.completedLessons.length !== 1 ? 's' : ''} complete`
-                : 'Science-backed courses, lessons & quizzes'}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {hasActivity
+                  ? `${progress.completedLessons.length} lesson${progress.completedLessons.length !== 1 ? 's' : ''} complete`
+                  : 'Science-backed courses, lessons & quizzes'}
+              </p>
+              {(state.streak ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-full px-2 py-0.5">
+                  🔥 {state.streak}d streak
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
