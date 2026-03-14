@@ -14,6 +14,8 @@ import type {
   NutritionLog,
   Measurement,
   MeasurementMetric,
+  MeasurementUnit,
+  TemplateExercise,
   WorkoutTemplate,
   FeedReaction,
   ReactionEmoji,
@@ -27,6 +29,7 @@ import type {
   SpacedRepCard,
   DailyCheckin,
   ProgressionReport,
+  LoggedExercise,
 } from '../types';
 
 let supabasePromise: Promise<(typeof import('./supabase'))['supabase']> | null = null;
@@ -203,13 +206,13 @@ type DbLeaderboardSessionRow = {
 function mapSession(row: DbWorkoutSessionRow): WorkoutSession {
   return {
     id: row.id,
-    programId: row.program_id,
+    programId: row.program_id ?? '',
     trainingDayIndex: row.training_day_index,
     startedAt: row.started_at,
     completedAt: row.completed_at ?? undefined,
     durationSeconds: row.duration_seconds ?? undefined,
-    exercises: row.exercises,
-    totalVolumeKg: row.total_volume_kg,
+    exercises: row.exercises as LoggedExercise[],
+    totalVolumeKg: row.total_volume_kg ?? 0,
     notes: row.notes ?? undefined,
   };
 }
@@ -338,8 +341,8 @@ export async function fetchCustomPrograms(userId: string): Promise<Program[]> {
     .order('created_at', { ascending: true });
 
   return (data ?? [])
-    .filter((row): row is typeof row & { data: Program } => row.data != null)
-    .map((row) => row.data as Program);
+    .filter((row: Record<string, unknown>): row is Record<string, unknown> & { data: Program } => row['data'] != null)
+    .map((row: Record<string, unknown> & { data: Program }) => row['data'] as Program);
 }
 
 export async function upsertCustomProgram(
@@ -724,7 +727,7 @@ export async function getPendingInvitations(userId: string): Promise<ChallengeIn
   if (error) throw new Error(`[getPendingInvitations] ${error.message}`);
   if (!rows || rows.length === 0) return [];
 
-  const typedRows = rows as Pick<DbChallengeInvitationRow, 'id' | 'challenge_id' | 'from_user_id' | 'status' | 'created_at'> & { to_user_id: string }[];
+  const typedRows = rows as (Pick<DbChallengeInvitationRow, 'id' | 'challenge_id' | 'from_user_id' | 'status' | 'created_at'> & { to_user_id: string })[];
   const challengeIds = [...new Set(typedRows.map((r) => r.challenge_id))];
   const fromIds = [...new Set(typedRows.map((r) => r.from_user_id))];
 
@@ -850,7 +853,7 @@ export async function fetchNutritionLogDates(
     .select('logged_at')
     .eq('user_id', userId)
     .gte('logged_at', since);
-  return [...new Set((data ?? []).map((r) => r.logged_at as string))];
+  return [...new Set(((data ?? []) as { logged_at: string }[]).map((r) => r.logged_at))];
 }
 
 // ─── Community: Activity Feed ─────────────────────────────────────────────────
@@ -863,7 +866,7 @@ function mapMeasurement(row: DbMeasurementRow): Measurement {
     userId: row.user_id,
     metric: row.metric as MeasurementMetric,
     value: row.value,
-    unit: row.unit,
+    unit: row.unit as MeasurementUnit,
     measuredAt: row.measured_at,
     createdAt: row.created_at,
   };
@@ -921,7 +924,7 @@ function mapTemplate(row: DbWorkoutTemplateRow): WorkoutTemplate {
     id: row.id,
     userId: row.user_id,
     name: row.name,
-    exercises: row.exercises,
+    exercises: row.exercises as TemplateExercise[],
     createdAt: row.created_at,
   };
 }
@@ -1034,7 +1037,7 @@ export async function getFriendFeed(userId: string): Promise<FeedSession[]> {
       sessionId: s.id,
       userId: s.user_id,
       userName: s.profiles?.name ?? 'Unknown',
-      programId: s.program_id,
+      programId: s.program_id ?? '',
       startedAt: s.started_at,
       completedAt: s.completed_at ?? undefined,
       totalVolumeKg: s.total_volume_kg ?? 0,
@@ -1062,7 +1065,7 @@ export async function getFriendFeed(userId: string): Promise<FeedSession[]> {
     sessionId: s.id,
     userId: s.user_id,
     userName: nameMap[s.user_id] ?? 'Unknown',
-    programId: s.program_id,
+    programId: s.program_id ?? '',
     startedAt: s.started_at,
     completedAt: s.completed_at ?? undefined,
     totalVolumeKg: s.total_volume_kg ?? 0,
@@ -1186,10 +1189,10 @@ const VALID_MISSION_TYPES = new Set<BlockMission['type']>(['pr', 'consistency', 
 const VALID_MISSION_STATUSES = new Set<BlockMission['status']>(['active', 'completed', 'failed']);
 
 function mapMission(row: DbBlockMissionRow): BlockMission {
-  const type: BlockMission['type'] = VALID_MISSION_TYPES.has(row.type)
+  const type: BlockMission['type'] = VALID_MISSION_TYPES.has(row.type as BlockMission['type'])
     ? (row.type as BlockMission['type'])
     : 'volume';
-  const status: BlockMission['status'] = VALID_MISSION_STATUSES.has(row.status)
+  const status: BlockMission['status'] = VALID_MISSION_STATUSES.has(row.status as BlockMission['status'])
     ? (row.status as BlockMission['status'])
     : 'active';
   return {
