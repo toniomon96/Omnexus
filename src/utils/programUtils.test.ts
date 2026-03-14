@@ -154,3 +154,92 @@ describe('getWeeklyCompletionCount', () => {
     expect(getWeeklyCompletionCount(program, [], '2025-03-03T00:00:00Z', [])).toBe(0);
   });
 });
+
+// ── isBlockComplete ───────────────────────────────────────────────────────────
+
+import { isBlockComplete, getBlockStartDate } from './programUtils';
+
+describe('isBlockComplete', () => {
+  beforeEach(() => {
+    for (const k of Object.keys(store)) delete store[k];
+  });
+
+  it('returns false when week cursor is at 1 and day cursor is 0', () => {
+    const program = makeProgram('blk', 'hypertrophy', 'beginner', [makeDay('A')]);
+    (program as { estimatedDurationWeeks: number }).estimatedDurationWeeks = 8;
+    expect(isBlockComplete(program)).toBe(false);
+  });
+
+  it('returns false when week is at the final week but not past it', () => {
+    const program = makeProgram('blk2', 'hypertrophy', 'beginner', [makeDay('A'), makeDay('B')]);
+    (program as { estimatedDurationWeeks: number }).estimatedDurationWeeks = 8;
+    // Set week cursor to exactly 8 (not yet past)
+    store['fit_program_week_cursor'] = JSON.stringify({ blk2: 8 });
+    store['fit_program_day_cursor'] = JSON.stringify({ blk2: 0 });
+    expect(isBlockComplete(program)).toBe(false);
+  });
+
+  it('returns true when week cursor has advanced past estimatedDurationWeeks and day is 0', () => {
+    const program = makeProgram('blk3', 'hypertrophy', 'beginner', [makeDay('A')]);
+    (program as { estimatedDurationWeeks: number }).estimatedDurationWeeks = 8;
+    store['fit_program_week_cursor'] = JSON.stringify({ blk3: 9 });
+    store['fit_program_day_cursor'] = JSON.stringify({ blk3: 0 });
+    expect(isBlockComplete(program)).toBe(true);
+  });
+
+  it('returns false when week is past limit but day cursor is non-zero (mid-week)', () => {
+    const program = makeProgram('blk4', 'hypertrophy', 'beginner', [makeDay('A'), makeDay('B')]);
+    (program as { estimatedDurationWeeks: number }).estimatedDurationWeeks = 8;
+    store['fit_program_week_cursor'] = JSON.stringify({ blk4: 9 });
+    store['fit_program_day_cursor'] = JSON.stringify({ blk4: 1 });
+    expect(isBlockComplete(program)).toBe(false);
+  });
+
+  it('uses 8 as default estimatedDurationWeeks when not set', () => {
+    const program = makeProgram('blk5', 'hypertrophy', 'beginner', [makeDay('A')]);
+    // Cast to remove the field so the function falls back to its default of 8
+    const programNoWeeks = { ...program } as typeof program;
+    delete (programNoWeeks as { estimatedDurationWeeks?: number }).estimatedDurationWeeks;
+    store['fit_program_week_cursor'] = JSON.stringify({ blk5: 9 });
+    store['fit_program_day_cursor'] = JSON.stringify({ blk5: 0 });
+    expect(isBlockComplete(programNoWeeks)).toBe(true);
+  });
+});
+
+// ── getBlockStartDate ─────────────────────────────────────────────────────────
+
+describe('getBlockStartDate', () => {
+  it('returns the earliest session start date for the program', () => {
+    const sessions = [
+      { programId: 'prog-1', startedAt: '2025-03-10T10:00:00Z' },
+      { programId: 'prog-1', startedAt: '2025-03-05T10:00:00Z' },
+      { programId: 'prog-1', startedAt: '2025-03-15T10:00:00Z' },
+    ];
+    expect(getBlockStartDate('prog-1', sessions)).toBe('2025-03-05T10:00:00Z');
+  });
+
+  it('returns null when no sessions match the program', () => {
+    const sessions = [
+      { programId: 'other', startedAt: '2025-03-10T10:00:00Z' },
+    ];
+    expect(getBlockStartDate('prog-1', sessions)).toBeNull();
+  });
+
+  it('returns null for an empty session array', () => {
+    expect(getBlockStartDate('prog-1', [])).toBeNull();
+  });
+
+  it('returns the single session date when there is only one session', () => {
+    const sessions = [{ programId: 'solo', startedAt: '2025-06-01T08:00:00Z' }];
+    expect(getBlockStartDate('solo', sessions)).toBe('2025-06-01T08:00:00Z');
+  });
+
+  it('ignores sessions from other programs', () => {
+    const sessions = [
+      { programId: 'prog-a', startedAt: '2025-01-01T00:00:00Z' },
+      { programId: 'prog-b', startedAt: '2025-03-01T00:00:00Z' },
+      { programId: 'prog-a', startedAt: '2025-02-01T00:00:00Z' },
+    ];
+    expect(getBlockStartDate('prog-b', sessions)).toBe('2025-03-01T00:00:00Z');
+  });
+});

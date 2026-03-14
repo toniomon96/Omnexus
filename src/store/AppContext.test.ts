@@ -19,6 +19,7 @@ vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
 import { reducer } from './AppContext';
 import type { AppState } from './AppContext';
 import type { User, WorkoutSession, LearningProgress } from '../types';
+import { buildXpProfile } from '../lib/xpEngine';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ function baseState(overrides: Partial<AppState> = {}): AppState {
     streak: 0,
     sparks: 0,
     unlockedAchievementIds: [],
+    pendingCelebrations: [],
     ...overrides,
   };
 }
@@ -230,5 +232,143 @@ describe('AppContext reducer', () => {
     const state = baseState();
     const result = reducer(state, { type: 'NONEXISTENT' } as unknown as Action);
     expect(result).toBe(state);
+  });
+
+  // ── AWARD_XP ──
+
+  it('AWARD_XP increases xpProfile.totalXp', () => {
+    const state = reducer(baseState({ user: mockUser }), {
+      type: 'AWARD_XP',
+      payload: { eventType: 'workout_completed' },
+    });
+    expect(state.xpProfile?.totalXp).toBeGreaterThan(0);
+  });
+
+  it('AWARD_XP does nothing when user is null', () => {
+    const initial = baseState({ user: null });
+    const state = reducer(initial, {
+      type: 'AWARD_XP',
+      payload: { eventType: 'workout_completed' },
+    });
+    expect(state.xpProfile).toBeNull();
+  });
+
+  it('AWARD_XP respects amountOverride', () => {
+    // amountOverride sets the base XP; achievement bonuses may stack on top
+    const state = reducer(baseState({ user: mockUser }), {
+      type: 'AWARD_XP',
+      payload: { eventType: 'workout_completed', amountOverride: 10 },
+    });
+    expect(state.xpProfile?.totalXp).toBeGreaterThanOrEqual(10);
+  });
+
+  it('AWARD_XP queues a rank_up celebration when rank label changes', () => {
+    // Start at Rookie level (0 XP). Award 900 XP to reach Athlete (level 3).
+    const initial = baseState({
+      user: mockUser,
+      xpProfile: buildXpProfile('u1', 0), // Rookie
+    });
+    const state = reducer(initial, {
+      type: 'AWARD_XP',
+      payload: { eventType: 'workout_completed', amountOverride: 900 },
+    });
+    const rankUpEvents = state.pendingCelebrations.filter((c) => c.kind === 'rank_up');
+    expect(rankUpEvents.length).toBeGreaterThan(0);
+    expect(rankUpEvents[0]?.payload).toBe('Athlete');
+  });
+
+  it('AWARD_XP does NOT queue rank_up when rank label is unchanged', () => {
+    // Small XP that stays within Rookie range
+    const state = reducer(baseState({ user: mockUser }), {
+      type: 'AWARD_XP',
+      payload: { eventType: 'workout_completed', amountOverride: 10 },
+    });
+    const rankUpEvents = state.pendingCelebrations.filter((c) => c.kind === 'rank_up');
+    expect(rankUpEvents).toHaveLength(0);
+  });
+
+  // ── SET_STREAK ──
+
+  it('SET_STREAK updates streak value', () => {
+    const state = reducer(baseState(), { type: 'SET_STREAK', payload: 5 });
+    expect(state.streak).toBe(5);
+  });
+
+  it('SET_STREAK queues streak_milestone at 7 days', () => {
+    const state = reducer(baseState(), { type: 'SET_STREAK', payload: 7 });
+    const milestones = state.pendingCelebrations.filter((c) => c.kind === 'streak_milestone');
+    expect(milestones).toHaveLength(1);
+    expect(milestones[0]?.payload).toBe('7');
+  });
+
+  it('SET_STREAK queues streak_milestone at 30 days', () => {
+    const state = reducer(baseState(), { type: 'SET_STREAK', payload: 30 });
+    const milestones = state.pendingCelebrations.filter((c) => c.kind === 'streak_milestone');
+    expect(milestones).toHaveLength(1);
+    expect(milestones[0]?.payload).toBe('30');
+  });
+
+  it('SET_STREAK queues streak_milestone at 100 days', () => {
+    const state = reducer(baseState(), { type: 'SET_STREAK', payload: 100 });
+    const milestones = state.pendingCelebrations.filter((c) => c.kind === 'streak_milestone');
+    expect(milestones).toHaveLength(1);
+  });
+
+  it('SET_STREAK queues streak_milestone at 365 days', () => {
+    const state = reducer(baseState(), { type: 'SET_STREAK', payload: 365 });
+    const milestones = state.pendingCelebrations.filter((c) => c.kind === 'streak_milestone');
+    expect(milestones).toHaveLength(1);
+  });
+
+  it('SET_STREAK does NOT queue milestone for non-milestone values', () => {
+    const state = reducer(baseState(), { type: 'SET_STREAK', payload: 8 });
+    const milestones = state.pendingCelebrations.filter((c) => c.kind === 'streak_milestone');
+    expect(milestones).toHaveLength(0);
+  });
+
+  // ── QUEUE_CELEBRATION / DEQUEUE_CELEBRATION ──
+
+  it('QUEUE_CELEBRATION appends a celebration to the queue', () => {
+    const celebration = {
+      id: 'cel-1',
+      kind: 'rank_up' as const,
+      payload: 'Athlete',
+      queuedAt: new Date().toISOString(),
+    };
+    const state = reducer(baseState(), { type: 'QUEUE_CELEBRATION', payload: celebration });
+    expect(state.pendingCelebrations).toHaveLength(1);
+    expect(state.pendingCelebrations[0]?.id).toBe('cel-1');
+  });
+
+  it('QUEUE_CELEBRATION preserves existing celebrations', () => {
+    const cel1 = { id: 'c1', kind: 'rank_up' as const, payload: 'Athlete', queuedAt: '' };
+    const cel2 = { id: 'c2', kind: 'streak_milestone' as const, payload: '7', queuedAt: '' };
+    const s1 = reducer(baseState(), { type: 'QUEUE_CELEBRATION', payload: cel1 });
+    const s2 = reducer(s1, { type: 'QUEUE_CELEBRATION', payload: cel2 });
+    expect(s2.pendingCelebrations).toHaveLength(2);
+  });
+
+  it('DEQUEUE_CELEBRATION removes only the specified id', () => {
+    const cel1 = { id: 'c1', kind: 'rank_up' as const, payload: 'Athlete', queuedAt: '' };
+    const cel2 = { id: 'c2', kind: 'streak_milestone' as const, payload: '7', queuedAt: '' };
+    const s1 = reducer(baseState(), { type: 'QUEUE_CELEBRATION', payload: cel1 });
+    const s2 = reducer(s1, { type: 'QUEUE_CELEBRATION', payload: cel2 });
+    const s3 = reducer(s2, { type: 'DEQUEUE_CELEBRATION', payload: 'c1' });
+    expect(s3.pendingCelebrations).toHaveLength(1);
+    expect(s3.pendingCelebrations[0]?.id).toBe('c2');
+  });
+
+  it('DEQUEUE_CELEBRATION is a no-op for unknown id', () => {
+    const cel = { id: 'c1', kind: 'rank_up' as const, payload: 'Athlete', queuedAt: '' };
+    const s1 = reducer(baseState(), { type: 'QUEUE_CELEBRATION', payload: cel });
+    const s2 = reducer(s1, { type: 'DEQUEUE_CELEBRATION', payload: 'nonexistent' });
+    expect(s2.pendingCelebrations).toHaveLength(1);
+  });
+
+  it('DEQUEUE_CELEBRATION empties queue when last item removed', () => {
+    const cel = { id: 'c1', kind: 'achievement' as const, payload: 'first-workout', queuedAt: '' };
+    const s1 = reducer(baseState(), { type: 'QUEUE_CELEBRATION', payload: cel });
+    const s2 = reducer(s1, { type: 'DEQUEUE_CELEBRATION', payload: 'c1' });
+    expect(s2.pendingCelebrations).toHaveLength(0);
   });
 });

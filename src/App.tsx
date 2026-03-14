@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ToastContainer } from './components/ui/Toast'
+import { GamificationNotifier } from './components/gamification/GamificationNotifier'
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
           <ToastProvider>
             <RouterProvider router={router} />
             <ToastContainer />
+            <GamificationNotifier />
           </ToastProvider>
         </AppProvider>
       </AuthProvider>

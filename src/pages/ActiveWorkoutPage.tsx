@@ -15,6 +15,7 @@ import { useRestTimer } from '../hooks/useRestTimer';
 import { programs } from '../data/programs';
 import { getActiveSession, getCustomPrograms, getExperienceMode, getTodayCheckin } from '../utils/localStorage';
 import { formatDuration } from '../utils/dateUtils';
+import { isBlockComplete } from '../utils/programUtils';
 import type { WorkoutSession, PersonalRecord } from '../types';
 import { Plus, X, StopCircle, AlertTriangle } from 'lucide-react';
 
@@ -118,6 +119,10 @@ export function ActiveWorkoutPage() {
   function handleComplete() {
     const result = completeWorkout(program ?? null);
     if (result) {
+      if (program && isBlockComplete(program)) {
+        navigate('/workout/progression-report', { state: { programId: program.id } });
+        return;
+      }
       setCompletedData(result);
       if (result.prs.length > 0) {
         setShowCelebration(true);

@@ -71,6 +71,7 @@ const HelpPage = lazy(() => import('./pages/HelpPage').then(m => ({ default: m.H
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
 const GuidedPathwaysPage = lazy(() => import('./pages/GuidedPathwaysPage').then(m => ({ default: m.GuidedPathwaysPage })))
+const ProgressionReportPage = lazy(() => import('./pages/ProgressionReportPage').then(m => ({ default: m.ProgressionReportPage })))
 
 function RootLayout() {
   return (
@@ -626,6 +627,7 @@ export const router = createBrowserRouter([
           { path: '/library', element: <ExerciseLibraryPage /> },
           { path: '/library/:exerciseId', element: <ExerciseDetailPage /> },
           { path: '/workout/active', element: <ActiveWorkoutPage /> },
+          { path: '/workout/progression-report', element: <ProgressionReportPage /> },
           { path: '/history', element: <HistoryPage /> },
           { path: '/learn', element: <LearnPage /> },
           { path: '/learn/:courseId', element: <CourseDetailPage /> },

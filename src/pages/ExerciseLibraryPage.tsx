@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MuscleGroup, Equipment, MovementPattern, ExperienceLevel } from '../types';
 import { AppShell } from '../components/layout/AppShell';
@@ -69,6 +69,12 @@ export function ExerciseLibraryPage() {
   const [difficulty, setDifficulty] = useState<ExperienceLevel | null>(null);
   const [myGymEquipment, setMyGymEquipment] = useState<Equipment[]>([]);
 
+  // ── Natural language (semantic) search state ────────────────────────────────
+  const [nlIds, setNlIds] = useState<string[] | null>(null);
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlActive, setNlActive] = useState(false);
+  const nlDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ── Fetch training profile to power "My Gym" equipment filter ──────────────
   useEffect(() => {
     const userId = session?.user?.id;
@@ -86,8 +92,67 @@ export function ExerciseLibraryPage() {
     })();
   }, [session?.user?.id]);
 
+  // ── Natural language search — debounce and call /api/exercise-search ─────────
+  const runNLSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setNlIds(null);
+      setNlActive(false);
+      return;
+    }
+    setNlLoading(true);
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
+      const res = await fetch(`${apiBase}/api/exercise-search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) throw new Error('search error');
+      const json = await res.json() as { ids: string[]; degraded?: boolean };
+      if (!json.degraded && json.ids.length > 0) {
+        setNlIds(json.ids);
+        setNlActive(true);
+      } else {
+        setNlIds(null);
+        setNlActive(false);
+      }
+    } catch {
+      // Graceful fallback — local keyword search takes over
+      setNlIds(null);
+      setNlActive(false);
+    } finally {
+      setNlLoading(false);
+    }
+  }, []);
+
+  // Detect natural language queries: two or more words (handles "upper back with no barbell")
+  const isNLQuery = mode === 'search' && query.trim().split(/\s+/).length >= 2;
+
+  useEffect(() => {
+    if (!isNLQuery) {
+      if (nlDebounceRef.current) clearTimeout(nlDebounceRef.current);
+      setNlIds(null);
+      setNlActive(false);
+      setNlLoading(false);
+      return;
+    }
+    if (nlDebounceRef.current) clearTimeout(nlDebounceRef.current);
+    nlDebounceRef.current = setTimeout(() => { void runNLSearch(query); }, 500);
+    return () => { if (nlDebounceRef.current) clearTimeout(nlDebounceRef.current); };
+  }, [query, isNLQuery]);
+
   // ── Filtered exercise list ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
+    // When NL semantic search has results, return exercises ranked by AI order
+    if (mode === 'search' && nlActive && nlIds && nlIds.length > 0) {
+      const byId = new Map(EXERCISE_LIBRARY.map((ex) => [ex.id, ex]));
+      return nlIds.flatMap((id) => {
+        const ex = byId.get(id);
+        return ex ? [ex] : [];
+      });
+    }
+
     // For "my-gym" mode: pre-filter by user's equipment list then apply other params
     const base =
       mode === 'equipment' && equipment === 'my-gym' && myGymEquipment.length > 0
@@ -106,7 +171,8 @@ export function ExerciseLibraryPage() {
           : 'all',
       difficulty: mode === 'difficulty' ? difficulty : null,
     });
-  }, [mode, query, pattern, muscle, equipment, difficulty, myGymEquipment]);
+  }, [mode, query, pattern, muscle, equipment, difficulty, myGymEquipment, nlActive, nlIds]);
+
 
   // ── Active filter helpers ──────────────────────────────────────────────────
   const hasActiveFilter =
@@ -122,6 +188,8 @@ export function ExerciseLibraryPage() {
     setMuscle(null);
     setEquipment('all');
     setDifficulty(null);
+    setNlIds(null);
+    setNlActive(false);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -160,6 +228,8 @@ export function ExerciseLibraryPage() {
             value={query}
             onChange={setQuery}
             placeholder="Search exercises, muscles, or patterns…"
+            loading={nlLoading}
+            semanticActive={nlActive}
           />
         )}
 

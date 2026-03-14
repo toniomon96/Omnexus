@@ -136,6 +136,8 @@ export interface SubscriptionStatus {
 }
 
 export type ProgramLifecycleStatus = 'draft' | 'active' | 'archived';
+export type BlockType = 'standard' | 'intensification' | 'deload' | 'custom';
+export type ContinuationOption = 'build-on' | 'change-focus' | 'deload';
 
 // ─── AI Training Profile ──────────────────────────────────────────────────────
 
@@ -257,6 +259,14 @@ export interface Program {
   weeklyProgressionNotes?: string[];
   /** 2-3 sentences explaining the periodization logic and what the athlete should expect */
   trainingPhilosophy?: string;
+  /** Block type for program chaining */
+  blockType?: BlockType;
+  /** Which continuation option was chosen to generate this block */
+  continuationOption?: ContinuationOption;
+  /** ID of the program that preceded this one in the chain */
+  predecessorProgramId?: string;
+  /** When the program block was completed (ISO string) */
+  completedAt?: string;
 }
 
 // ─── Active Workout Session ───────────────────────────────────────────────────
@@ -646,6 +656,42 @@ export interface MealPlan {
   totalFat: number;
 }
 
+// ─── Progression Report ───────────────────────────────────────────────────────
+
+export interface ProgressionReport {
+  id: string;
+  userId?: string;
+  programId: string;
+  programName: string;
+  startDate: string;
+  endDate: string;
+  generatedAt: string;
+  consistencyPercent: number;
+  totalWorkouts: number;
+  plannedWorkouts: number;
+  /** Array of { exerciseId, exerciseName, weight, reps, date } */
+  topPRs: Array<{ exerciseId: string; exerciseName: string; weight: number; reps: number; date: string }>;
+  /** Map of muscle group to total volume (sets × reps × weight) */
+  volumeByMuscle: Record<string, number>;
+  omniNarrative: string;
+  viewedAt?: string;
+}
+
+// ─── Training DNA ─────────────────────────────────────────────────────────────
+
+export interface TrainingDNA {
+  /** Movement pattern → count of sessions that included it */
+  dominantPatterns: Record<string, number>;
+  /** Muscle group → total volume accumulated */
+  strongestMuscles: Record<string, number>;
+  /** Day of week (0=Sun..6=Sat) → workout count */
+  consistencyByDay: Record<number, number>;
+  /** Exercise ID → array of { date, weight } for progression trend */
+  progressionTrend: Record<string, Array<{ date: string; weight: number }>>;
+  /** When this DNA was last calculated */
+  calculatedAt: string;
+}
+
 // ─── Nutrition ────────────────────────────────────────────────────────────────
 
 export interface NutritionLog {
@@ -835,4 +881,17 @@ export interface CheckinAdaptationBanner {
   message: string;
   reduceIntensity: boolean;
   flaggedExercises: string[];
+}
+
+// ─── Celebrations ─────────────────────────────────────────────────────────────
+
+export type CelebrationKind = 'rank_up' | 'streak_milestone' | 'achievement';
+
+export interface PendingCelebration {
+  id: string;
+  kind: CelebrationKind;
+  /** For rank_up: the new rank label. For streak_milestone: the streak count. For achievement: the achievement id. */
+  payload: string;
+  /** ISO timestamp when this was queued */
+  queuedAt: string;
 }

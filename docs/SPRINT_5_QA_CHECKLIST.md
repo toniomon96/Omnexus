@@ -78,8 +78,10 @@ List only issues that are explicitly accepted for launch.
 
 ## Automated Evidence Snapshot
 
-- Date: 2026-03-12
+- Date: 2026-03-13
 - `npm run lint`: pass
 - `npm run typecheck`: pass
+- `npm run test -- --run`: pass (505 tests across 63 test files)
+- `npm run build`: pass (production build ✓)
 - `npm run verify:local`: pass
-- Notes: local gate includes lint, typecheck, vitest coverage run, and production build.
+- Notes: local gate includes lint, typecheck, vitest coverage run (505 tests / 63 files), and production build. E2E suite (`verify:prod`) requires a live preview deployment — run via CI or `verify:dev` / `verify:preview` on a Vercel preview branch.

@@ -117,13 +117,16 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
   // ── Score screen ────────────────────────────────────────────────────────────
   if (screen === 'score' && completedAttempt) {
     const passed = completedAttempt.score >= 70;
+    const isPerfect = completedAttempt.score === 100;
     const streak = completedAttempt.maxCorrectStreak ?? 0;
     const multiplier = streak >= 10 ? 2.0 : streak >= 5 ? 1.5 : streak >= 3 ? 1.25 : 1.0;
     return (
       <div className="flex flex-col items-center text-center py-6 space-y-4">
         <div
           className={`flex h-16 w-16 items-center justify-center rounded-3xl ${
-            passed
+            isPerfect
+              ? 'ring-2 ring-amber-400 bg-amber-100 dark:bg-amber-900/30'
+              : passed
               ? 'bg-green-100 dark:bg-green-900/30'
               : 'bg-amber-100 dark:bg-amber-900/30'
           }`}
@@ -131,12 +134,20 @@ export function QuizBlock({ quiz, onComplete, onContinue }: QuizBlockProps) {
           <Trophy
             size={30}
             className={
-              passed
+              isPerfect
+                ? 'text-amber-500 dark:text-amber-400'
+                : passed
                 ? 'text-green-600 dark:text-green-400'
                 : 'text-amber-600 dark:text-amber-400'
             }
           />
         </div>
+        {isPerfect && (
+          <div className="flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 w-fit mx-auto">
+            <span className="text-amber-400 text-sm">⭐</span>
+            <span className="text-xs font-semibold text-amber-400">Perfect Score! 2× XP</span>
+          </div>
+        )}
         <div>
           <p className="text-3xl font-bold text-slate-900 dark:text-white">
             {completedAttempt.score}%

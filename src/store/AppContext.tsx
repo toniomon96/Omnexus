@@ -6,8 +6,9 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { identify } from '../lib/analytics';
-import type { User, WorkoutSession, WorkoutHistory, LearningProgress, QuizAttempt, XpProfile, GamificationData } from '../types';
+import type { User, WorkoutSession, WorkoutHistory, LearningProgress, QuizAttempt, XpProfile, GamificationData, PendingCelebration, CelebrationKind } from '../types';
 import {
   getUser,
   getHistory,
@@ -43,6 +44,7 @@ export interface AppState {
   streak: number;
   sparks: number;
   unlockedAchievementIds: string[];
+  pendingCelebrations: PendingCelebration[];
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -67,7 +69,9 @@ export type Action =
   | { type: 'SET_GAMIFICATION'; payload: GamificationData }
   | { type: 'SET_STREAK'; payload: number }
   | { type: 'AWARD_SPARKS'; payload: number }
-  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string };
+  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
+  | { type: 'QUEUE_CELEBRATION'; payload: PendingCelebration }
+  | { type: 'DEQUEUE_CELEBRATION'; payload: string };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 
@@ -221,10 +225,22 @@ export function reducer(state: AppState, action: Action): AppState {
           .catch((err) => { if (import.meta.env.DEV) console.error('[AppContext] recordXpEvent failed:', err); });
       }
 
+      const prevRankLabel = state.xpProfile?.rankLabel ?? '';
+      const rankUpCelebrations: PendingCelebration[] = prevRankLabel !== '' && prevRankLabel !== finalProfile.rankLabel
+        ? [{ id: uuidv4(), kind: 'rank_up' as CelebrationKind, payload: finalProfile.rankLabel, queuedAt: new Date().toISOString() }]
+        : [];
+      const achievementCelebrations: PendingCelebration[] = newUnlocks.map((a) => ({
+        id: uuidv4(),
+        kind: 'achievement' as CelebrationKind,
+        payload: a.id,
+        queuedAt: new Date().toISOString(),
+      }));
+
       return {
         ...state,
         xpProfile: finalProfile,
         unlockedAchievementIds: newAchievementIds,
+        pendingCelebrations: [...state.pendingCelebrations, ...rankUpCelebrations, ...achievementCelebrations],
       };
     }
     case 'SET_GAMIFICATION': {
@@ -237,7 +253,10 @@ export function reducer(state: AppState, action: Action): AppState {
       const existing = getGamificationData();
       const updated: GamificationData = { ...existing, streak: action.payload, streakUpdatedDate: today };
       setGamificationData(updated);
-      return { ...state, streak: action.payload };
+      const milestoneArr: PendingCelebration[] = [7, 30, 100, 365].includes(action.payload)
+        ? [{ id: uuidv4(), kind: 'streak_milestone' as CelebrationKind, payload: String(action.payload), queuedAt: new Date().toISOString() }]
+        : [];
+      return { ...state, streak: action.payload, pendingCelebrations: [...state.pendingCelebrations, ...milestoneArr] };
     }
     case 'AWARD_SPARKS': {
       const newSparks = state.sparks + action.payload;
@@ -252,6 +271,10 @@ export function reducer(state: AppState, action: Action): AppState {
       setGamificationData({ ...existing, unlockedAchievementIds: newIds });
       return { ...state, unlockedAchievementIds: newIds };
     }
+    case 'QUEUE_CELEBRATION':
+      return { ...state, pendingCelebrations: [...state.pendingCelebrations, action.payload] };
+    case 'DEQUEUE_CELEBRATION':
+      return { ...state, pendingCelebrations: state.pendingCelebrations.filter((c) => c.id !== action.payload) };
     default:
       return state;
   }
@@ -281,6 +304,7 @@ function getInitialState(): AppState {
     streak: gamification.streak,
     sparks: gamification.sparks,
     unlockedAchievementIds: gamification.unlockedAchievementIds,
+    pendingCelebrations: [],
   };
 }
 
