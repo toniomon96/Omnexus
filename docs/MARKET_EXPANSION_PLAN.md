@@ -19,7 +19,7 @@ The 2025–2026 market is moving toward "fitness as a holistic health experience
 ### Action Items
 
 - [ ] **Finalize the premium value proposition.** Premium must clearly mean: personalized coaching + education + progress intelligence — not a workout list. Gate appropriately so free users understand the delta.
-- [x] **Complete the Exercise Library expansion to 300+ exercises.** ✅ 307 exercises shipped (barbell, dumbbell, bodyweight — modular library in `src/data/exercises/`). Strength training is the dominant demand signal. Movement patterns, swaps, and technique education are higher-value investments than generic workout lists. (See `docs/exercise-library.md`.)
+- [x] **Complete the Exercise Library expansion to 300+ exercises.** ✅ 316 exercises shipped (barbell, dumbbell, bodyweight, cable, machine, kettlebell, EZ-bar, resistance band, TRX, mobility — modular library in `src/data/exercises/`). Strength training is the dominant demand signal. Movement patterns, swaps, and technique education are higher-value investments than generic workout lists. (See `docs/exercise-library.md`.)
 - [x] **Ship the gamified Learning System.** ✅ Shipped: Duolingo-style XP, streaks, daily challenges, SM-2 spaced repetition, 15 courses, achievement toasts, rank-up celebrations, and course completion certificates. (See `docs/learning-system.md`.)
 - [x] **Implement Smart Progressive Overload recommendations.** ✅ Shipped: `src/lib/progressiveOverload.ts` engine feeds next-session weight and RPE suggestions, surfaced in post-workout adaptation flow.
 - [ ] **Launch the Body Transformation Timeline.** A visual personal artifact combining workout heatmap, weight lifted trends, body measurements, XP, and learning completions. This becomes a deeply personal reason to stay.
@@ -224,10 +224,130 @@ Large chains have proprietary app ecosystems. The integration route is the **ope
 
 | This Plan Section | Related Documents |
 |---|---|
-| Exercise Library expansion | `docs/exercise-library.md`, `docs/Program_Mastery.md` Part One |
-| Learning System and gamification | `docs/learning-system.md`, `docs/gamification.md`, `docs/Program_Mastery.md` Parts Two–Three |
-| AI Coach evolution | `docs/ai-coach.md`, `docs/Program_Mastery.md` Part Three |
-| Program Continuation | `docs/program-continuation.md`, `docs/Program_Mastery.md` Part Three |
-| Sprint schedule | `docs/Program_Mastery.md` Part Five (Sprints A–K) |
+| Exercise Library expansion | `docs/exercise-library.md` |
+| Learning System and gamification | `docs/learning-system.md`, `docs/gamification.md` |
+| AI Coach evolution | `docs/ai-coach.md` |
+| Program Continuation | `docs/program-continuation.md` |
+| V1 Feature List | `docs/product/v1-scope.md` |
 | Release strategy | `docs/RELEASE_STRATEGY.md` |
 | Product roadmap | `docs/ROADMAP.md` |
+
+---
+
+## Phase 8 — Launch Execution Playbook
+
+This section converts the strategic priorities above into a concrete, sequenced launch plan.
+
+---
+
+### Launch Strategy
+
+**Goal:** Maximize first-week installs, convert new users to accounts, and convert accounts to premium within 14 days.
+
+| Task | Owner | Priority | Notes |
+|---|---|---|---|
+| Submit to Apple App Store | Founder | P0 | Requires Apple Developer account ($99/yr), screenshots, metadata, review |
+| Submit to Google Play | Founder | P0 | Requires Play Console ($25 one-time), AAB build |
+| Configure Stripe live-mode keys in Vercel Production | Founder | P0 | Switch from test to live STRIPE_SECRET_KEY + STRIPE_PRICE_ID |
+| Seed pgvector embeddings in production Supabase | Founder | P0 | `POST /api/seed-embeddings` with SEED_SECRET after first deploy |
+| Run all 7 SQL migrations in production Supabase | Founder | P0 | `docs/migrations/` — execute in numeric order |
+| Set production Supabase auth redirect URLs | Founder | P0 | Site URL + redirect whitelist in Supabase Dashboard → Auth |
+| Set Vercel branch protection + environment variables | Founder | P0 | See `docs/PLATFORM_SETUP_CHECKLIST.md` |
+| Set GitHub branch protection on `dev` + `main` | Founder | P0 | See `docs/PLATFORM_SETUP_CHECKLIST.md` |
+| Write App Store / Play Store listing copy | Founder/Copywriter | P0 | Focus on transformation narrative, not feature list |
+| Create 5 App Store screenshots (per device class) | Designer | P0 | Dashboard, workout in progress, exercise library, learning, AI coach |
+| Record 30-second App Store preview video | Founder | P1 | Flow: onboarding → workout → XP celebration → insights |
+| Enable PostHog production key | Founder | P1 | Set VITE_POSTHOG_KEY in Vercel Production scope |
+| Enable Upstash Redis in production | Founder | P1 | Rate limiting degrades to no-op without this |
+| Set up Resend domain verification | Founder | P1 | Verify sending domain before emails reach inboxes |
+
+---
+
+### Content Strategy
+
+**Principle:** Publish educational content that is useful without Omnexus, then make Omnexus the obvious next step.
+
+| Channel | Format | Cadence | Angle |
+|---|---|---|---|
+| Reddit (r/fitness, r/weightroom, r/bodyweightfitness) | Educational posts + research summaries | 2–3 posts/week | "Here's what the science says about X" — no direct promotion initially. Link to PubMed research Omnexus surfaces. |
+| Twitter/X | Short-form tips + PR confetti clips | Daily | Progressive overload tips, science facts, streak milestone clips |
+| TikTok / Instagram Reels | 30–60 second workout + insight clips | 3–5/week | "AI coach said this after my session", equipment swap demos, rank-up celebration clips |
+| YouTube | Long-form: "I trained with an AI coach for 8 weeks" | Monthly | Authentic transformation narrative with data |
+| App Store feature request | Submit to Apple's editorial team | One-time | Position as "AI fitness coaching" for a Health & Fitness feature |
+
+---
+
+### Growth Channels
+
+| Channel | Tactic | Target |
+|---|---|---|
+| **Organic Search (SEO)** | Landing page optimization around "AI personal trainer", "personalized workout app", "science-based fitness app" | Rank in top 10 for 3–5 long-tail fitness app queries |
+| **App Store Optimization (ASO)** | Keyword-rich title + subtitle, screenshot captions as keyword anchors | Top 5 in "AI fitness" category search |
+| **Product-Led Virality** | Shareable PNG cards (PR celebration, streak milestones, course completion) → social sharing | Each share = 1 organic impression chain |
+| **Referral / Friend Invites** | "Invite a friend to join your challenge" already built. Add referral reward (e.g., 7 days free premium) | 10% of new users via referral in first 3 months |
+| **New Year Timing** | Plan major content push for late December. Fitness apps see 10%+ download spike in January. | 2–3× baseline install rate in first 2 weeks of January |
+| **PR / Media** | Pitch to fitness + tech media ("Omnexus brings AI coaching to strength training") | 1–2 tech/fitness publication placements at launch |
+
+---
+
+### Community Building
+
+| Tactic | Platform | When |
+|---|---|---|
+| Founder Discord server | Discord | At 100 registered users |
+| Weekly "Top Lifts" community post | Reddit / Instagram | Weekly |
+| Monthly challenge with leaderboard screenshot | Twitter/X + Reddit | Monthly |
+| Beta tester program | Email list | Pre-launch: recruit 50–100 power users for feedback |
+| Fitness educator partnerships | YouTube / Instagram | Month 2–3: co-content with 1–3 STEM fitness educators |
+
+---
+
+### SEO
+
+| Priority | Page | Target Keyword |
+|---|---|---|
+| P0 | Landing page | "AI personal trainer app", "science-based fitness app" |
+| P0 | Landing page | "personalized strength training program generator" |
+| P1 | Blog/research feed | "progressive overload science", "RPE in training", "periodization guide" |
+| P1 | Exercise library (public) | "[exercise name] how to", "[exercise name] technique" |
+| P2 | Learning content (preview) | "strength training science", "muscle hypertrophy explained" |
+
+**Note:** The exercise library and learning content are natural SEO assets. Consider making a subset publicly accessible to search engines.
+
+---
+
+### Product-Led Growth Loops
+
+These loops are already implemented — the goal is to activate and amplify them:
+
+| Loop | Mechanism | Amplification |
+|---|---|---|
+| **Streak loop** | Daily notification → open app → complete lesson → maintain streak | Make streak count visible in share cards + social posts |
+| **PR loop** | PR confetti → share card generated → user shares to Instagram/Twitter | Optimize share card design for mobile crop (Instagram square) |
+| **Rank-up loop** | XP accumulates → rank-up overlay fires → share card generated | Add CTA on rank-up card: "Challenge a friend to beat your rank" |
+| **Friend invite loop** | Challenge card → "Invite friends" → friend joins → both complete challenge | Add 7-day premium incentive for successful invites |
+| **Learning completion loop** | Course certificate generated → share to social → drives discovery | "Learned X about strength science" is a high-credibility share |
+
+---
+
+### Feedback Loops
+
+| Signal | Source | Action |
+|---|---|---|
+| App Store reviews | App Store / Play Store | Respond within 24h; flag recurring issues for engineering |
+| In-app bug reports | `/api/report-bug` → Supabase `bug_reports` table | Triage weekly; P0 issues patched within 48h |
+| PostHog events | PostHog dashboard | Weekly funnel review: onboarding → workout → retention |
+| Churn signals | Supabase: users inactive >14 days | Trigger re-engagement push notification sequence |
+| NPS / qualitative | Email survey at Day 7 and Day 30 | Identify top retention drivers and blockers |
+
+---
+
+### 30-Day Post-Launch Milestones
+
+| Day | Target |
+|---|---|
+| Day 1 | App Store + Play Store live; first organic installs |
+| Day 3 | 50 registered accounts; first premium conversion |
+| Day 7 | 200 registered accounts; 5% premium conversion; first user shares PR card to social |
+| Day 14 | First App Store review response; first Reddit post with genuine engagement |
+| Day 30 | 500 registered accounts; 8–10% premium conversion; first monthly active retention cohort measured |

@@ -68,7 +68,7 @@ describe('/api/exercise-search', () => {
     vi.stubEnv('VITE_SUPABASE_URL', 'http://test.supabase.co');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
     vi.resetModules();
-    handler = (await import('./exercise-search')).default as typeof handler;
+    handler = (await import('./exercise-search.js')).default as unknown as typeof handler;
   });
 
   afterEach(() => {

@@ -23,9 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? 'unknown';
-  const rl = await checkRateLimit(ip);
-  if (!rl.allowed) return res.status(429).json({ error: 'Rate limit exceeded' });
+  if (!await checkRateLimit(req, res, { namespace: 'omnexus_rl:progression-report', limit: 20, window: '10 m' })) return;
 
   if (!anthropic) {
     return res.status(200).json({

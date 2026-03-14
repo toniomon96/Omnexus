@@ -16,7 +16,7 @@
 | Email | Resend (branded confirmation + transactional emails) |
 | Analytics | PostHog (HTTP capture wrapper, 8 tracked events) |
 | Rate Limiting | Upstash Redis (sliding window: 20 req/10 min/IP) |
-| Testing | Vitest (unit, 115 tests) + Playwright (E2E) |
+| Testing | Vitest (unit, 513 tests) + Playwright (E2E) |
 | CI | GitHub Actions (lint + tsc + unit + E2E) |
 
 ---
@@ -34,10 +34,12 @@
 | `src/lib/api.ts` | `apiBase` — all fetches use this prefix (Capacitor compat) |
 | `src/lib/analytics.ts` | PostHog wrapper (`track`, `identify`) |
 | `src/router.tsx` | React Router config + auth guards |
-| `src/data/exercises.ts` | 51 static exercises + YouTube IDs |
+| `src/data/exercises/index.ts` | 316 exercises (modular — barbell, dumbbell, cable, etc.) |
+| `src/data/courses.ts` | 15 courses (Nutrition, Science, Technique, Mind) |
 | `src/data/programs.ts` | Pre-built training programs |
-| `src/services/claudeService.ts` | `askOmnexus()` + `getWorkoutInsights()` |
-| `api/_cors.ts` | Shared CORS helper |
+
+> For the full architecture diagram and data models, see [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
+
 | `api/_rateLimit.ts` | Upstash rate limiting helper |
 | `api/ask.ts` | AI coach endpoint (pgvector RAG + Claude) |
 | `api/generate-program.ts` | 8-week mesocycle generation |

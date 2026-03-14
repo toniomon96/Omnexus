@@ -1,42 +1,62 @@
 # Product Roadmap
 
-## v1.0 — Shipped
+## v1.0 — Shipped ✅
 
-All 11 sprints complete. **0 TypeScript errors · 115 tests passing.**
+All sprints complete. **0 TypeScript errors · 513 tests passing.**
 
-Core deliverables: AI onboarding coach, 8-week program generator, workout logging, exercise library, learning system, social/challenges, nutrition tracking, Stripe premium tier, Capacitor native packaging, Playwright E2E suite, Supabase Auth + cloud sync.
+Core deliverables: AI onboarding coach, 8-week program generator, workout logging, 316-exercise library with semantic search, 15-course learning system with SM-2 spaced repetition, gamification (XP/ranks/streaks/achievements/celebrations), Omni AI coach (3 modes + RAG), program continuation + Progression Report, social/challenges/feed, nutrition tracking, Stripe premium tier, push notifications, Capacitor native packaging, Playwright E2E suite, Supabase Auth + cloud sync.
 
 **Live:** https://fitness-app-ten-eta.vercel.app
+
+> For the full shipped feature list, see [docs/product/v1-scope.md](../product/v1-scope.md).
 
 ---
 
 ## v1.x — Maintenance & Stabilization
 
 ### v1.1 — Wearables (Full)
-- Install `@capacitor-community/health` + `cap sync`
-- HealthKit entitlement (iOS) + Health Connect (Android)
-- Code is already in `src/lib/health.ts` and `src/components/dashboard/HealthWidget.tsx`
+- Enable HealthKit (iOS) + Health Connect (Android) — full permissions flow
+- Code scaffolding already in `src/lib/health.ts` and `src/components/dashboard/HealthWidget.tsx`
+- Submit app update to both stores
 
 ### v1.2 — PDF Export
-- Export program and workout history as PDF
+- Export program as formatted PDF
+- Export workout history as PDF/CSV
 
 ### v1.3 — Advanced Program Progression
 - Auto-suggest next session targets from adaptation results
-- Deload week detection (auto-drop when 3 sessions show RPE ≥ 9)
+- Deload week detection (auto-drop volume when 3 sessions show RPE ≥ 9)
 
-### v1.4 — Security Hardening (P0 items from repo audit)
-- Cron endpoints fail-closed when `CRON_SECRET` env var absent
-- CORS reject (403) on unknown origins — not just warn
-- Rate limiting enforced in all environments
-- `Content-Security-Policy` on all API responses
+### v1.4 — Beta Store Release Polish
+- App Store and Play Store submission
+- Store listing copy, screenshots, preview videos
+- TestFlight + Google Play internal test track setup
 
 ### v1.5 — Enhanced Learning
-- Interactive exercise animations (Lottie)
+- Interactive exercise animations (Lottie or CSS)
 - Adaptive quiz difficulty based on past scores
+- Video lesson integration
 
 ---
 
 ## v2.0 — Product Depth
+
+- AI Form Coach (MediaPipe pose estimation, real-time rep feedback)
+- Full wearables integration (HRV, sleep, heart rate → recovery scores)
+- In-app video content (Mux/Cloudflare Stream encrypted hosting)
+- Offline-first architecture (IndexedDB + background sync queue)
+- Advanced AI personalization (plateau detection, fatigue periodization)
+
+## v3.0 — B2B Gym Licensing
+
+- Multi-tenancy architecture (gym_id RLS, per-gym Supabase projects)
+- White-label + custom branding
+- Gym admin dashboard (member roster, engagement analytics)
+- Trainer tools (program assignment, session annotation, client reports)
+- B2B pricing (per-seat SaaS, volume discounts, free trial)
+
+> For the complete roadmap including technical details, see [docs/ROADMAP.md](../ROADMAP.md).
+
 
 > Make Omnexus the best AI fitness coaching app on the market.
 

@@ -4,7 +4,7 @@
 
 ## v1.0 — Shipped (Mobile Store Launch)
 
-All 11 sprints complete. **0 TypeScript errors · 115 tests passing.**
+All 11 sprints complete. **0 TypeScript errors · 513 tests passing.**
 
 | Sprint | Delivered |
 |---|---|
@@ -24,7 +24,9 @@ All 11 sprints complete. **0 TypeScript errors · 115 tests passing.**
 | Sprint 11 | UX overhaul, TrainPage + CommunityPage hubs, HelpPage (FAQ + bug report), `/api/report-bug`, marketing landing page |
 | Signup + Email | Custom `/api/signup` with Resend — branded confirmation emails, server-side admin user creation |
 | Inline Workout Editing | Edit logged sets inline in history cards |
-| UX Polish + Audit | Full product UX audit (`docs/omnexus-product-audit.md`); Dashboard: generation error card + retry, ProgramContextBar, last-workout continuity bar; AskPage: sessionStorage conversation persistence; HistoryPage + InsightsPage: empty states with action CTAs; ExerciseDetailPage + WorkoutCompleteModal: contextual Ask Omnexus buttons; E2E back-nav fix; guest data migration (repairMode path) |
+| Sprint A–J | Exercise Library to 316 exercises (11 categories), Exercise Detail Page redesign, Exercise Discovery Engine (5 modes + semantic search via pgvector), Gamification Engine (XP, ranks, streaks, achievements, celebrations), Learning System (15 courses, SM-2 spaced repetition, daily challenge), Omni AI Coach (Coach / Science / Check-In modes), Program Continuation (Progression Report, 3 paths, Training DNA), Course completion certificates + shareable share cards |
+| V1 Polish (Sprints 1–5) | Sync state transparency, guest-to-account migration, Dashboard + Train clarity, post-workout reinforcement, AI quality + fallback states, launch-readiness accessibility sweep |
+| Security Hardening | Cron endpoints fail-closed without CRON_SECRET, CORS strict-mode (403 on unknown origins), rate limiting in all environments, Content-Security-Policy on all API responses, Node 20 locked via .nvmrc + engines field, auth brute-force lockout, HSTS + security headers |
 
 **Live:** https://fitness-app-ten-eta.vercel.app
 
@@ -60,18 +62,16 @@ These minor releases ship between now and the v2 cycle.
 - Week-by-week program view with planned vs. actual volume
 - Deload week detection (auto-drop volume when 3 sessions show RPE ≥ 9)
 
-### v1.4 — Security Hardening (P0 items from repo audit)
-- Cron endpoints fail-closed when `CRON_SECRET` env var is absent
-- Pin Node version via `.nvmrc` + `engines` field in `package.json`
-- CORS strict-mode: reject unknown origins with 403 (not just log)
-- Rate limiting enforced in all environments (not just production)
-- Add `Content-Security-Policy` header to all API responses
+### v1.4 — Beta Store Release Polish
+- App Store and Play Store submission (requires Apple Developer + Google Play Console accounts)
+- Store listing copy, screenshots, and preview videos
+- Subscription flow QA on device (iOS IAP + Google Play Billing)
+- TestFlight beta and Google Play internal test track setup
 
 ### v1.5 — Enhanced Learning
 - Interactive exercise animations (Lottie or CSS)
 - Video lesson integration
 - Adaptive quiz difficulty based on past scores
-- Course completion certificates (shareable PNG)
 
 ---
 
@@ -167,40 +167,4 @@ These minor releases ship between now and the v2 cycle.
 
 ---
 
-## SDLC & Engineering Standards
-
-All development from v1.4 onward follows this branching and release process.
-
-### Branch Model
-```
-main          ← production; protected; no direct pushes
-develop       ← integration branch (optional for longer cycles)
-feat/*        ← new features
-fix/*         ← bug fixes
-chore/*       ← dependencies, config, scripts
-docs/*        ← documentation only
-hotfix/*      ← urgent production patches (branch from main, PR back to main)
-```
-
-### Commit Conventions
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-```
-feat: add MediaPipe pose estimation to form coach
-fix: resolve offline sync conflict on duplicate set logs
-chore: bump capacitor to v9
-docs: update ROADMAP with v3 B2B section
-```
-
-### Release Process
-1. Feature branch → PR → code review → CI green → merge to `main`
-2. All PRs must pass: `tsc --noEmit` + ESLint 0 warnings + 115 unit tests + E2E suite
-3. Merge triggers Vercel preview deployment
-4. Tag releases: `git tag v1.4.0` → triggers production deploy
-5. Hotfixes: branch from `main` → PR → fast-merge with approver sign-off
-
-### P0 Engineering Backlog (Must fix before v1.4 ships)
-- [x] Cron endpoints (`/api/cron-*`) fail-closed when `CRON_SECRET` is absent
-- [x] `.nvmrc` + `engines` in `package.json` — lock Node to 20.x LTS
-- [x] CORS reject (403) on unknown origin — don't just warn
-- [x] Rate limit middleware active in all environments
-- [x] `Content-Security-Policy` on API responses
+> Engineering standards, branching model, commit conventions, and release process are documented in `docs/RELEASE_STRATEGY.md` and `docs/SDLC_EXECUTION_PLAYBOOK.md`.

@@ -1,7 +1,7 @@
 # Omnexus
 
 [![CI](https://github.com/toniomon96/fitness-app/actions/workflows/ci.yml/badge.svg)](https://github.com/toniomon96/fitness-app/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-505%20passing-22c55e)
+![Tests](https://img.shields.io/badge/tests-513%20passing-22c55e)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 [![Live](https://img.shields.io/badge/Live%20App-omnexus.fit-6366f1?logo=vercel&logoColor=white)](https://fitness-app-ten-eta.vercel.app)
@@ -16,7 +16,7 @@ A science-backed fitness platform powered by AI. Track workouts, generate person
 |---|---|
 | **AI Onboarding** | Multi-turn Claude conversation that builds your training profile and generates a custom 8-week periodized program |
 | **Workout Tracking** | Log sets, reps, weight, RPE — auto-detects personal records with confetti celebration |
-| **Exercise Library** | 307 exercises with instructions, muscle groups, YouTube demo embeds, and SVG progression charts |
+| **Exercise Library** | 316 exercises with instructions, muscle groups, YouTube demo embeds, and SVG progression charts |
 | **Training Programs** | Pre-built + custom-built programs with week/day cursor, builder UI, and AI-generated mesocycles |
 | **Ask Omnexus** | Claude-powered AI coach with multi-turn chat, follow-up chips, and RAG citations from PubMed |
 | **AI Insights** | Analyzes your last 4 weeks of training — personalized volume, frequency, and recovery recommendations |
@@ -152,17 +152,28 @@ fitness-app/
 │   ├── generate-missions.ts POST /api/generate-missions Block missions
 │   ├── signup.ts           POST /api/signup            Account creation + Resend email
 │   ├── setup-profile.ts    POST /api/setup-profile     Profile creation (admin SDK)
-│   ├── report-bug.ts       POST /api/report-bug        In-app bug reports
+│   ├── ask-streaming.ts    POST /api/ask-streaming    Streaming AI coach variant
+│   ├── checkin.ts          POST /api/checkin           Pre/post-workout check-in
+│   ├── briefing.ts         POST /api/briefing          Pre-workout coaching notes
+│   ├── progression-report.ts POST /api/progression-report  Block-end report + continuation
+│   ├── exercise-search.ts  POST /api/exercise-search   Semantic exercise search (pgvector)
+│   ├── seed-embeddings.ts  POST /api/seed-embeddings   Admin: populate pgvector embeddings
 │   ├── articles.ts         GET  /api/articles          PubMed proxy
 │   ├── export-data.ts      GET  /api/export-data       GDPR data export
 │   ├── delete-account.ts   DELETE /api/delete-account  GDPR account deletion
 │   ├── notify-friends.ts   POST /api/notify-friends    Web Push to friends
 │   ├── create-checkout.ts  POST /api/create-checkout   Stripe checkout session
-│   ├── webhook-stripe.ts   POST /api/webhook-stripe    Stripe events
+│   ├── checkout-status.ts  GET  /api/checkout-status   Stripe session status
+│   ├── customer-portal.ts  GET  /api/customer-portal   Stripe Billing Portal
+│   ├── subscription-status.ts GET /api/subscription-status  Subscription tier
+│   ├── webhook-stripe.ts   POST /api/webhook-stripe    Stripe events sync
 │   ├── daily-reminder.ts   GET  /api/daily-reminder    Cron: push all (9am UTC)
+│   ├── training-notifications.ts GET /api/training-notifications  Cron: milestones (5pm UTC)
 │   ├── weekly-digest.ts    GET  /api/weekly-digest     Cron: volume summary (Mon 8am)
-│   ├── _cors.ts            Shared CORS helper
-│   └── _rateLimit.ts       Upstash rate limiting helper
+│   ├── _cors.ts            Shared CORS + security headers
+│   ├── _rateLimit.ts       Upstash Redis rate limiting
+│   ├── _aiSafety.ts        Prompt injection whitelist
+│   └── _stripe.ts          Stripe config + test/live mode
 │
 ├── public/
 │   ├── sw.js               Service worker (Web Push handler)
@@ -171,15 +182,25 @@ fitness-app/
 │
 ├── src/
 │   ├── components/
-│   │   ├── community/      FriendCard, ChallengeCard, ActivityItem, LeaderboardRow
-│   │   ├── dashboard/      WelcomeBanner, TodayCard, StreakDisplay, WeeklyRecapCard, MuscleHeatMap
-│   │   ├── history/        LogCard (with inline set editing), HeatmapCalendar
-│   │   ├── layout/         AppShell, BottomNav, TopBar
-│   │   ├── learn/          CourseCard, LessonReader, QuizBlock
-│   │   ├── onboarding/     OnboardingForm, OnboardingChat, ProfileSummaryCard
-│   │   ├── programs/       ProgramCard, DaySchedule
+│   │   ├── challenges/     PersonalChallengeCard
+│   │   ├── community/      FriendCard, ChallengeCard, ActivityItem, LeaderboardRow, FeedReactionBar
+│   │   ├── dashboard/      WelcomeBanner, TodayCard, StreakDisplay, WeeklyRecapCard, MuscleHeatMap, HealthWidget
+│   │   ├── exercise-library/ SearchBar, ExerciseCard, MovementPatternGrid, ExerciseProgressChart
+│   │   ├── gamification/   CelebrationOverlay, GamificationNotifier, RankBadge
+│   │   ├── history/        LogCard (with inline set editing), HeatmapCalendar, VolumeChart
+│   │   ├── insights/       AdaptationCard, ArticleFeed, PeerInsightsCard
+│   │   ├── layout/         AppShell, BottomNav, TopBar, ThemeToggle
+│   │   ├── learn/          CourseCard, LessonReader, QuizBlock, SpacedRepReviewModal, MicroLessonModal
+│   │   ├── measurements/   MeasurementChart
+│   │   ├── onboarding/     OnboardingForm, OnboardingChat, ProfileSummaryCard, WelcomeTutorial
+│   │   ├── profile/        TrainingDNA
+│   │   ├── programs/       ProgramCard, DaySchedule, BlockMissionsCard
 │   │   └── ui/             Button, Card, Badge, Input, Modal, ConfirmDialog,
-│   │                       Skeleton, Toast, Avatar, YouTubeEmbed, CookieConsent
+│   │                       Skeleton, Toast, Avatar, YouTubeEmbed, CookieConsent,
+│   │                       ShareCardModal, GuestBanner, GuestDataMigrationModal,
+│   │                       ErrorBoundary, EmptyState, AiDegradedStateCard
+│   ├── workout/            ExerciseBlock, SetRow, RestTimer, WorkoutCompleteModal,
+│   │                       AddExerciseDrawer, PRCelebration, WorkoutSyncStatusBadge
 │   │
 │   ├── contexts/
 │   │   ├── AuthContext.tsx  Supabase auth state
@@ -199,7 +220,7 @@ fitness-app/
 │   │   ├── analytics.ts    PostHog wrapper
 │   │   └── capacitor.ts    Native plugin wrappers
 │   │
-│   ├── pages/              One file per route (27 pages)
+│   ├── pages/              One file per route (37 pages)
 │   ├── services/           claudeService, insightsService, learningService, pubmedService
 │   ├── store/AppContext.tsx Global state (Context API + useReducer)
 │   ├── types/index.ts      All TypeScript interfaces
@@ -290,36 +311,59 @@ In Supabase Dashboard → Authentication → URL Configuration:
 
 ## Documentation
 
+### Product & Scope
 | Doc | Description |
 |---|---|
-| `docs/RELEASE_STRATEGY.md` | Branching, VCS, testing, and environment promotion strategy |
-| `docs/RELEASE_CHECKLIST.md` | Release-day execution checklist for `dev -> main` promotions |
-| `docs/ENVIRONMENT_MATRIX.md` | Environment-specific variables, branch mapping, and external service behavior |
-| `docs/CI_RUNBOOK.md` | CI failure triage and recovery playbook |
-| `docs/E2E_TEST_MATRIX.md` | Golden-path vs extended Playwright coverage and CI release-signal policy |
-| `docs/V1_ENHANCEMENT_SPRINT_PLAN.md` | Sprint-by-sprint execution plan for the V1 refinement cycle |
-| `docs/SPRINT_1_BACKLOG.md` | Executable Sprint 1 backlog with epics, stories, acceptance criteria, and test guidance |
-| `docs/SPRINT_1_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 1 implementation |
-| `docs/SPRINT_1_QA_CHECKLIST.md` | Manual verification checklist for Sprint 1 reliability and release-confidence signoff |
-| `docs/SPRINT_2_BACKLOG.md` | Executable Sprint 2 backlog for Dashboard and Train core-loop clarity work |
-| `docs/SPRINT_2_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 2 implementation |
-| `docs/SPRINT_3_BACKLOG.md` | Executable Sprint 3 backlog for motivation, retention, and post-workout reinforcement |
-| `docs/SPRINT_3_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 3 implementation |
-| `docs/SPRINT_3_QA_CHECKLIST.md` | Manual verification checklist for Sprint 3 motivation and retention signoff |
-| `docs/SPRINT_4_BACKLOG.md` | Executable Sprint 4 backlog for AI quality, fallback clarity, and cohesion work |
-| `docs/SPRINT_4_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 4 AI quality implementation |
-| `docs/SPRINT_4_QA_CHECKLIST.md` | Manual verification checklist for Sprint 4 AI quality and degraded-state signoff |
-| `docs/SPRINT_5_BACKLOG.md` | Executable Sprint 5 backlog for launch-readiness sweep and release freeze tasks |
-| `docs/SPRINT_5_ISSUE_DRAFTS.md` | Ticket-ready GitHub issue drafts for Sprint 5 release execution |
-| `docs/SPRINT_5_QA_CHECKLIST.md` | Manual verification checklist and signoff record for Sprint 5 launch readiness |
-| `docs/SPRINT_5_RELEASE_NOTES.md` | Launch-ready release notes and accepted known-issues register for Sprint 5 |
-| `docs/SDLC_EXECUTION_PLAYBOOK.md` | TDD, VCS, QA, rollout, and delivery standards for enhancement work |
-| `docs/PLATFORM_SETUP_CHECKLIST.md` | Exact manual admin steps for GitHub, Vercel, Supabase, and Stripe |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, data models, Supabase schema |
-| [docs/API.md](docs/API.md) | All serverless endpoint reference |
-| [docs/MOBILE.md](docs/MOBILE.md) | Capacitor iOS + Android build guide |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Shipped features + post-v1.0 plans |
-| [docs/setup-procedures.md](docs/setup-procedures.md) | Upstash, CORS, E2E, Supabase setup steps |
+| [`docs/product/v1-scope.md`](docs/product/v1-scope.md) | Authoritative V1 feature list with implementation status |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Shipped V1 features + V1.x/V2/V3 post-launch roadmap |
+| [`docs/MARKET_EXPANSION_PLAN.md`](docs/MARKET_EXPANSION_PLAN.md) | Actionable go-to-market execution plan |
+
+### Architecture & API
+| Doc | Description |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System diagram, auth flow, data models, Supabase schema |
+| [`docs/API.md`](docs/API.md) | Complete serverless endpoint reference |
+| [`docs/MOBILE.md`](docs/MOBILE.md) | Capacitor iOS + Android build guide |
+
+### Feature Documentation
+| Doc | Description |
+|---|---|
+| [`docs/features/onboarding.md`](docs/features/onboarding.md) | AI onboarding + guest mode flows |
+| [`docs/features/community.md`](docs/features/community.md) | Friends, activity feed, challenges, leaderboard |
+| [`docs/features/insights-system.md`](docs/features/insights-system.md) | Training insights, adaptation engine, briefing |
+| [`docs/features/nutrition.md`](docs/features/nutrition.md) | Nutrition tracking and plate calculator |
+| [`docs/ai-coach.md`](docs/ai-coach.md) | Omni AI coach — modes, RAG, Check-In pipeline |
+| [`docs/exercise-library.md`](docs/exercise-library.md) | Exercise library design, schema, discovery engine |
+| [`docs/gamification.md`](docs/gamification.md) | XP, ranks, streaks, achievements, celebrations |
+| [`docs/learning-system.md`](docs/learning-system.md) | Courses, quiz engine, spaced repetition |
+| [`docs/program-generation.md`](docs/program-generation.md) | 8-week mesocycle generation pipeline + validation |
+| [`docs/program-continuation.md`](docs/program-continuation.md) | Block-end Progression Report + 3 continuation paths |
+
+### Deployment & Operations
+| Doc | Description |
+|---|---|
+| [`docs/RELEASE_STRATEGY.md`](docs/RELEASE_STRATEGY.md) | Branching, environment promotion, CI policy |
+| [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) | Release-day execution checklist |
+| [`docs/ENVIRONMENT_MATRIX.md`](docs/ENVIRONMENT_MATRIX.md) | Environment-specific variables and branch mapping |
+| [`docs/PLATFORM_SETUP_CHECKLIST.md`](docs/PLATFORM_SETUP_CHECKLIST.md) | Manual admin steps for GitHub, Vercel, Supabase, Stripe |
+| [`docs/setup-procedures.md`](docs/setup-procedures.md) | Upstash, CORS, E2E, Supabase setup steps |
+| [`docs/CI_RUNBOOK.md`](docs/CI_RUNBOOK.md) | CI failure triage and recovery playbook |
+| [`docs/E2E_TEST_MATRIX.md`](docs/E2E_TEST_MATRIX.md) | Golden-path vs extended Playwright coverage policy |
+| [`docs/SDLC_EXECUTION_PLAYBOOK.md`](docs/SDLC_EXECUTION_PLAYBOOK.md) | TDD, VCS, QA, and delivery standards |
+
+### Security
+| Doc | Description |
+|---|---|
+| [`docs/PLATFORM_SECURITY_OPS.md`](docs/PLATFORM_SECURITY_OPS.md) | Platform security operations tracker (pre-launch checklist) |
+| [`docs/SECURITY_REVIEW_2026-03-10.md`](docs/SECURITY_REVIEW_2026-03-10.md) | Security review findings and remediation record |
+
+### Launch Records
+| Doc | Description |
+|---|---|
+| [`docs/SPRINT_5_QA_CHECKLIST.md`](docs/SPRINT_5_QA_CHECKLIST.md) | V1 launch QA gate and signoff record |
+| [`docs/SPRINT_5_RELEASE_NOTES.md`](docs/SPRINT_5_RELEASE_NOTES.md) | V1 launch release notes and known-issues register |
+
+> Sprint planning and historical execution documents are archived in [`docs/archive/`](docs/archive/).
 
 ---
 

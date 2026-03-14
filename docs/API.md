@@ -19,6 +19,7 @@ All API endpoints are Vercel serverless functions in `/api/`. They run on Node.j
 |---|---|
 | `POST /api/signup` | No |
 | `POST /api/signin` | No |
+| `POST /api/reset-password` | No |
 | `POST /api/setup-profile` | **Yes** — Bearer JWT |
 | `POST /api/ask` | No |
 | `POST /api/insights` | **Yes** — Bearer JWT |
@@ -27,15 +28,26 @@ All API endpoints are Vercel serverless functions in `/api/`. They run on Node.j
 | `GET /api/articles` | No |
 | `POST /api/report-bug` | No (optional Bearer — associates report with user if present) |
 | `POST /api/notify-friends` | **Yes** — Bearer JWT |
+| `POST /api/notify-progress` | **Yes** — Bearer JWT |
 | `GET /api/export-data` | **Yes** — Bearer JWT |
 | `DELETE /api/delete-account` | **Yes** — Bearer JWT |
 | `POST /api/adapt` | Bearer JWT (optional — `userId` in body) |
 | `POST /api/generate-missions` | Bearer JWT (optional — `userId` in body) |
 | `POST /api/generate-personal-challenge` | Bearer JWT (optional — `userId` in body) |
-| `GET /api/generate-shared-challenge` | Vercel Cron (internal, requires `Authorization: Bearer <CRON_SECRET>`) |
+| `GET /api/generate-shared-challenge` | Vercel Cron (`Authorization: Bearer <CRON_SECRET>`) |
 | `POST /api/peer-insights` | Bearer JWT (optional — `userId` in body) |
-| `GET /api/daily-reminder` | Vercel Cron (internal, requires `Authorization: Bearer <CRON_SECRET>`) |
-| `GET /api/weekly-digest` | Vercel Cron (internal, requires `Authorization: Bearer <CRON_SECRET>`) |
+| `GET /api/daily-reminder` | Vercel Cron (`Authorization: Bearer <CRON_SECRET>`) |
+| `GET /api/training-notifications` | Vercel Cron (`Authorization: Bearer <CRON_SECRET>`) |
+| `GET /api/weekly-digest` | Vercel Cron (`Authorization: Bearer <CRON_SECRET>`) |
+| `POST /api/checkin` | **Yes** — Bearer JWT |
+| `POST /api/exercise-search` | No |
+| `POST /api/progression-report` | **Yes** — Bearer JWT |
+| `POST /api/briefing` | **Yes** — Bearer JWT |
+| `POST /api/create-checkout` | **Yes** — Bearer JWT |
+| `GET /api/checkout-status` | **Yes** — Bearer JWT |
+| `GET /api/customer-portal` | **Yes** — Bearer JWT |
+| `GET /api/subscription-status` | **Yes** — Bearer JWT |
+| `POST /api/webhook-stripe` | Stripe signature verification (no JWT) |
 
 Endpoints marked **Yes** require:
 ```http
@@ -1000,6 +1012,286 @@ Authorization: Bearer <supabase-access-token>   (optional)
 | 400 | `description` missing or empty |
 | 429 | Rate limited |
 | 500 | Database error |
+
+---
+
+## POST /api/checkin
+
+Records a pre- or post-workout check-in with pain level, notes, and session type to the `daily_checkins` table.
+
+**Request**
+
+```http
+POST /api/checkin
+Content-Type: application/json
+Authorization: Bearer <supabase-access-token>
+```
+
+```json
+{
+  "userId": "uuid",
+  "type": "pre",
+  "painLevel": 2,
+  "notes": "Left knee slightly stiff today",
+  "sessionDate": "2026-03-14"
+}
+```
+
+| Field | Type | Values |
+|---|---|---|
+| `type` | string | `"pre"` \| `"post"` |
+| `painLevel` | number | 0–10 |
+| `notes` | string | optional |
+
+**Response (200)**
+
+```json
+{ "ok": true }
+```
+
+**Errors**
+
+| Status | Meaning |
+|---|---|
+| 400 | Missing `userId` or `type` |
+| 401 | Invalid or missing Bearer token |
+| 429 | Rate limited |
+| 500 | Database error |
+
+---
+
+## POST /api/exercise-search
+
+Performs natural-language semantic search over the exercise library using pgvector embeddings.
+
+**Request**
+
+```http
+POST /api/exercise-search
+Content-Type: application/json
+```
+
+```json
+{
+  "query": "exercises that work my back without equipment"
+}
+```
+
+**Response (200)**
+
+```json
+{
+  "results": [
+    { "id": "pull-up", "name": "Pull-Up", "score": 0.91 },
+    ...
+  ]
+}
+```
+
+**Notes**
+- Uses `text-embedding-3-small` (OpenAI) to embed the query
+- Calls the `match_exercises` pgvector RPC in Supabase
+- Falls back to keyword search if pgvector is unavailable
+- Embeddings are seeded via `POST /api/seed-embeddings` (one-time admin setup)
+
+**Environment variables required:** `OPENAI_API_KEY`, `VITE_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+
+---
+
+## POST /api/progression-report
+
+Generates a Progression Report at the end of an 8-week training block. The report summarizes volume, PRs, consistency, and key milestones, and includes an AI-generated narrative.
+
+**Request**
+
+```http
+POST /api/progression-report
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "userId": "uuid",
+  "programId": "uuid",
+  "history": [ ... ]
+}
+```
+
+**Response (200)**
+
+```json
+{
+  "report": {
+    "blockOverview": { ... },
+    "volumeSummary": [ ... ],
+    "personalRecords": [ ... ],
+    "consistencyScore": 90,
+    "narrative": "You came into this block at 100kg on the squat..."
+  },
+  "continuationOptions": [ "repeat", "progress", "deload" ]
+}
+```
+
+---
+
+## POST /api/briefing
+
+Generates a pre-workout briefing with form reminders, volume targets, and fatigue signals for the day's scheduled workout.
+
+**Request**
+
+```http
+POST /api/briefing
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "userId": "uuid",
+  "scheduledWorkout": { ... },
+  "recentHistory": [ ... ]
+}
+```
+
+**Response (200)**
+
+```json
+{
+  "briefing": "Today's squat target is 105 kg × 4. Your last session RPE was 7...",
+  "flags": [ "volume_high", "deload_suggested" ]
+}
+```
+
+---
+
+## POST /api/create-checkout
+
+Creates a Stripe Checkout session for the premium subscription.
+
+**Request**
+
+```http
+POST /api/create-checkout
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "userId": "uuid",
+  "email": "user@example.com",
+  "successUrl": "https://omnexus.fit/subscription?success=1",
+  "cancelUrl": "https://omnexus.fit/subscription"
+}
+```
+
+**Response (200)**
+
+```json
+{ "url": "https://checkout.stripe.com/..." }
+```
+
+**Environment variables required:** `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `APP_URL`
+
+---
+
+## GET /api/checkout-status
+
+Returns the status of a Stripe Checkout session after redirect.
+
+**Request**
+
+```http
+GET /api/checkout-status?session_id=cs_...
+Authorization: Bearer <supabase-access-token>
+```
+
+**Response (200)**
+
+```json
+{ "status": "complete", "customerEmail": "user@example.com" }
+```
+
+---
+
+## GET /api/customer-portal
+
+Creates a Stripe Billing Portal session so the user can manage or cancel their subscription.
+
+**Request**
+
+```http
+GET /api/customer-portal
+Authorization: Bearer <supabase-access-token>
+```
+
+**Response (200)**
+
+```json
+{ "url": "https://billing.stripe.com/..." }
+```
+
+---
+
+## GET /api/subscription-status
+
+Returns the user's current subscription tier and period end date.
+
+**Request**
+
+```http
+GET /api/subscription-status
+Authorization: Bearer <supabase-access-token>
+```
+
+**Response (200)**
+
+```json
+{
+  "tier": "premium",
+  "periodEnd": "2027-04-14T00:00:00Z"
+}
+```
+
+---
+
+## POST /api/webhook-stripe
+
+Stripe webhook handler. Verifies the event signature and syncs subscription status to Supabase.
+
+```http
+POST /api/webhook-stripe
+stripe-signature: <stripe-sig-header>
+```
+
+Handles events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+**Environment variables required:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`
+
+---
+
+## POST /api/reset-password
+
+Triggers a Supabase password reset email for the given address.
+
+**Request**
+
+```http
+POST /api/reset-password
+Content-Type: application/json
+```
+
+```json
+{ "email": "user@example.com" }
+```
+
+**Response (200)**
+
+```json
+{ "ok": true }
+```
 
 ---
 

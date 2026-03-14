@@ -37,8 +37,19 @@ Omnexus is a **mobile-first SPA** backed by **Supabase** (auth + PostgreSQL + Re
 │  /api/generate-shared-challenge   → Claude + Supabase (ai_challenges) │
 │  /api/peer-insights          → Supabase Admin SDK + Claude (peers)    │
 │                                                                       │
+│  /api/checkin              → Supabase (daily_checkins)                │
+│  /api/exercise-search      → OpenAI embeddings + pgvector RPC         │
+│  /api/briefing             → Supabase + Claude (pre-workout notes)    │
+│  /api/progression-report   → Supabase + Claude (block-end report)    │
+│  /api/training-notifications → Supabase + push_subscriptions         │
+│  /api/checkout-status      → Stripe                                  │
+│  /api/customer-portal      → Stripe Billing Portal                   │
+│  /api/subscription-status  → Stripe + Supabase                       │
+│  /api/seed-embeddings      → OpenAI + Supabase pgvector (admin)       │
+│                                                                       │
 │  Cron jobs (vercel.json):                                             │
 │  /api/daily-reminder         [0 9 * * *]  → push all subscribers     │
+│  /api/training-notifications [0 17 * * *] → milestone push alerts    │
 │  /api/weekly-digest          [0 8 * * 1]  → push volume summary      │
 │  /api/generate-shared-challenge [0 6 * * 1] → weekly AI challenge    │
 └──────────────────────────────────────────────────────────────────────┘
@@ -63,8 +74,10 @@ Omnexus is a **mobile-first SPA** backed by **Supabase** (auth + PostgreSQL + Re
 │                              ├── measurements                        │
 │                              ├── exercise_embeddings  ← Phase 2      │
 │                              ├── content_embeddings   ← Phase 2      │
-│                              ├── block_missions       ← Phase 3      │
-│                              └── ai_challenges        ← Phase 3      │
+│                              ├── block_missions                      │
+│                              ├── ai_challenges                       │
+│                              ├── daily_checkins  (migration 012)     │
+│                              └── bug_reports     (migration 008)     │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -961,9 +974,10 @@ general-fitness → strength-training
     { "src": "/(.*)",      "dest": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/daily-reminder",          "schedule": "0 9 * * *" },
-    { "path": "/api/weekly-digest",           "schedule": "0 8 * * 1" },
-    { "path": "/api/generate-shared-challenge", "schedule": "0 6 * * 1" }
+    { "path": "/api/daily-reminder",            "schedule": "0 9 * * *"  },
+    { "path": "/api/training-notifications",    "schedule": "0 17 * * *" },
+    { "path": "/api/weekly-digest",             "schedule": "0 8 * * 1"  },
+    { "path": "/api/generate-shared-challenge", "schedule": "0 6 * * 1"  }
   ]
 }
 ```

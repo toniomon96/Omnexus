@@ -67,7 +67,7 @@ const validBody = {
   painFlag: false,
 };
 
-import handler from './checkin';
+import handler from './checkin.js';
 
 afterEach(() => vi.clearAllMocks());
 
