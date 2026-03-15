@@ -21,6 +21,28 @@ import type {
   UserTrainingProfile,
 } from '../types';
 
+// ─── Equipment detection helpers ──────────────────────────────────────────────
+
+/** Canonical equipment IDs that count as a "kettlebell" */
+const KETTLEBELL_IDS = new Set(['kettlebell']);
+
+/** Canonical equipment IDs that count as a cardio machine */
+const CARDIO_MACHINE_IDS = new Set([
+  'cardio-machine',
+  'cardio',
+  'bike',
+  'treadmill',
+  'rower',
+]);
+
+function hasKettlebell(equipment: string[]): boolean {
+  return equipment.some((e) => KETTLEBELL_IDS.has(e.toLowerCase()));
+}
+
+function hasCardioMachine(equipment: string[]): boolean {
+  return equipment.some((e) => CARDIO_MACHINE_IDS.has(e.toLowerCase()));
+}
+
 // ─── Exercise pools by equipment availability ─────────────────────────────────
 
 const BODYWEIGHT_CONDITIONING: ProgramExercise[] = [
@@ -44,12 +66,12 @@ const CARDIO_MACHINE_CONDITIONING: ProgramExercise[] = [
  * Best for fat-loss goals and time-constrained athletes.
  */
 function buildHiitDay(profile: UserTrainingProfile, label: string): TrainingDay {
-  const hasKettlebell = profile.equipment.some((e) => /kettlebell/i.test(e));
-  const hasCardioMachine = profile.equipment.some((e) => /cardio|bike|treadmill|rower/i.test(e));
+  const kb = hasKettlebell(profile.equipment);
+  const cardio = hasCardioMachine(profile.equipment);
 
   const exercises: ProgramExercise[] = [
     ...BODYWEIGHT_CONDITIONING,
-    ...(hasKettlebell ? KETTLEBELL_CONDITIONING : []),
+    ...(kb ? KETTLEBELL_CONDITIONING : []),
   ];
 
   // Trim to fit within session duration (roughly 3 min per exercise)
@@ -57,7 +79,7 @@ function buildHiitDay(profile: UserTrainingProfile, label: string): TrainingDay 
   const selected = exercises.slice(0, maxExercises);
 
   // Always include steady-state cooldown if cardio machine available and time permits
-  if (hasCardioMachine && profile.sessionDurationMinutes >= 30 && selected.length < maxExercises) {
+  if (cardio && profile.sessionDurationMinutes >= 30 && selected.length < maxExercises) {
     selected.push({
       exerciseId: 'mountain-climbers',
       scheme: { sets: 1, reps: '10 min', restSeconds: 0 },
@@ -73,9 +95,9 @@ function buildHiitDay(profile: UserTrainingProfile, label: string): TrainingDay 
  * Best for recovery, fat-loss at low training age, or active rest.
  */
 function buildLissDay(profile: UserTrainingProfile, label: string): TrainingDay {
-  const hasCardioMachine = profile.equipment.some((e) => /cardio|bike|treadmill|rower/i.test(e));
+  const cardio = hasCardioMachine(profile.equipment);
 
-  if (hasCardioMachine) {
+  if (cardio) {
     return {
       label,
       type: 'cardio',
@@ -113,7 +135,7 @@ function buildLissDay(profile: UserTrainingProfile, label: string): TrainingDay 
  * Best for general fitness and athletes with moderate training age.
  */
 function buildCircuitDay(profile: UserTrainingProfile, label: string): TrainingDay {
-  const hasKettlebell = profile.equipment.some((e) => /kettlebell/i.test(e));
+  const kb = hasKettlebell(profile.equipment);
 
   const exercises: ProgramExercise[] = [
     {
@@ -126,7 +148,7 @@ function buildCircuitDay(profile: UserTrainingProfile, label: string): TrainingD
       scheme: { sets: 3, reps: '30s', restSeconds: 30 },
       notes: 'W1-W2: 20s | W3: 30s | W4: Deload 15s | W5-W6: 30s | W7: 40s | W8: 45s',
     },
-    ...(hasKettlebell ? KETTLEBELL_CONDITIONING : []),
+    ...(kb ? KETTLEBELL_CONDITIONING : []),
     {
       exerciseId: 'plank',
       scheme: { sets: 3, reps: '30-45s', restSeconds: 30 },

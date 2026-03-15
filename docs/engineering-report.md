@@ -86,3 +86,30 @@ _Date: 2026-03-15_
 4. **Challenge `progress_pct` computed column** — Add a `progress_pct` generated column to `ai_challenges` (or materialised view) to avoid client-side drift between devices. This also enables server-side leaderboard sorting by challenge completion.
 
 5. **Anthropic model version pinning** — Store the model name in a shared `api/_ai.ts` constant rather than inline strings, so model upgrades are a single-line change with a clear diff.
+
+---
+
+## Codebase Metrics Snapshot
+
+The repository metrics snapshot taken on 2026-03-15 is documented in `docs/CODEBASE_METRICS_2026-03-15.md`.
+
+### Headline Totals
+
+- Broad tracked text/code scope: 463 files, 86,355 lines.
+- Source-only scope: 370 files, 65,737 lines.
+
+### Source-Only Breakdown
+
+- App code: 281 files, 54,059 lines.
+- Test code: 89 files, 11,678 lines.
+- Frontend: 249 files, 51,723 lines.
+- Backend: 75 files, 11,203 lines.
+- Supporting: 46 files, 2,811 lines.
+
+### Notable Shape
+
+- The codebase is heavily frontend-weighted, with `src/` alone accounting for 51,351 lines in the broader tracked scope.
+- Backend surface area remains comparatively compact at 11,203 lines in `api/`.
+- The largest source file is `src/data/courses.ts` at 4,439 lines, followed by several exercise data files and the main typed database helper.
+
+Machine-readable exports are available in `docs/CODEBASE_METRICS_2026-03-15.json` and `docs/CODEBASE_METRICS_2026-03-15.csv`.

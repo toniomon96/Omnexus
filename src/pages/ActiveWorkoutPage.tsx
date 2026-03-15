@@ -73,6 +73,34 @@ export function ActiveWorkoutPage() {
     if (!persistedSession && !completedData) navigate('/');
   }, [persistedSession, completedData, navigate]);
 
+  // Guard browser back / page-close while a session is in progress.
+  // The popstate handler intercepts the back gesture and shows the discard
+  // confirmation instead of silently abandoning the workout.
+  useEffect(() => {
+    if (!persistedSession) return;
+
+    // Push an extra history entry so the first "back" press pops it rather
+    // than actually leaving the page.
+    window.history.pushState(null, '', window.location.href);
+
+    function handlePopState() {
+      // Re-push so repeated back presses keep triggering this handler.
+      window.history.pushState(null, '', window.location.href);
+      setShowDiscardConfirm(true);
+    }
+
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [persistedSession]);
+
   // Elapsed timer
   useEffect(() => {
     if (!persistedSession) return;
@@ -99,6 +127,7 @@ export function ActiveWorkoutPage() {
             open={!!completedData}
             session={completedData.session}
             prs={completedData.prs}
+            onClose={handleModalClose}
           />
         )}
       </>
@@ -131,6 +160,11 @@ export function ActiveWorkoutPage() {
 
   function handleDiscard() {
     setShowDiscardConfirm(true);
+  }
+
+  function handleModalClose() {
+    setCompletedData(null);
+    navigate('/');
   }
 
   function dismissBeginnerHelp() {
@@ -335,6 +369,7 @@ export function ActiveWorkoutPage() {
           open={!!completedData}
           session={completedData.session}
           prs={completedData.prs}
+          onClose={handleModalClose}
         />
       )}
 
