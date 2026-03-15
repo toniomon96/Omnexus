@@ -54,7 +54,7 @@ function createReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
 function createDeleteChain(
   table: string,
   operations: OperationRecord[],
-  options: { throwOnDelete?: string; throwOnEq?: string; tableNotFoundError?: string } = {},
+  options: { throwOnDelete?: string; throwOnEq?: string; tableNotFoundError?: string; columnNotFoundError?: string } = {},
 ) {
   return {
     eq(column: string, value: string) {
@@ -65,6 +65,9 @@ function createDeleteChain(
       if (options.tableNotFoundError === table) {
         return Promise.resolve({ data: null, error: { code: '42P01', message: `relation "${table}" does not exist` } });
       }
+      if (options.columnNotFoundError === table) {
+        return Promise.resolve({ data: null, error: { code: '42703', message: `column ${table}.${column} does not exist` } });
+      }
       return Promise.resolve({ data: null, error: null });
     },
     or(expression: string) {
@@ -74,6 +77,9 @@ function createDeleteChain(
       }
       if (options.tableNotFoundError === table) {
         return Promise.resolve({ data: null, error: { code: '42P01', message: `relation "${table}" does not exist` } });
+      }
+      if (options.columnNotFoundError === table) {
+        return Promise.resolve({ data: null, error: { code: '42703', message: `column ${table}.col does not exist` } });
       }
       return Promise.resolve({ data: null, error: null });
     },
@@ -87,6 +93,7 @@ function createSupabaseMock(options: {
   throwOnEq?: string;
   authDeleteError?: boolean;
   tableNotFoundError?: string;
+  columnNotFoundError?: string;
 } = {}) {
   const operations: OperationRecord[] = [];
   const storageOps: StorageRecord[] = [];
@@ -282,12 +289,12 @@ describe('delete-account route hardening', () => {
     expect(storageOps.some((op) => op.action === 'remove')).toBe(true);
   });
 
-  it('skips a step and returns 200 when a table does not exist (42P01)', async () => {
+  it('skips a step and returns 200 when a column does not exist (42703)', async () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
 
-    // Simulate block_missions not yet migrated
-    const { supabase, operations } = createSupabaseMock({ tableNotFoundError: 'block_missions' });
+    // Simulate a table present but with a missing column (e.g. schema drift)
+    const { supabase, operations } = createSupabaseMock({ columnNotFoundError: 'block_missions' });
 
     vi.doMock('@supabase/supabase-js', () => ({
       createClient: () => supabase,
@@ -300,7 +307,8 @@ describe('delete-account route hardening', () => {
 
     expect(getStatusCode()).toBe(200);
     expect(getBody()).toEqual({ ok: true });
-    // profiles should still have been deleted (flow continued past missing table)
+    // profiles should still have been deleted (flow continued past column error)
     expect(operations.some((op) => op.table === 'profiles')).toBe(true);
   });
 });
+
