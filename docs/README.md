@@ -10,7 +10,7 @@ This documentation tree is organized for long-term maintenance. Start here when 
 | Product behavior | [`product/core-features.md`](product/core-features.md), [`product/user-flows.md`](product/user-flows.md), [`product/v1-scope.md`](product/v1-scope.md) |
 | Engineering setup | [`engineering/development-guide.md`](engineering/development-guide.md), [`engineering/api-reference.md`](engineering/api-reference.md), [`engineering/release-strategy.md`](engineering/release-strategy.md) |
 | Roadmap | [`roadmap/future-roadmap.md`](roadmap/future-roadmap.md), [`roadmap/planned-features.md`](roadmap/planned-features.md) |
-| Audit output | [`audit/codebase-health-report.md`](audit/codebase-health-report.md), [`audit/documentation-status-report.md`](audit/documentation-status-report.md), [`audit/documentation-vs-implementation-report.md`](audit/documentation-vs-implementation-report.md) |
+| Audit output | [`audit/codebase-health-report.md`](audit/codebase-health-report.md), [`audit/documentation-status-report.md`](audit/documentation-status-report.md), [`audit/documentation-vs-implementation-report.md`](audit/documentation-vs-implementation-report.md), [`audit/v1-release-readiness-audit-2026-03-15.md`](audit/v1-release-readiness-audit-2026-03-15.md) |
 | Historical records | [`archive/README.md`](archive/README.md) |
 
 ## Folder Guide
