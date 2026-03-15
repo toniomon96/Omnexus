@@ -5,6 +5,7 @@ import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { buildCacheKey, getMemoryCache, setMemoryCache } from './_cache.js';
 import { cleanAiText } from './_aiResponse.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach providing encouraging peer comparison insights.
 
@@ -20,6 +21,7 @@ Output plain text only (no markdown, no bullet points).`;
 
 const MIN_PEERS = 3;
 const PEER_INSIGHTS_CACHE_TTL_SECONDS = 180;
+const PEER_INSIGHTS_CACHE_CONTROL = 's-maxage=21600, stale-while-revalidate';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!setCorsHeaders(req, res)) return;
@@ -55,6 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cacheKey = buildCacheKey('peer-insights', [goal ?? 'general-fitness', experienceLevel ?? 'beginner']);
   const cached = getMemoryCache<{ narrative: string; peerCount: number; hasEnoughPeers: boolean }>(cacheKey);
   if (cached) {
+    res.setHeader('Cache-Control', PEER_INSIGHTS_CACHE_CONTROL);
+    res.setHeader('Vary', 'Origin, Authorization');
     return res.status(200).json(cached);
   }
 
@@ -87,6 +91,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (peerIds.length < MIN_PEERS) {
       const payload = { narrative: '', peerCount: peerIds.length, hasEnoughPeers: false };
       setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+      res.setHeader('Cache-Control', PEER_INSIGHTS_CACHE_CONTROL);
+      res.setHeader('Vary', 'Origin, Authorization');
       return res.status(200).json(payload);
     }
 
@@ -103,6 +109,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!sessions || sessions.length === 0) {
       const payload = { narrative: '', peerCount, hasEnoughPeers: false };
       setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+      res.setHeader('Cache-Control', PEER_INSIGHTS_CACHE_CONTROL);
+      res.setHeader('Vary', 'Origin, Authorization');
       return res.status(200).json(payload);
     }
 
@@ -124,6 +132,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (activeUsers < MIN_PEERS) {
       const payload = { narrative: '', peerCount, hasEnoughPeers: false };
       setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+      res.setHeader('Cache-Control', PEER_INSIGHTS_CACHE_CONTROL);
+      res.setHeader('Vary', 'Origin, Authorization');
       return res.status(200).json(payload);
     }
 
@@ -138,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: AI_MODEL,
       max_tokens: 256,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: aggregateContext }],
@@ -154,5 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const payload = { narrative, peerCount, hasEnoughPeers: true };
   setMemoryCache(cacheKey, payload, PEER_INSIGHTS_CACHE_TTL_SECONDS);
+  res.setHeader('Cache-Control', PEER_INSIGHTS_CACHE_CONTROL);
+  res.setHeader('Vary', 'Origin, Authorization');
   return res.status(200).json(payload);
 }

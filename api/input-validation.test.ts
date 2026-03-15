@@ -100,6 +100,59 @@ describe('input validation guards', () => {
     expect(getBody()).toEqual({ error: 'calories, proteinG, carbsG, fatG are required' });
   });
 
+  it('meal-plan returns 200 with parsed JSON plan data', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+
+    vi.doMock('@anthropic-ai/sdk', () => ({
+      default: class MockAnthropic {
+        messages = {
+          create: vi.fn(async () => ({
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                planType: 'maintenance',
+                overview: 'Balanced meals for the day.',
+                dailyTips: ['Prep protein first'],
+                hydrationReminder: 'Drink water with each meal.',
+                meals: [
+                  {
+                    name: 'Greek Yogurt Bowl',
+                    description: 'Yogurt, berries, and oats.',
+                    calories: 500,
+                    proteinG: 35,
+                    carbsG: 50,
+                    fatG: 15,
+                    mealTime: 'Breakfast',
+                  },
+                ],
+                totalCalories: 500,
+                totalProtein: 35,
+                totalCarbs: 50,
+                totalFat: 15,
+              }),
+            }],
+          })),
+        };
+      },
+    }));
+
+    const { default: mealPlan } = await import('./meal-plan.js');
+    const { res, getStatusCode, getBody } = createMockResponse();
+
+    await mealPlan(createReq({
+      body: { calories: 2200, proteinG: 160, carbsG: 220, fatG: 70, planType: 'maintenance' },
+    }), res);
+
+    expect(getStatusCode()).toBe(200);
+    expect(getBody()).toMatchObject({
+      plan: {
+        planType: 'maintenance',
+        meals: [{ name: 'Greek Yogurt Bowl' }],
+        totalCalories: 500,
+      },
+    });
+  });
+
   it('report-bug requires non-empty description', async () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';

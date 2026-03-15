@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Anthropic from '@anthropic-ai/sdk';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -61,7 +62,7 @@ Tone: Direct, coach-like, specific to the numbers. No generic affirmations. Refe
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: AI_MODEL,
       max_tokens: 200,
       messages: [{ role: 'user', content: prompt }],
     });

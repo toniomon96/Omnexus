@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { canSendNotificationNow, getPreferencesMap, isPreferredHour } from './_notificationPrefs.js';
 import { sendNotificationReliably } from './_notify.js';
 import { cleanAiText } from './_aiResponse.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 const DIGEST_PROMPT = `You are a supportive fitness coach. Based on a user's workout data from the past week, write exactly 2 sentences:
 1. A data-driven observation about their volume trend compared to the prior week, or their consistency.
@@ -95,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       try {
         const msg = await client.messages.create({
-          model: 'claude-sonnet-4-6',
+          model: AI_MODEL,
           max_tokens: 150,
           system: DIGEST_PROMPT,
           messages: [{ role: 'user', content: userMessage }],

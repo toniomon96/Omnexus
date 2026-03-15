@@ -11,6 +11,7 @@ import {
   sanitizeFreeText,
 } from './_aiSafety.js';
 import { cleanAskAnswer } from './_aiResponse.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -120,8 +121,8 @@ const MAX_HISTORY_CONTENT = 2000;
 const CLAUDE_TIMEOUT_MS = 12000;
 const CLAUDE_RETRY_TIMEOUT_MS = 8000;
 const CLAUDE_STREAM_TIMEOUT_MS = 30000;
-const CLAUDE_PRIMARY_MODEL = process.env.ASK_MODEL ?? 'claude-3-5-haiku-20241022';
-const CLAUDE_FALLBACK_MODEL = process.env.ASK_FALLBACK_MODEL ?? 'claude-sonnet-4-6';
+const CLAUDE_PRIMARY_MODEL = process.env.ASK_MODEL ?? AI_MODEL;
+const CLAUDE_FALLBACK_MODEL = process.env.ASK_FALLBACK_MODEL ?? AI_MODEL;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

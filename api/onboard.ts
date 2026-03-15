@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { cleanAiText } from './_aiResponse.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 // ─── Module-level client (reused across warm invocations) ──────────────────────
 
@@ -157,7 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: AI_MODEL,
       max_tokens: 600,
       system: SYSTEM_PROMPT,
       messages: conversationMessages,

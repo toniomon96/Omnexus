@@ -5,6 +5,7 @@ import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { hasPromptInjectionSignals, normalizeExperience, normalizeGoal, sanitizeFreeText } from './_aiSafety.js';
 import { cleanAiText } from './_aiResponse.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 // ─── Module-level clients (reused across warm invocations) ────────────────────
 
@@ -57,7 +58,8 @@ End with:
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
 const MAX_SUMMARY_LENGTH = 10_000;
-const CLAUDE_TIMEOUT_MS = 9000;
+const CLAUDE_TIMEOUT_MS = 20_000;
+const INSIGHTS_CACHE_CONTROL = 's-maxage=21600, stale-while-revalidate';
 
 // ─── Handler ────────────────────────────────────────────────────────────────────
 
@@ -120,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const message = await Promise.race([
       anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: AI_MODEL,
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],
@@ -133,6 +135,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected Claude response type');
 
+    res.setHeader('Cache-Control', INSIGHTS_CACHE_CONTROL);
+    res.setHeader('Vary', 'Origin, Authorization');
     return res.status(200).json({ insight: cleanAiText(block.text) });
   } catch (err: unknown) {
     console.error('[/api/insights]', err);

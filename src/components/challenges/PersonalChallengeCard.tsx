@@ -78,6 +78,13 @@ export function PersonalChallengeCard({
     return () => { cancelled = true; };
   }, [userId]);
 
+  // Metric-based progress (computed from local workout history).
+  // localStorage is synchronous; the card is not reactive to mid-session writes.
+  const sessions = useMemo(() => getWorkoutHistory(), []);
+  const rawProgress = useMemo(() => (
+    challenge ? computeChallengeProgress(challenge, sessions) : 0
+  ), [challenge, sessions]);
+
   async function handleGenerate() {
     setGenerating(true);
     try {
@@ -137,11 +144,6 @@ export function PersonalChallengeCard({
   const todayDate = new Date(today);
   const daysRemaining = Math.max(0, Math.ceil((end.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)));
   const isActive = challenge.startDate <= today && challenge.endDate >= today;
-
-  // Metric-based progress (computed from local workout history).
-  // localStorage is synchronous; the card is not reactive to mid-session writes.
-  const sessions = useMemo(() => getWorkoutHistory(), []);
-  const rawProgress = useMemo(() => computeChallengeProgress(challenge, sessions), [challenge, sessions]);
   const displayProgress = challenge.metric === 'total_volume'
     ? toDisplayWeight(rawProgress, weightUnit)
     : rawProgress;

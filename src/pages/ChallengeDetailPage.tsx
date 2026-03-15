@@ -97,6 +97,15 @@ export function ChallengeDetailPage() {
   const { targetText: displayTargetText, unitText: displayUnit } =
     getPersonalChallengeTargetDisplay(challenge, weightUnit);
 
+  function handleBack() {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/');
+  }
+
   async function handleSyncProgress() {
     if (!challenge || !userId) return;
     setSaving(true);
@@ -116,7 +125,7 @@ export function ChallengeDetailPage() {
         <div className="flex min-h-14 items-center gap-3 px-4 py-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label="Go back"
           >

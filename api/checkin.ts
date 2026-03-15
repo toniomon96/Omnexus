@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { sanitizeFreeText } from './_aiSafety.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 // ─── Module-level clients ──────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ const supabaseAdmin =
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const CLAUDE_MODEL = process.env.ASK_MODEL ?? 'claude-3-5-haiku-20241022';
+const CLAUDE_MODEL = process.env.ASK_MODEL ?? AI_MODEL;
 const CHECKIN_SYSTEM_PROMPT = `You are Omni, the AI coach for Omnexus. \
 Given a user's daily readiness check-in data, generate a single concise sentence (under 25 words) \
 recommending how they should approach their training today. \
