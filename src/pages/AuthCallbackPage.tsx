@@ -10,6 +10,31 @@ export function isRecoveryCallbackUrl(href: string): boolean {
   return url.searchParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
 }
 
+/**
+ * Fire-and-forget: upload any locally stored workout sessions and personal
+ * records that were collected while the user was operating as a guest.
+ * Silently swallowed on failure — local data is never deleted.
+ */
+export async function migrateGuestData(userId: string): Promise<void> {
+  try {
+    const { getHistory } = await import('../utils/localStorage');
+    const { upsertSession, upsertPersonalRecords } = await import('../lib/db');
+    const history = getHistory();
+
+    // Upload sessions that are not yet in the cloud
+    const unsynced = history.sessions.filter(
+      (s) => !s.syncStatus || s.syncStatus === 'saved_on_device',
+    );
+    await Promise.all(unsynced.map((s) => upsertSession(s, userId).catch(() => undefined)));
+
+    if (history.personalRecords.length > 0) {
+      await upsertPersonalRecords(history.personalRecords, userId).catch(() => undefined);
+    }
+  } catch {
+    // Migration is best-effort; never block sign-in on failure
+  }
+}
+
 async function subscribeToAuthCallback(
   onEvent: (event: string, session: { user: { id: string } } | null) => void,
 ) {
@@ -42,6 +67,8 @@ export function AuthCallbackPage() {
         setTimeout(() => navigate('/reset-password', { replace: true }), 1200);
       } else if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
         setStatus('confirmed');
+        // Migrate any locally stored guest data before redirecting to the app
+        void migrateGuestData(session.user.id);
         setTimeout(() => navigate('/', { replace: true }), 2000);
       }
     }).then(({ data: { subscription } }) => {
@@ -63,6 +90,7 @@ export function AuthCallbackPage() {
         setTimeout(() => navigate('/reset-password', { replace: true }), 500);
       } else if (session) {
         setStatus('confirmed');
+        void migrateGuestData(session.user.id);
         setTimeout(() => navigate('/', { replace: true }), 1500);
       } else {
         setStatus('error');

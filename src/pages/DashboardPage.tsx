@@ -637,7 +637,7 @@ export function DashboardPage() {
         )}
 
         {/* ── Deload warning ────────────────────────────────────────── */}
-        {program && week >= 4 && (
+        {program && week >= (program.deloadWeek ?? 4) + 2 && (
           <div className="flex items-start gap-3 rounded-2xl border border-amber-400/40 bg-amber-50 dark:bg-amber-900/15 px-4 py-3">
             <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
