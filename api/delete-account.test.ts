@@ -54,7 +54,7 @@ function createReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
 function createDeleteChain(
   table: string,
   operations: OperationRecord[],
-  options: { throwOnDelete?: string; throwOnEq?: string } = {},
+  options: { throwOnDelete?: string; throwOnEq?: string; tableNotFoundError?: string } = {},
 ) {
   return {
     eq(column: string, value: string) {
@@ -62,12 +62,18 @@ function createDeleteChain(
       if (options.throwOnEq === table) {
         throw new Error(`eq failed for ${table}`);
       }
+      if (options.tableNotFoundError === table) {
+        return Promise.resolve({ data: null, error: { code: '42P01', message: `relation "${table}" does not exist` } });
+      }
       return Promise.resolve({ data: null, error: null });
     },
     or(expression: string) {
       operations.push({ table, action: 'delete', kind: 'or', value: expression });
       if (options.throwOnDelete === table) {
         throw new Error(`delete failed for ${table}`);
+      }
+      if (options.tableNotFoundError === table) {
+        return Promise.resolve({ data: null, error: { code: '42P01', message: `relation "${table}" does not exist` } });
       }
       return Promise.resolve({ data: null, error: null });
     },
@@ -80,6 +86,7 @@ function createSupabaseMock(options: {
   throwOnDelete?: string;
   throwOnEq?: string;
   authDeleteError?: boolean;
+  tableNotFoundError?: string;
 } = {}) {
   const operations: OperationRecord[] = [];
   const storageOps: StorageRecord[] = [];
@@ -273,5 +280,27 @@ describe('delete-account route hardening', () => {
     expect(getBody()).toEqual({ ok: true });
     expect(operations.some((op) => op.table === 'profiles')).toBe(true);
     expect(storageOps.some((op) => op.action === 'remove')).toBe(true);
+  });
+
+  it('skips a step and returns 200 when a table does not exist (42P01)', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service_role';
+
+    // Simulate block_missions not yet migrated
+    const { supabase, operations } = createSupabaseMock({ tableNotFoundError: 'block_missions' });
+
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: () => supabase,
+    }));
+
+    const { default: deleteAccount } = await import('./delete-account.js');
+    const { res, getStatusCode, getBody } = createMockResponse();
+
+    await deleteAccount(createReq(), res);
+
+    expect(getStatusCode()).toBe(200);
+    expect(getBody()).toEqual({ ok: true });
+    // profiles should still have been deleted (flow continued past missing table)
+    expect(operations.some((op) => op.table === 'profiles')).toBe(true);
   });
 });

@@ -16,13 +16,24 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 import { setCorsHeaders } from './_cors.js';
 
+type StepError = { message?: string; code?: string } | null;
+
 type DeleteStep = {
   name: string;
   execute: () =>
-    | PromiseLike<{ error: { message?: string } | null } | void>
-    | { error: { message?: string } | null }
+    | PromiseLike<{ error: StepError } | void>
+    | { error: StepError }
     | void;
 };
+
+/** Returns true when the error means the table simply hasn't been migrated yet. */
+function isTableNotFoundError(error: StepError): boolean {
+  if (!error) return false;
+  // PostgreSQL undefined_table error code surfaced via PostgREST
+  if (error.code === '42P01') return true;
+  const msg = error.message?.toLowerCase() ?? '';
+  return (msg.includes('relation') || msg.includes('table')) && msg.includes('does not exist');
+}
 
 async function runDeleteSteps(steps: DeleteStep[]): Promise<Array<{ step: string; message: string }>> {
   for (const step of steps) {
@@ -30,6 +41,10 @@ async function runDeleteSteps(steps: DeleteStep[]): Promise<Array<{ step: string
       const result = await Promise.resolve(step.execute());
       const error = result && 'error' in result ? result.error : null;
       if (error) {
+        if (isTableNotFoundError(error)) {
+          console.warn(`[delete-account] Table "${step.name}" not found — skipping (run pending migrations).`);
+          continue;
+        }
         return [{ step: step.name, message: error.message ?? 'Unknown database error' }];
       }
     } catch (err) {
@@ -119,14 +134,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { name: 'feed_reactions', execute: () => supabaseAdmin.from('feed_reactions').delete().eq('user_id', userId) },
       { name: 'personal_records', execute: () => supabaseAdmin.from('personal_records').delete().eq('user_id', userId) },
       { name: 'workout_sessions', execute: () => supabaseAdmin.from('workout_sessions').delete().eq('user_id', userId) },
+      { name: 'xp_events', execute: () => supabaseAdmin.from('xp_events').delete().eq('user_id', userId) },
       { name: 'learning_progress', execute: () => supabaseAdmin.from('learning_progress').delete().eq('user_id', userId) },
+      { name: 'learning_review_queue', execute: () => supabaseAdmin.from('learning_review_queue').delete().eq('user_id', userId) },
       { name: 'custom_programs', execute: () => supabaseAdmin.from('custom_programs').delete().eq('user_id', userId) },
+      { name: 'progression_reports', execute: () => supabaseAdmin.from('progression_reports').delete().eq('user_id', userId) },
       { name: 'workout_templates', execute: () => supabaseAdmin.from('workout_templates').delete().eq('user_id', userId) },
       { name: 'nutrition_logs', execute: () => supabaseAdmin.from('nutrition_logs').delete().eq('user_id', userId) },
       { name: 'subscriptions', execute: () => supabaseAdmin.from('subscriptions').delete().eq('user_id', userId) },
       { name: 'user_ai_usage', execute: () => supabaseAdmin.from('user_ai_usage').delete().eq('user_id', userId) },
       { name: 'training_profiles', execute: () => supabaseAdmin.from('training_profiles').delete().eq('user_id', userId) },
       { name: 'measurements', execute: () => supabaseAdmin.from('measurements').delete().eq('user_id', userId) },
+      { name: 'daily_checkins', execute: () => supabaseAdmin.from('daily_checkins').delete().eq('user_id', userId) },
       { name: 'block_missions', execute: () => supabaseAdmin.from('block_missions').delete().eq('user_id', userId) },
       { name: 'ai_challenges', execute: () => supabaseAdmin.from('ai_challenges').delete().eq('user_id', userId) },
       { name: 'notification_preferences', execute: () => supabaseAdmin.from('notification_preferences').delete().eq('user_id', userId) },
