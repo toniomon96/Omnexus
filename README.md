@@ -10,6 +10,21 @@ A science-backed fitness platform powered by AI. Track workouts, generate person
 
 ---
 
+## Codebase Metrics
+
+Snapshot date: 2026-03-15.
+
+| Metric | Value |
+|---|---:|
+| Broad tracked text/code scope | 463 files / 86,355 lines |
+| Source-only scope | 370 files / 65,737 lines |
+| App code vs tests | 54,059 / 11,678 lines |
+| Frontend vs backend | 51,723 / 11,203 lines |
+
+Detailed breakdowns, counting rules, and largest-file lists live in `docs/CODEBASE_METRICS_2026-03-15.md`, with machine-readable exports in `docs/CODEBASE_METRICS_2026-03-15.json` and `docs/CODEBASE_METRICS_2026-03-15.csv`.
+
+---
+
 ## Features
 
 | Feature | Description |

@@ -1,0 +1,139 @@
+{
+  "date": "2026-03-15",
+  "countingRules": {
+    "type": "physical-lines",
+    "trackedFilesOnly": true,
+    "excludedPrefixes": [
+      "coverage/",
+      "playwright-report/",
+      "test-results/"
+    ],
+    "broadExtensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".mjs",
+      ".cjs",
+      ".json",
+      ".css",
+      ".scss",
+      ".sass",
+      ".html",
+      ".md",
+      ".yml",
+      ".yaml",
+      ".sql",
+      ".sh",
+      ".ps1",
+      ".java",
+      ".kt",
+      ".swift",
+      ".xml",
+      ".gradle",
+      ".properties"
+    ],
+    "sourceRoots": [
+      "api/",
+      "src/",
+      "tests/",
+      "scripts/",
+      "landing/",
+      "android/",
+      "ios/",
+      "public/"
+    ],
+    "sourceExtensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".mjs",
+      ".cjs",
+      ".css",
+      ".scss",
+      ".sass",
+      ".html",
+      ".sql",
+      ".sh",
+      ".ps1",
+      ".java",
+      ".kt",
+      ".swift",
+      ".xml",
+      ".gradle",
+      ".properties"
+    ]
+  },
+  "summary": {
+    "broadTrackedTextCodeScope": {
+      "files": 463,
+      "lines": 86355
+    },
+    "sourceOnlyScope": {
+      "files": 370,
+      "lines": 65737
+    }
+  },
+  "folderBreakdown": [
+    { "folder": "src", "files": 246, "lines": 51351 },
+    { "folder": "api", "files": 75, "lines": 11203 },
+    { "folder": "docs", "files": 67, "lines": 10916 },
+    { "folder": "[root]", "files": 14, "lines": 9136 },
+    { "folder": "tests", "files": 22, "lines": 2264 },
+    { "folder": ".github", "files": 7, "lines": 496 },
+    { "folder": "android", "files": 21, "lines": 476 },
+    { "folder": "landing", "files": 2, "lines": 340 },
+    { "folder": "ios", "files": 7, "lines": 117 },
+    { "folder": "public", "files": 2, "lines": 56 }
+  ],
+  "languageBreakdown": [
+    { "language": "TypeScript", "files": 213, "lines": 41646 },
+    { "language": "TSX", "files": 133, "lines": 23214 },
+    { "language": "Markdown", "files": 64, "lines": 11151 },
+    { "language": "JSON", "files": 10, "lines": 8584 },
+    { "language": "YAML", "files": 4, "lines": 415 },
+    { "language": "HTML", "files": 2, "lines": 354 },
+    { "language": "XML", "files": 11, "lines": 301 },
+    { "language": "SQL", "files": 9, "lines": 281 },
+    { "language": "Gradle", "files": 6, "lines": 121 },
+    { "language": "CSS", "files": 1, "lines": 88 },
+    { "language": "Swift", "files": 3, "lines": 71 },
+    { "language": "JavaScript", "files": 2, "lines": 67 },
+    { "language": "Java", "files": 3, "lines": 38 },
+    { "language": "Properties", "files": 2, "lines": 24 }
+  ],
+  "additionalBreakdowns": {
+    "appCodeVsTests": {
+      "appCode": { "files": 281, "lines": 54059 },
+      "testCode": { "files": 89, "lines": 11678 }
+    },
+    "frontendVsBackend": {
+      "frontend": { "files": 249, "lines": 51723 },
+      "backend": { "files": 75, "lines": 11203 },
+      "supporting": { "files": 46, "lines": 2811 }
+    }
+  },
+  "top20LargestSourceFiles": [
+    { "path": "src/data/courses.ts", "lines": 4439 },
+    { "path": "src/data/exercises/barbell.ts", "lines": 1644 },
+    { "path": "src/data/exercises/cable.ts", "lines": 1358 },
+    { "path": "src/lib/db.ts", "lines": 1277 },
+    { "path": "src/data/exercises/legacy.ts", "lines": 1127 },
+    { "path": "src/data/exercises/bodyweight.ts", "lines": 1062 },
+    { "path": "src/pages/ProfilePage.tsx", "lines": 1053 },
+    { "path": "src/data/exercises/machine.ts", "lines": 1005 },
+    { "path": "api/generate-program.ts", "lines": 909 },
+    { "path": "src/pages/NutritionPage.tsx", "lines": 841 },
+    { "path": "src/types/index.ts", "lines": 839 },
+    { "path": "src/pages/AskPage.tsx", "lines": 820 },
+    { "path": "src/data/exercises/kettlebell.ts", "lines": 779 },
+    { "path": "src/data/exercises/dumbbell.ts", "lines": 732 },
+    { "path": "src/data/exercises/mobility.ts", "lines": 665 },
+    { "path": "src/components/workout/WorkoutCompleteModal.tsx", "lines": 646 },
+    { "path": "src/pages/DashboardPage.tsx", "lines": 638 },
+    { "path": "src/pages/ExerciseDetailPage.tsx", "lines": 632 },
+    { "path": "src/data/exercises/resistance-band.ts", "lines": 630 },
+    { "path": "src/router.tsx", "lines": 614 }
+  ]
+}
