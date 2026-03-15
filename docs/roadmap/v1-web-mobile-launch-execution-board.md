@@ -67,8 +67,8 @@ If all mobile release dependencies are completed quickly, a near-simultaneous la
 
 ## 2. Production Configuration and Platform Setup
 
-- [ ] Confirm Preview and Production environment variables match `/home/runner/work/Omnexus/Omnexus/docs/engineering/environment-matrix.md`
-- [ ] Verify Vercel Production branch and Preview behavior match `/home/runner/work/Omnexus/Omnexus/docs/engineering/platform-setup-checklist.md`
+- [ ] Confirm Preview and Production environment variables match `docs/engineering/environment-matrix.md`
+- [ ] Verify Vercel Production branch and Preview behavior match `docs/engineering/platform-setup-checklist.md`
 - [ ] Confirm Supabase auth redirect URLs are correct for Local, DEV, Preview, and Prod
 - [ ] Confirm all required SQL migrations are applied in the target production environment
 - [ ] Seed production pgvector embeddings
@@ -108,7 +108,7 @@ If all mobile release dependencies are completed quickly, a near-simultaneous la
 ## 4. Documentation and Public-Facing Accuracy
 
 - [ ] Ensure active docs match the actual shipped state
-- [ ] Treat `/home/runner/work/Omnexus/Omnexus/docs/product/v1-scope.md` and `/home/runner/work/Omnexus/Omnexus/docs/audit/v1-release-readiness-audit-2026-03-15.md` as the current source of truth for V1 launch scope
+- [ ] Treat `docs/product/v1-scope.md` and `docs/audit/v1-release-readiness-audit-2026-03-15.md` as the current source of truth for V1 launch scope
 - [ ] Mark the legacy wiki mirror as non-authoritative until refreshed
 - [ ] Finalize release notes and accepted known issues
 
@@ -185,7 +185,7 @@ If all mobile release dependencies are completed quickly, a near-simultaneous la
 
 ## 2. Documentation Improvements
 
-- [ ] Refresh or retire `/home/runner/work/Omnexus/Omnexus/docs/wiki/`
+- [ ] Refresh or retire `docs/wiki/`
 - [ ] Add a tighter engineer onboarding path across setup/release docs
 - [ ] Keep active counts and readiness wording current in public docs
 
