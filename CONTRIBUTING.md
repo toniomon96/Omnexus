@@ -10,8 +10,8 @@ See the [README](README.md#local-development) for full setup instructions.
 
 For planned product refinement work, also read:
 
-- [docs/V1_ENHANCEMENT_SPRINT_PLAN.md](docs/V1_ENHANCEMENT_SPRINT_PLAN.md)
-- [docs/SDLC_EXECUTION_PLAYBOOK.md](docs/SDLC_EXECUTION_PLAYBOOK.md)
+- [docs/archive/V1_ENHANCEMENT_SPRINT_PLAN.md](docs/archive/V1_ENHANCEMENT_SPRINT_PLAN.md)
+- [docs/engineering/sdlc-execution-playbook.md](docs/engineering/sdlc-execution-playbook.md)
 
 Quick start:
 
@@ -156,4 +156,4 @@ Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md) or submit th
 
 ## Requesting Features
 
-Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md). Check [ROADMAP.md](docs/ROADMAP.md) first — it may already be planned.
+Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md). Check [ROADMAP.md](docs/roadmap/future-roadmap.md) first — it may already be planned.

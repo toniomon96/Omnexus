@@ -71,7 +71,7 @@ List only issues that are explicitly accepted for launch.
 
 ## Release Notes Approval
 
-- Release notes document updated: `docs/SPRINT_5_RELEASE_NOTES.md`
+- Release notes document updated: `sprint-5-release-notes.md`
 - QA owner approved release notes summary.
 - Product owner approved known-issues language.
 - Release owner confirmed notes match deployed behavior.

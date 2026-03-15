@@ -4,7 +4,7 @@
 
 ## v1.0 — Shipped (Mobile Store Launch)
 
-All 11 sprints complete. **0 TypeScript errors · 513 tests passing.**
+All 11 sprints complete. **0 TypeScript errors · 578 tests passing.**
 
 | Sprint | Delivered |
 |---|---|
@@ -28,7 +28,7 @@ All 11 sprints complete. **0 TypeScript errors · 513 tests passing.**
 | V1 Polish (Sprints 1–5) | Sync state transparency, guest-to-account migration, Dashboard + Train clarity, post-workout reinforcement, AI quality + fallback states, launch-readiness accessibility sweep |
 | Security Hardening | Cron endpoints fail-closed without CRON_SECRET, CORS strict-mode (403 on unknown origins), rate limiting in all environments, Content-Security-Policy on all API responses, Node 20 locked via .nvmrc + engines field, auth brute-force lockout, HSTS + security headers |
 
-**Live:** https://fitness-app-ten-eta.vercel.app
+**Live:** https://omnexus.fit
 
 ---
 
@@ -40,7 +40,7 @@ All 11 sprints complete. **0 TypeScript errors · 513 tests passing.**
 	- PR validation uses `verify:preview`
 	- post-merge validation uses `verify:prod`
 - Rollback ownership and incident handoff expectations are documented for release-day execution.
-- Final QA signoff and accepted known issues are tracked in `docs/SPRINT_5_QA_CHECKLIST.md` and summarized in `docs/SPRINT_5_RELEASE_NOTES.md`.
+- Final QA signoff and accepted known issues are tracked in `../archive/completed-work/sprint-5-qa-checklist.md` and summarized in `../archive/completed-work/sprint-5-release-notes.md`.
 
 ---
 
@@ -167,4 +167,4 @@ These minor releases ship between now and the v2 cycle.
 
 ---
 
-> Engineering standards, branching model, commit conventions, and release process are documented in `docs/RELEASE_STRATEGY.md` and `docs/SDLC_EXECUTION_PLAYBOOK.md`.
+> Engineering standards, branching model, commit conventions, and release process are documented in `../engineering/release-strategy.md` and `../engineering/sdlc-execution-playbook.md`.

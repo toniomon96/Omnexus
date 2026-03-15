@@ -56,7 +56,7 @@ This document is the final executive summary of repository health, documentation
 | `docs/features/insights-system.md` | Created — new |
 | `docs/features/onboarding.md` | Created — new |
 | `docs/product/v1-scope.md` | Created — new, authoritative V1 feature list |
-| `docs/MARKET_EXPANSION_PLAN.md` | Updated — added Phase 8 full launch execution playbook |
+| `../../roadmap/market-expansion-plan.md` | Updated — added Phase 8 full launch execution playbook |
 
 ---
 
@@ -170,11 +170,11 @@ These are not code changes. They are platform configuration tasks that are block
 | Supabase | Migrations not yet run in production | Run all 7 migrations in `docs/migrations/` against production Supabase |
 | Supabase | pgvector embeddings not seeded | Call `POST /api/seed-embeddings` with SEED_SECRET after first deploy |
 | Supabase | Auth redirect URLs not configured | Set Site URL + redirect whitelist in Supabase Auth settings |
-| Vercel | Environment variables not set in production scope | Set all 24 required env vars (see `docs/ENVIRONMENT_MATRIX.md`) |
+| Vercel | Environment variables not set in production scope | Set all 24 required env vars (see `../../engineering/environment-matrix.md`) |
 | Stripe | Live-mode keys not in production | Switch to live `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` |
 | Stripe | Webhook endpoint not registered | Register production URL in Stripe Dashboard, copy signing secret |
 | Resend | Sending domain not verified | Verify domain in Resend Dashboard before emails deliver |
-| GitHub | Branch protection not configured | Set up `dev` + `main` branch protection per `docs/PLATFORM_SETUP_CHECKLIST.md` |
+| GitHub | Branch protection not configured | Set up `dev` + `main` branch protection per `../../engineering/platform-setup-checklist.md` |
 | Upstash | Redis not provisioned | Create Redis database and set UPSTASH vars (rate limiting degrades without it) |
 
 ### P1 — Strongly Recommended
@@ -182,8 +182,8 @@ These are not code changes. They are platform configuration tasks that are block
 | Area | Issue | Suggested Solution |
 |---|---|---|
 | Onboarding | Premium value proposition not explicitly framed | Add a 1-screen "Here's what Premium unlocks" summary at the end of onboarding |
-| SPRINT_5_QA | Signoff fields are blank | Complete the QA owner / product owner / release owner signature in `docs/SPRINT_5_QA_CHECKLIST.md` |
-| SPRINT_5_RELEASE_NOTES | Approval record is blank | Complete the approval record in `docs/SPRINT_5_RELEASE_NOTES.md` |
+| SPRINT_5_QA | Signoff fields are blank | Complete the QA owner / product owner / release owner signature in `sprint-5-qa-checklist.md` |
+| SPRINT_5_RELEASE_NOTES | Approval record is blank | Complete the approval record in `sprint-5-release-notes.md` |
 | App Store | Screenshots + preview video not created | Required for App Store submission |
 | PLATFORM_SECURITY_OPS | All items remain Pending | Complete pre-launch security checklist (Supabase MFA, secret rotation, monitoring alerts) |
 
@@ -200,7 +200,7 @@ These are not code changes. They are platform configuration tasks that are block
 
 ## 6. Updated Roadmap Summary
 
-See `docs/ROADMAP.md` for full details.
+See `../../roadmap/future-roadmap.md` for full details.
 
 ### V1.0 — Shipped ✅
 Full feature-complete release: 316-exercise library, 15-course learning system, gamification, AI coach, program continuation, community, nutrition, Stripe billing, Capacitor native, Playwright E2E, security hardening.
@@ -222,7 +222,7 @@ Multi-tenancy, white-label, gym admin dashboard, trainer tools, B2B pricing.
 
 ## 7. Marketing Expansion Execution Plan
 
-See `docs/MARKET_EXPANSION_PLAN.md` → Phase 8 for the full launch execution playbook.
+See `../../roadmap/market-expansion-plan.md` → Phase 8 for the full launch execution playbook.
 
 ### Launch Strategy Summary
 

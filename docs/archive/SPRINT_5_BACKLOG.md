@@ -103,8 +103,8 @@ Suggested files:
 
 - package.json
 - .github/workflows
-- docs/CI_RUNBOOK.md
-- docs/E2E_TEST_MATRIX.md
+- ../engineering/ci-runbook.md
+- ../engineering/e2e-test-matrix.md
 
 ### Story 2.2: Rollback and incident response readiness check
 
@@ -115,8 +115,8 @@ Acceptance criteria:
 
 Suggested files:
 
-- docs/RELEASE_STRATEGY.md
-- docs/RELEASE_CHECKLIST.md
+- ../engineering/release-strategy.md
+- ../engineering/release-checklist.md
 
 ## Epic 3: Launch Signoff and Documentation Freeze
 
@@ -132,7 +132,7 @@ Acceptance criteria:
 
 Suggested files:
 
-- docs/SPRINT_5_QA_CHECKLIST.md
+- completed-work/sprint-5-qa-checklist.md
 
 ### Story 3.2: Known issues and release notes finalization
 
@@ -144,5 +144,5 @@ Acceptance criteria:
 Suggested files:
 
 - README.md
-- docs/ROADMAP.md
+- ../roadmap/future-roadmap.md
 - release notes artifact (if maintained externally)

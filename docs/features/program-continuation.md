@@ -209,7 +209,7 @@ User selects continuation option
 
 ## Program Chaining in the UI
 
-The **Body Transformation Timeline** (see `docs/Program_Mastery.md` Part Three) shows linked program blocks as continuous segments on the timeline. Each segment is colored by `block_type`:
+The **Body Transformation Timeline** (see `../archive/Program_Mastery.md` Part Three) shows linked program blocks as continuous segments on the timeline. Each segment is colored by `block_type`:
 
 | Block Type | Timeline Color |
 |---|---|
@@ -247,9 +247,9 @@ The Progression Report is a full-screen, scrollable experience:
 
 ## Related Documents
 
-- `docs/ai-coach.md` — Omni generates the narrative summary
-- `docs/program-generation.md` — existing program generation pipeline called by Options 1 and 2
-- `docs/gamification.md` — XP awarded on program completion (200 XP for course, equivalent logic for block completion)
-- `docs/Program_Mastery.md` — Part Three: Program Continuation Intelligence (original vision)
+- `ai-coach.md` — Omni generates the narrative summary
+- `program-generation.md` — existing program generation pipeline called by Options 1 and 2
+- `gamification.md` — XP awarded on program completion (200 XP for course, equivalent logic for block completion)
+- `../archive/Program_Mastery.md` — Part Three: Program Continuation Intelligence (original vision)
 - `api/generate-program.ts` — generation endpoint used for continuation blocks
 - `api/adapt.ts` — adaptation context referenced when generating intensification blocks

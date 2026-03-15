@@ -91,7 +91,7 @@ _Date: 2026-03-15_
 
 ## Codebase Metrics Snapshot
 
-The repository metrics snapshot taken on 2026-03-15 is documented in `docs/CODEBASE_METRICS_2026-03-15.md`.
+The repository metrics snapshot taken on 2026-03-15 is documented in `../../audit/codebase-metrics-2026-03-15.md`.
 
 ### Headline Totals
 
@@ -112,4 +112,4 @@ The repository metrics snapshot taken on 2026-03-15 is documented in `docs/CODEB
 - Backend surface area remains comparatively compact at 11,203 lines in `api/`.
 - The largest source file is `src/data/courses.ts` at 4,439 lines, followed by several exercise data files and the main typed database helper.
 
-Machine-readable exports are available in `docs/CODEBASE_METRICS_2026-03-15.json` and `docs/CODEBASE_METRICS_2026-03-15.csv`.
+Machine-readable exports are available in `../../audit/codebase-metrics-2026-03-15.json` and `../../audit/codebase-metrics-2026-03-15.csv`.

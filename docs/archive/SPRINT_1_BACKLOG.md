@@ -323,7 +323,7 @@ Suggested files:
 - `tests/e2e/challenges.spec.ts`
 - `tests/e2e/community.spec.ts`
 - `tests/e2e/insights.spec.ts`
-- `docs/CI_RUNBOOK.md`
+- `../engineering/ci-runbook.md`
 
 Test plan:
 
@@ -418,9 +418,9 @@ Acceptance criteria:
 
 Suggested files:
 
-- `docs/RELEASE_CHECKLIST.md`
-- `docs/CI_RUNBOOK.md`
-- `docs/RELEASE_DAY.md`
+- `../engineering/release-checklist.md`
+- `../engineering/ci-runbook.md`
+- `../engineering/release-day.md`
 
 Labels:
 

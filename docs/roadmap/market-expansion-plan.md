@@ -19,11 +19,11 @@ The 2025–2026 market is moving toward "fitness as a holistic health experience
 ### Action Items
 
 - [ ] **Finalize the premium value proposition.** Premium must clearly mean: personalized coaching + education + progress intelligence — not a workout list. Gate appropriately so free users understand the delta.
-- [x] **Complete the Exercise Library expansion to 300+ exercises.** ✅ 316 exercises shipped (barbell, dumbbell, bodyweight, cable, machine, kettlebell, EZ-bar, resistance band, TRX, mobility — modular library in `src/data/exercises/`). Strength training is the dominant demand signal. Movement patterns, swaps, and technique education are higher-value investments than generic workout lists. (See `docs/exercise-library.md`.)
-- [x] **Ship the gamified Learning System.** ✅ Shipped: Duolingo-style XP, streaks, daily challenges, SM-2 spaced repetition, 15 courses, achievement toasts, rank-up celebrations, and course completion certificates. (See `docs/learning-system.md`.)
+- [x] **Complete the Exercise Library expansion to 300+ exercises.** ✅ 316 exercises shipped (barbell, dumbbell, bodyweight, cable, machine, kettlebell, EZ-bar, resistance band, TRX, mobility — modular library in `src/data/exercises/`). Strength training is the dominant demand signal. Movement patterns, swaps, and technique education are higher-value investments than generic workout lists. (See `../features/exercise-library.md`.)
+- [x] **Ship the gamified Learning System.** ✅ Shipped: Duolingo-style XP, streaks, daily challenges, SM-2 spaced repetition, 15 courses, achievement toasts, rank-up celebrations, and course completion certificates. (See `../features/learning-system.md`.)
 - [x] **Implement Smart Progressive Overload recommendations.** ✅ Shipped: `src/lib/progressiveOverload.ts` engine feeds next-session weight and RPE suggestions, surfaced in post-workout adaptation flow.
 - [ ] **Launch the Body Transformation Timeline.** A visual personal artifact combining workout heatmap, weight lifted trends, body measurements, XP, and learning completions. This becomes a deeply personal reason to stay.
-- [x] **Build the Program Continuation Intelligence flow.** ✅ Shipped: After an 8-week block ends, the system generates a Progression Report and offers three continuation paths. (See `docs/program-continuation.md`.)
+- [x] **Build the Program Continuation Intelligence flow.** ✅ Shipped: After an 8-week block ends, the system generates a Progression Report and offers three continuation paths. (See `../features/program-continuation.md`.)
 
 ### Pricing Confirmation
 
@@ -83,7 +83,7 @@ The 2025–2026 market is moving toward "fitness as a holistic health experience
 
 ### Action Items
 
-- [x] **App Store release — Capacitor builds complete.** ✅ Capacitor v8 iOS and Android native projects are generated and committed (`ios/`, `android/`). Haptics, status bar, splash screen, safe areas, and Android back button are all wired. Run `npm run cap:sync` and submit via Xcode (iOS) or Android Studio (Android). See `docs/MOBILE.md` for the full delivery checklist.
+- [x] **App Store release — Capacitor builds complete.** ✅ Capacitor v8 iOS and Android native projects are generated and committed (`ios/`, `android/`). Haptics, status bar, splash screen, safe areas, and Android back button are all wired. Run `npm run cap:sync` and submit via Xcode (iOS) or Android Studio (Android). See `../engineering/mobile.md` for the full delivery checklist.
 - [ ] **New Year campaign timing.** Plan a launch or major update push for late December / early January to capture the seasonal demand spike.
 - [ ] **Annual plan push at install.** Offer a discounted annual plan at the end of onboarding. This converts seasonal intent into year-long retention and improves margin.
 - [ ] **Monitor the React Native New Architecture.** If Capacitor limits motion quality or cross-platform consistency in v2, evaluate migrating to Expo with EAS Build for a unified UI primitives and motion system across platforms.
@@ -178,7 +178,7 @@ Large chains have proprietary app ecosystems. The integration route is the **ope
 
 ### Action Items — Agentic Tooling
 
-- [ ] **Adopt GitHub Copilot agent mode** for well-scoped enhancement issues. Use the coding agent for Sprint A–K tasks from `docs/Program_Mastery.md`.
+- [ ] **Adopt GitHub Copilot agent mode** for well-scoped enhancement issues. Use the coding agent for Sprint A–K tasks from `../archive/Program_Mastery.md`.
 - [ ] **Evaluate Claude Code + MCP** for design-doc-aware agent workflows. MCP tool boundaries let agents read design docs and interact with external systems (database, content files, API specs).
 - [ ] **Build MCP-style tool boundaries** into product and company systems to maximize what agents can safely own.
 
@@ -224,13 +224,13 @@ Large chains have proprietary app ecosystems. The integration route is the **ope
 
 | This Plan Section | Related Documents |
 |---|---|
-| Exercise Library expansion | `docs/exercise-library.md` |
-| Learning System and gamification | `docs/learning-system.md`, `docs/gamification.md` |
-| AI Coach evolution | `docs/ai-coach.md` |
-| Program Continuation | `docs/program-continuation.md` |
+| Exercise Library expansion | `../features/exercise-library.md` |
+| Learning System and gamification | `../features/learning-system.md`, `../features/gamification.md` |
+| AI Coach evolution | `../features/ai-coach.md` |
+| Program Continuation | `../features/program-continuation.md` |
 | V1 Feature List | `docs/product/v1-scope.md` |
-| Release strategy | `docs/RELEASE_STRATEGY.md` |
-| Product roadmap | `docs/ROADMAP.md` |
+| Release strategy | `../engineering/release-strategy.md` |
+| Product roadmap | `future-roadmap.md` |
 
 ---
 
@@ -252,8 +252,8 @@ This section converts the strategic priorities above into a concrete, sequenced 
 | Seed pgvector embeddings in production Supabase | Founder | P0 | `POST /api/seed-embeddings` with SEED_SECRET after first deploy |
 | Run all 7 SQL migrations in production Supabase | Founder | P0 | `docs/migrations/` — execute in numeric order |
 | Set production Supabase auth redirect URLs | Founder | P0 | Site URL + redirect whitelist in Supabase Dashboard → Auth |
-| Set Vercel branch protection + environment variables | Founder | P0 | See `docs/PLATFORM_SETUP_CHECKLIST.md` |
-| Set GitHub branch protection on `dev` + `main` | Founder | P0 | See `docs/PLATFORM_SETUP_CHECKLIST.md` |
+| Set Vercel branch protection + environment variables | Founder | P0 | See `../engineering/platform-setup-checklist.md` |
+| Set GitHub branch protection on `dev` + `main` | Founder | P0 | See `../engineering/platform-setup-checklist.md` |
 | Write App Store / Play Store listing copy | Founder/Copywriter | P0 | Focus on transformation narrative, not feature list |
 | Create 5 App Store screenshots (per device class) | Designer | P0 | Dashboard, workout in progress, exercise library, learning, AI coach |
 | Record 30-second App Store preview video | Founder | P1 | Flow: onboarding → workout → XP celebration → insights |

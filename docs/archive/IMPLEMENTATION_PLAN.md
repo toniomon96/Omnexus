@@ -1,6 +1,6 @@
 # Omnexus — Multi-Epic, Multi-Sprint Implementation Plan
 
-This document consolidates the specifications from `docs/exercise-library.md`, `docs/learning-system.md`, `docs/gamification.md`, `docs/ai-coach.md`, and `docs/program-continuation.md` into a structured execution plan: five epics, ten sprints (A–J).
+This document consolidates the specifications from `../features/exercise-library.md`, `../features/learning-system.md`, `../features/gamification.md`, `../features/ai-coach.md`, and `../features/program-continuation.md` into a structured execution plan: five epics, ten sprints (A–J).
 
 ---
 
@@ -50,7 +50,7 @@ Sprints run sequentially unless explicitly noted as parallel. Sprints C, D, and 
 
 **Goal:** Grow the exercise database from 61 to 300 exercises, deliver a best-in-class Exercise Detail Page, and build an intelligent exercise discovery experience.
 
-**Source document:** `docs/exercise-library.md`
+**Source document:** `../features/exercise-library.md`
 
 ### Sprint A — Exercise Data Expansion (150 Exercises)
 
@@ -60,7 +60,7 @@ Sprints run sequentially unless explicitly noted as parallel. Sprints C, D, and 
 
 **Deliverables:**
 
-- Expand `MuscleGroup` type to include all 23 muscle groups defined in `docs/exercise-library.md`:
+- Expand `MuscleGroup` type to include all 23 muscle groups defined in `../features/exercise-library.md`:
   `quads`, `hamstrings`, `glutes`, `calves`, `adductors`, `abductors`, `hip-flexors`, `tibialis`, `chest`, `front-deltoid`, `side-deltoid`, `rear-deltoid`, `rotator-cuff`, `triceps`, `biceps`, `forearms`, `lats`, `traps`, `rhomboids`, `serratus`, `erectors`, `abs`, `obliques`
 - Expand `Equipment` type to include all 16 equipment types.
 - Add `progressionPath.easier` and `progressionPath.harder` fields to the exercise schema.
@@ -160,7 +160,7 @@ Sprints run sequentially unless explicitly noted as parallel. Sprints C, D, and 
 
 **Goal:** Build the full XP and engagement system — ranks, streaks, Sparks currency, achievements, and the celebration mechanics that make progress feel rewarding.
 
-**Source document:** `docs/gamification.md`
+**Source document:** `../features/gamification.md`
 
 ### Sprint C — Gamification Foundation
 
@@ -179,7 +179,7 @@ Sprints run sequentially unless explicitly noted as parallel. Sprints C, D, and 
   user_sparks       -- total_sparks, earned_lifetime, spent_lifetime
   xp_events         -- append-only log: user_id, event_type, xp_amount, description, created_at
   ```
-- Seed the `achievements` table with the full catalogue from `docs/gamification.md`:
+- Seed the `achievements` table with the full catalogue from `../features/gamification.md`:
   - 6 Bronze tier entries, 6 Silver tier entries, 6 Gold tier entries.
 - Extend `AppContext` reducer with:
   - Optimistic XP update on client before server sync.
@@ -212,7 +212,7 @@ type XpEventType =
   | 'battle_participated'
 ```
 
-**Rank threshold table (from `docs/gamification.md`):**
+**Rank threshold table (from `../features/gamification.md`):**
 
 | Rank | Name | XP Range |
 |---|---|---|
@@ -296,7 +296,7 @@ type XpEventType =
   - Top 3 users earn special profile decorations for the week.
   - Leaderboard is specifically for **learning engagement** (separate from the workout leaderboard).
 - **Knowledge Battle XP flow:**
-  - Winner earns XP from the loser (exact amounts defined in `docs/gamification.md`).
+  - Winner earns XP from the loser (exact amounts defined in `../features/gamification.md`).
   - Loser earns a smaller consolation XP prize.
   - Both events written to `xp_events` on battle completion.
 - **Teach It Back Sparks rewards:**
@@ -349,7 +349,7 @@ type XpEventType =
 
 **Goal:** Build five categories of educational courses with interactive lesson format, a full quiz engine with spaced repetition, and social learning features.
 
-**Source document:** `docs/learning-system.md`
+**Source document:** `../features/learning-system.md`
 
 ### Sprint C (partial) — Database Foundation for Learning
 
@@ -532,7 +532,7 @@ type XpEventType =
 
 **Goal:** Evolve the current Ask Omnexus page into Omni — a named AI coach with a defined personality and three operating modes. Build the Check-In data pipeline and the Coach Notes generation system.
 
-**Source document:** `docs/ai-coach.md`
+**Source document:** `../features/ai-coach.md`
 
 ### Sprint G — Omni AI Coach
 
@@ -576,7 +576,7 @@ type XpEventType =
 
 - **Coach Notes generation as part of the program generator:**
   - Notes generated when the program is first created by `/api/generate-program` — no separate live API call during the workout.
-  - Each week's notes follow the theme defined in `docs/ai-coach.md`:
+  - Each week's notes follow the theme defined in `../features/ai-coach.md`:
 
     | Week | Note Theme |
     |---|---|
@@ -636,7 +636,7 @@ Rules:
 
 **Goal:** Turn the end-of-block moment into a powerful re-engagement event. Generate a personalized Progression Report and offer three structured continuation paths. Build the Training DNA profile visualization.
 
-**Source document:** `docs/program-continuation.md`
+**Source document:** `../features/program-continuation.md`
 
 ### Sprint H — Progression Report, Continuation Options, and Training DNA
 
@@ -810,7 +810,7 @@ All migrations are created as numbered SQL files in `docs/migrations/`.
 
 A sprint is done only if all of the following are true:
 
-- [ ] Code is merged via a PR to `main` following the branch model in `docs/ROADMAP.md`
+- [ ] Code is merged via a PR to `main` following the branch model in `../roadmap/future-roadmap.md`
 - [ ] `npm run build` completes with 0 TypeScript errors
 - [ ] `npm run lint` completes with 0 ESLint warnings
 - [ ] All existing tests pass
@@ -823,14 +823,14 @@ A sprint is done only if all of the following are true:
 
 ## Related Documents
 
-- `docs/exercise-library.md` — source spec for Epic 1; data dependency for Epic 4 (Omni references exercise data for coaching responses)
-- `docs/learning-system.md` — source spec for Epic 3 and partial Epic 2
-- `docs/gamification.md` — source spec for Epic 2
-- `docs/ai-coach.md` — source spec for Epic 4
-- `docs/program-continuation.md` — source spec for Epic 5
-- `docs/ROADMAP.md` — product versioning, branch model, and commit conventions
-- `docs/V1_ENHANCEMENT_SPRINT_PLAN.md` — Sprint 0–5 planning context (pre-dates this plan)
-- `docs/program-generation.md` — existing program generation pipeline called by Epic 5 continuation options
+- `../features/exercise-library.md` — source spec for Epic 1; data dependency for Epic 4 (Omni references exercise data for coaching responses)
+- `../features/learning-system.md` — source spec for Epic 3 and partial Epic 2
+- `../features/gamification.md` — source spec for Epic 2
+- `../features/ai-coach.md` — source spec for Epic 4
+- `../features/program-continuation.md` — source spec for Epic 5
+- `../roadmap/future-roadmap.md` — product versioning, branch model, and commit conventions
+- `docs/archive/V1_ENHANCEMENT_SPRINT_PLAN.md` — Sprint 0–5 planning context (pre-dates this plan)
+- `../features/program-generation.md` — existing program generation pipeline called by Epic 5 continuation options
 - `api/ask.ts` — existing RAG endpoint used by Omni Science Mode
 - `api/adapt.ts` — existing adaptation endpoint extended by Omni Check-In Mode
 - `api/generate-program.ts` — generation endpoint used for continuation blocks in Epic 5

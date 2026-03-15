@@ -227,7 +227,7 @@ type XpEventType =
 
 ## Database Schema
 
-See `docs/learning-system.md` for the full SQL schema. The gamification tables are:
+See `learning-system.md` for the full SQL schema. The gamification tables are:
 
 ```sql
 user_xp           -- totalXp, weeklyXp, currentRank, weeklyXpResetsAt
@@ -269,6 +269,6 @@ dispatch({ type: 'LESSON_COMPLETED', lessonId, xpAmount: 10 });
 
 ## Related Documents
 
-- `docs/learning-system.md` — course architecture, quiz design, spaced repetition, lesson format
-- `docs/ai-coach.md` — Omni references user rank and streak in coaching responses
-- `docs/Program_Mastery.md` — Part Two (original gamification vision)
+- `learning-system.md` — course architecture, quiz design, spaced repetition, lesson format
+- `ai-coach.md` — Omni references user rank and streak in coaching responses
+- `../archive/Program_Mastery.md` — Part Two (original gamification vision)

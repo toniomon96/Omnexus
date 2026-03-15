@@ -46,4 +46,4 @@
   - `SUPABASE_SERVICE_ROLE_KEY`
   - `AUTH_ATTEMPT_PEPPER` (recommended explicit secret for email-hash lockout keys)
 
-External platform follow-through is tracked in `docs/PLATFORM_SECURITY_OPS.md`.
+External platform follow-through is tracked in `../engineering/platform-security-ops.md`.

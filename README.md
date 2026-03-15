@@ -1,10 +1,10 @@
 # Omnexus
 
-[![CI](https://github.com/toniomon96/fitness-app/actions/workflows/ci.yml/badge.svg)](https://github.com/toniomon96/fitness-app/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-513%20passing-22c55e)
+[![CI](https://github.com/toniomon96/Omnexus/actions/workflows/ci.yml/badge.svg)](https://github.com/toniomon96/Omnexus/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-578%20passing-22c55e)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
-[![Live](https://img.shields.io/badge/Live%20App-omnexus.fit-6366f1?logo=vercel&logoColor=white)](https://fitness-app-ten-eta.vercel.app)
+[![Live](https://img.shields.io/badge/Live%20App-omnexus.fit-6366f1?logo=vercel&logoColor=white)](https://omnexus.fit)
 
 A science-backed fitness platform powered by AI. Track workouts, generate personalized training programs, get coaching from Claude, read peer-reviewed research, and compete with friends — all in a mobile-first PWA that also ships as a native iOS and Android app.
 
@@ -21,7 +21,7 @@ Snapshot date: 2026-03-15.
 | App code vs tests | 54,059 / 11,678 lines |
 | Frontend vs backend | 51,723 / 11,203 lines |
 
-Detailed breakdowns, counting rules, and largest-file lists live in `docs/CODEBASE_METRICS_2026-03-15.md`, with machine-readable exports in `docs/CODEBASE_METRICS_2026-03-15.json` and `docs/CODEBASE_METRICS_2026-03-15.csv`.
+Detailed breakdowns, counting rules, and largest-file lists live in `docs/audit/codebase-metrics-2026-03-15.md`, with machine-readable exports in `docs/audit/codebase-metrics-2026-03-15.json` and `docs/audit/codebase-metrics-2026-03-15.csv`.
 
 ---
 
@@ -70,7 +70,7 @@ Detailed breakdowns, counting rules, and largest-file lists live in `docs/CODEBA
 | Serverless | Vercel Functions (Node.js 20) + Cron Jobs |
 | External API | PubMed E-utilities |
 | Native | Capacitor v8 (iOS + Android) |
-| Testing | Vitest (505 unit tests), Playwright (E2E) |
+| Testing | Vitest (578 unit tests), Playwright (E2E) |
 | CI/CD | GitHub Actions |
 | Deployment | Vercel |
 
@@ -148,7 +148,7 @@ vercel dev
 ### 4. Run tests
 
 ```bash
-npm test          # Vitest unit tests (505 tests)
+npm test          # Vitest unit tests (578 tests)
 npm run test:e2e  # Playwright E2E tests (requires vercel dev running)
 ```
 
@@ -156,8 +156,8 @@ npm run test:e2e  # Playwright E2E tests (requires vercel dev running)
 
 ## Project Structure
 
-```
-fitness-app/
+``` 
+Omnexus/
 ├── api/                    Vercel serverless functions
 │   ├── ask.ts              POST /api/ask              Claude Q&A + pgvector RAG
 │   ├── insights.ts         POST /api/insights          Claude training analysis
@@ -266,10 +266,10 @@ Omnexus should move through `local -> dev -> preview -> prod`.
 - Preview: open a `dev -> main` PR; Vercel preview plus `npm run verify:preview` become the release candidate gate.
 - Prod: merge to `main` only after preview validation and approvals; Vercel production should only track `main`.
 
-See `docs/RELEASE_STRATEGY.md` for the full branching, CI, Vercel, and release checklist.
-See `docs/RELEASE_CHECKLIST.md` for release-day execution.
-See `docs/ENVIRONMENT_MATRIX.md` for environment-specific variables and service expectations.
-See `docs/PLATFORM_SETUP_CHECKLIST.md` for the exact GitHub, Vercel, Supabase, and Stripe setup tasks that still need manual admin access.
+See `docs/engineering/release-strategy.md` for the full branching, CI, Vercel, and release checklist.
+See `docs/engineering/release-checklist.md` for release-day execution.
+See `docs/engineering/environment-matrix.md` for environment-specific variables and service expectations.
+See `docs/engineering/platform-setup-checklist.md` for the exact GitHub, Vercel, Supabase, and Stripe setup tasks that still need manual admin access.
 
 ## CI Gate Matrix
 
@@ -326,19 +326,26 @@ In Supabase Dashboard → Authentication → URL Configuration:
 
 ## Documentation
 
+Start with [`docs/README.md`](docs/README.md) for the reorganized documentation index.
+
 ### Product & Scope
 | Doc | Description |
 |---|---|
+| [`docs/README.md`](docs/README.md) | Documentation index and folder guide |
 | [`docs/product/v1-scope.md`](docs/product/v1-scope.md) | Authoritative V1 feature list with implementation status |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Shipped V1 features + V1.x/V2/V3 post-launch roadmap |
-| [`docs/MARKET_EXPANSION_PLAN.md`](docs/MARKET_EXPANSION_PLAN.md) | Actionable go-to-market execution plan |
+| [`docs/product/core-features.md`](docs/product/core-features.md) | Product summary of the implemented feature set |
+| [`docs/product/user-flows.md`](docs/product/user-flows.md) | Cross-surface user journeys |
+| [`docs/roadmap/future-roadmap.md`](docs/roadmap/future-roadmap.md) | Shipped V1 features + V1.x/V2/V3 post-launch roadmap |
+| [`docs/roadmap/market-expansion-plan.md`](docs/roadmap/market-expansion-plan.md) | Actionable go-to-market execution plan |
 
 ### Architecture & API
 | Doc | Description |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System diagram, auth flow, data models, Supabase schema |
-| [`docs/API.md`](docs/API.md) | Complete serverless endpoint reference |
-| [`docs/MOBILE.md`](docs/MOBILE.md) | Capacitor iOS + Android build guide |
+| [`docs/architecture/system-overview.md`](docs/architecture/system-overview.md) | Product context, runtime surfaces, and core principles |
+| [`docs/architecture/architecture-overview.md`](docs/architecture/architecture-overview.md) | Frontend, serverless API, AI, data flow, and security overview |
+| [`docs/architecture/architecture-reference.md`](docs/architecture/architecture-reference.md) | System diagram, auth flow, data models, Supabase schema |
+| [`docs/engineering/api-reference.md`](docs/engineering/api-reference.md) | Complete serverless endpoint reference |
+| [`docs/engineering/mobile.md`](docs/engineering/mobile.md) | Capacitor iOS + Android build guide |
 
 ### Feature Documentation
 | Doc | Description |
@@ -347,36 +354,45 @@ In Supabase Dashboard → Authentication → URL Configuration:
 | [`docs/features/community.md`](docs/features/community.md) | Friends, activity feed, challenges, leaderboard |
 | [`docs/features/insights-system.md`](docs/features/insights-system.md) | Training insights, adaptation engine, briefing |
 | [`docs/features/nutrition.md`](docs/features/nutrition.md) | Nutrition tracking and plate calculator |
-| [`docs/ai-coach.md`](docs/ai-coach.md) | Omni AI coach — modes, RAG, Check-In pipeline |
-| [`docs/exercise-library.md`](docs/exercise-library.md) | Exercise library design, schema, discovery engine |
-| [`docs/gamification.md`](docs/gamification.md) | XP, ranks, streaks, achievements, celebrations |
-| [`docs/learning-system.md`](docs/learning-system.md) | Courses, quiz engine, spaced repetition |
-| [`docs/program-generation.md`](docs/program-generation.md) | 8-week mesocycle generation pipeline + validation |
-| [`docs/program-continuation.md`](docs/program-continuation.md) | Block-end Progression Report + 3 continuation paths |
+| [`docs/features/ai-coach.md`](docs/features/ai-coach.md) | Omni AI coach — modes, RAG, Check-In pipeline |
+| [`docs/features/exercise-library.md`](docs/features/exercise-library.md) | Exercise library design, schema, discovery engine |
+| [`docs/features/gamification.md`](docs/features/gamification.md) | XP, ranks, streaks, achievements, celebrations |
+| [`docs/features/learning-system.md`](docs/features/learning-system.md) | Courses, quiz engine, spaced repetition |
+| [`docs/features/program-generation.md`](docs/features/program-generation.md) | 8-week mesocycle generation pipeline + validation |
+| [`docs/features/program-continuation.md`](docs/features/program-continuation.md) | Block-end Progression Report + 3 continuation paths |
 
 ### Deployment & Operations
 | Doc | Description |
 |---|---|
-| [`docs/RELEASE_STRATEGY.md`](docs/RELEASE_STRATEGY.md) | Branching, environment promotion, CI policy |
-| [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) | Release-day execution checklist |
-| [`docs/ENVIRONMENT_MATRIX.md`](docs/ENVIRONMENT_MATRIX.md) | Environment-specific variables and branch mapping |
-| [`docs/PLATFORM_SETUP_CHECKLIST.md`](docs/PLATFORM_SETUP_CHECKLIST.md) | Manual admin steps for GitHub, Vercel, Supabase, Stripe |
-| [`docs/setup-procedures.md`](docs/setup-procedures.md) | Upstash, CORS, E2E, Supabase setup steps |
-| [`docs/CI_RUNBOOK.md`](docs/CI_RUNBOOK.md) | CI failure triage and recovery playbook |
-| [`docs/E2E_TEST_MATRIX.md`](docs/E2E_TEST_MATRIX.md) | Golden-path vs extended Playwright coverage policy |
-| [`docs/SDLC_EXECUTION_PLAYBOOK.md`](docs/SDLC_EXECUTION_PLAYBOOK.md) | TDD, VCS, QA, and delivery standards |
+| [`docs/engineering/development-guide.md`](docs/engineering/development-guide.md) | Local setup, verification commands, env vars, and folder guide |
+| [`docs/engineering/release-strategy.md`](docs/engineering/release-strategy.md) | Branching, environment promotion, CI policy |
+| [`docs/engineering/release-checklist.md`](docs/engineering/release-checklist.md) | Release-day execution checklist |
+| [`docs/engineering/environment-matrix.md`](docs/engineering/environment-matrix.md) | Environment-specific variables and branch mapping |
+| [`docs/engineering/platform-setup-checklist.md`](docs/engineering/platform-setup-checklist.md) | Manual admin steps for GitHub, Vercel, Supabase, Stripe |
+| [`docs/engineering/setup-procedures.md`](docs/engineering/setup-procedures.md) | Upstash, CORS, E2E, Supabase setup steps |
+| [`docs/engineering/ci-runbook.md`](docs/engineering/ci-runbook.md) | CI failure triage and recovery playbook |
+| [`docs/engineering/e2e-test-matrix.md`](docs/engineering/e2e-test-matrix.md) | Golden-path vs extended Playwright coverage policy |
+| [`docs/engineering/sdlc-execution-playbook.md`](docs/engineering/sdlc-execution-playbook.md) | TDD, VCS, QA, and delivery standards |
 
 ### Security
 | Doc | Description |
 |---|---|
-| [`docs/PLATFORM_SECURITY_OPS.md`](docs/PLATFORM_SECURITY_OPS.md) | Platform security operations tracker (pre-launch checklist) |
-| [`docs/SECURITY_REVIEW_2026-03-10.md`](docs/SECURITY_REVIEW_2026-03-10.md) | Security review findings and remediation record |
+| [`docs/engineering/platform-security-ops.md`](docs/engineering/platform-security-ops.md) | Platform security operations tracker (pre-launch checklist) |
+| [`docs/audit/security-review-2026-03-10.md`](docs/audit/security-review-2026-03-10.md) | Security review findings and remediation record |
+
+### Audit Reports
+| Doc | Description |
+|---|---|
+| [`docs/audit/codebase-health-report.md`](docs/audit/codebase-health-report.md) | Code quality, architecture, security, performance, and stability assessment |
+| [`docs/audit/documentation-status-report.md`](docs/audit/documentation-status-report.md) | Documentation categorization and cleanup guidance |
+| [`docs/audit/documentation-vs-implementation-report.md`](docs/audit/documentation-vs-implementation-report.md) | Documented feature validation against the current codebase |
+| [`docs/audit/codebase-metrics-2026-03-15.md`](docs/audit/codebase-metrics-2026-03-15.md) | Metrics snapshot and largest-file analysis |
 
 ### Launch Records
 | Doc | Description |
 |---|---|
-| [`docs/SPRINT_5_QA_CHECKLIST.md`](docs/SPRINT_5_QA_CHECKLIST.md) | V1 launch QA gate and signoff record |
-| [`docs/SPRINT_5_RELEASE_NOTES.md`](docs/SPRINT_5_RELEASE_NOTES.md) | V1 launch release notes and known-issues register |
+| [`docs/archive/completed-work/sprint-5-qa-checklist.md`](docs/archive/completed-work/sprint-5-qa-checklist.md) | V1 launch QA gate and signoff record |
+| [`docs/archive/completed-work/sprint-5-release-notes.md`](docs/archive/completed-work/sprint-5-release-notes.md) | V1 launch release notes and known-issues register |
 
 > Sprint planning and historical execution documents are archived in [`docs/archive/`](docs/archive/).
 

@@ -503,15 +503,15 @@ Security audit of all new endpoints. E2E test coverage for all new user flows. P
 
 DOCUMENTATION TO PRODUCE
 
-docs/learning-system.md will describe the full course architecture, gamification mechanics, XP calculation rules, spaced repetition algorithm, and database schema for the learning features.
+../features/learning-system.md will describe the full course architecture, gamification mechanics, XP calculation rules, spaced repetition algorithm, and database schema for the learning features.
 
-docs/exercise-library.md will describe the 300-exercise database structure, classification system, how equipment filtering works in program generation, and the exercise discovery engine design.
+../features/exercise-library.md will describe the 300-exercise database structure, classification system, how equipment filtering works in program generation, and the exercise discovery engine design.
 
-docs/gamification.md will describe the XP system, rank thresholds, streak mechanics, achievement catalogue, Sparks currency, and the events log.
+../features/gamification.md will describe the XP system, rank thresholds, streak mechanics, achievement catalogue, Sparks currency, and the events log.
 
-docs/ai-coach.md will describe Omni's personality definition, the three operating modes, the Check-In Mode data pipeline, and the Coach Notes generation system.
+../features/ai-coach.md will describe Omni's personality definition, the three operating modes, the Check-In Mode data pipeline, and the Coach Notes generation system.
 
-docs/program-continuation.md will describe the Progression Report generation, the three continuation options, and how program chaining works in the database.
+../features/program-continuation.md will describe the Progression Report generation, the three continuation options, and how program chaining works in the database.
 
 All existing documentation will be updated to reflect the expanded system.
 

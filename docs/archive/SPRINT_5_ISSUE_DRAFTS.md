@@ -90,8 +90,8 @@ Suggested files:
 
 - package.json
 - .github/workflows
-- docs/CI_RUNBOOK.md
-- docs/E2E_TEST_MATRIX.md
+- ../engineering/ci-runbook.md
+- ../engineering/e2e-test-matrix.md
 
 ## P1 Issue 4
 
@@ -116,8 +116,8 @@ Acceptance criteria:
 
 Suggested files:
 
-- docs/RELEASE_STRATEGY.md
-- docs/RELEASE_CHECKLIST.md
+- ../engineering/release-strategy.md
+- ../engineering/release-checklist.md
 
 ## P1 Issue 5
 
@@ -143,6 +143,6 @@ Acceptance criteria:
 
 Suggested files:
 
-- docs/SPRINT_5_QA_CHECKLIST.md
-- docs/ROADMAP.md
+- completed-work/sprint-5-qa-checklist.md
+- ../roadmap/future-roadmap.md
 - README.md

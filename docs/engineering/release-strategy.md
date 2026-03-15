@@ -140,7 +140,7 @@ Release-day responsibilities must be assigned before promotion begins:
 - QA owner: validates user-critical journeys after rollback.
 - Comms owner: posts status updates in the release PR and incident channel.
 
-Rollback triggers should be explicit and time-bounded. Use `docs/RELEASE_DAY.md` trigger examples and do not delay rollback while investigating if customer-impacting failures are sustained.
+Rollback triggers should be explicit and time-bounded. Use `release-day.md` trigger examples and do not delay rollback while investigating if customer-impacting failures are sustained.
 
 Minimum rollback artifacts required in the release PR:
 
@@ -153,4 +153,4 @@ Minimum rollback artifacts required in the release PR:
 
 The repository automation is already in place. The remaining work is platform configuration in GitHub, Vercel, Supabase, and Stripe.
 
-Use `docs/PLATFORM_SETUP_CHECKLIST.md` as the step-by-step setup guide.
+Use `platform-setup-checklist.md` as the step-by-step setup guide.

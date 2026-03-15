@@ -3,10 +3,10 @@
 This is the operator playbook for shipping Omnexus from `dev` to `main` safely in one session.
 
 Use with:
-- `docs/RELEASE_CHECKLIST.md` for pass/fail criteria
-- `docs/ENVIRONMENT_MATRIX.md` for expected values per environment
-- `docs/CI_RUNBOOK.md` for troubleshooting failed gates
-- `docs/E2E_TEST_MATRIX.md` for golden-path vs extended coverage expectations
+- `release-checklist.md` for pass/fail criteria
+- `environment-matrix.md` for expected values per environment
+- `ci-runbook.md` for troubleshooting failed gates
+- `e2e-test-matrix.md` for golden-path vs extended coverage expectations
 
 ## Roles
 

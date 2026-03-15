@@ -55,7 +55,7 @@ Core deliverables: AI onboarding coach, 8-week program generator, workout loggin
 - Trainer tools (program assignment, session annotation, client reports)
 - B2B pricing (per-seat SaaS, volume discounts, free trial)
 
-> For the complete roadmap including technical details, see [docs/ROADMAP.md](../ROADMAP.md).
+> For the complete roadmap including technical details, see [../roadmap/future-roadmap.md](../ROADMAP.md).
 
 
 > Make Omnexus the best AI fitness coaching app on the market.

@@ -385,6 +385,6 @@ This structure makes content easy to add, edit, and eventually migrate to a CMS 
 
 ## Related Documents
 
-- `docs/Program_Mastery.md` — Part One: Exercise Library
-- `docs/program-continuation.md` — how exercises feed into block-over-block progression tracking
-- `docs/ai-coach.md` — how Omni references the exercise library for coaching responses
+- `../archive/Program_Mastery.md` — Part One: Exercise Library
+- `program-continuation.md` — how exercises feed into block-over-block progression tracking
+- `ai-coach.md` — how Omni references the exercise library for coaching responses

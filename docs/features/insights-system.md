@@ -138,4 +138,4 @@ Pre-Workout Briefing  →  Active Workout  →  Adaptation Engine  →  WorkoutC
 
 ## Research Feed Integration
 
-Insights and the AI Q&A system both surface content from the PubMed research feed. See `docs/ARCHITECTURE.md` for the RAG citation pipeline in `/api/ask`.
+Insights and the AI Q&A system both surface content from the PubMed research feed. See `../architecture/architecture-reference.md` for the RAG citation pipeline in `/api/ask`.

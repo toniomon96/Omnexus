@@ -8,7 +8,7 @@ Full course architecture, gamification mechanics, XP calculation rules, spaced r
 
 The Omnexus learning system applies Duolingo's core engagement mechanics — daily streaks, XP rewards, combo multipliers, leaderboards, and achievement unlocks — to fitness education. The goal is to make users open the app not just to log a workout, but to earn XP, maintain their streak, complete a course, and beat their friends on the learning leaderboard.
 
-See `docs/gamification.md` for the full XP system, rank thresholds, streak mechanics, achievement catalogue, and Sparks currency details.
+See `gamification.md` for the full XP system, rank thresholds, streak mechanics, achievement catalogue, and Sparks currency details.
 
 ---
 
@@ -159,7 +159,7 @@ Users who score below 70% see the lessons they struggled with highlighted. They 
 | Course completed | 200 XP |
 | Interactive checkpoint correct | Mini XP reward |
 
-See `docs/gamification.md` for the full XP table including workout actions, combo multipliers, and rank thresholds.
+See `gamification.md` for the full XP table including workout actions, combo multipliers, and rank thresholds.
 
 ---
 
@@ -404,6 +404,6 @@ This avoids round-trip latency for the celebration mechanics — the UI fires im
 
 ## Related Documents
 
-- `docs/gamification.md` — XP rules, rank thresholds, streak mechanics, achievements, Sparks
-- `docs/ai-coach.md` — Omni's Science Mode references course content and RAG system
-- `docs/Program_Mastery.md` — Parts Two and Three (original vision)
+- `gamification.md` — XP rules, rank thresholds, streak mechanics, achievements, Sparks
+- `ai-coach.md` — Omni's Science Mode references course content and RAG system
+- `../archive/Program_Mastery.md` — Parts Two and Three (original vision)
