@@ -18,6 +18,43 @@ import { MarkdownText } from '../components/ui/MarkdownText';
 import { Skeleton } from '../components/ui/Skeleton';
 import { getTrainingPrimaryActionLabel } from '../lib/trainingPrimaryAction';
 
+const BRIEFING_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+const BRIEFING_CACHE_KEY_PREFIX = 'omnexus_briefing_';
+
+interface BriefingCache {
+  text: string;
+  cachedAt: number;
+}
+
+function getBriefingCacheKey(programId: string, dayIndex: number): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `${BRIEFING_CACHE_KEY_PREFIX}${programId}_${dayIndex}_${today}`;
+}
+
+function readBriefingCache(key: string): string | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const cached: BriefingCache = JSON.parse(raw);
+    if (Date.now() - cached.cachedAt > BRIEFING_CACHE_TTL_MS) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return cached.text;
+  } catch {
+    return null;
+  }
+}
+
+function writeBriefingCache(key: string, text: string): void {
+  try {
+    const entry: BriefingCache = { text, cachedAt: Date.now() };
+    localStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    // Ignore storage errors (e.g. private browsing quota)
+  }
+}
+
 export function PreWorkoutBriefingPage() {
   const { state } = useApp();
   const navigate = useNavigate();
@@ -60,6 +97,21 @@ export function PreWorkoutBriefingPage() {
 
   async function fetchBriefing() {
     if (!user || exerciseNames.length === 0) return;
+
+    // Only cache when we have a concrete program and day to key on
+    const cacheKey = program && nextWorkout
+      ? getBriefingCacheKey(program.id, nextWorkout.dayIndex)
+      : null;
+
+    // Return cached response if available and still fresh
+    if (cacheKey) {
+      const cached = readBriefingCache(cacheKey);
+      if (cached) {
+        setBriefing(cached);
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -69,6 +121,7 @@ export function PreWorkoutBriefingPage() {
         userContext: { goal: user.goal, experienceLevel: user.experienceLevel },
       });
       setBriefing(res.briefing);
+      if (cacheKey) writeBriefingCache(cacheKey, res.briefing);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load briefing');
     } finally {

@@ -112,6 +112,7 @@ export function ChallengesPage() {
   const [acceptedFriends, setAcceptedFriends] = useState<FriendshipWithProfile[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<ChallengeInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CreateForm>({
@@ -129,6 +130,7 @@ export function ChallengesPage() {
   const load = useCallback(async () => {
     if (!userId || loadingRef.current) return;
     loadingRef.current = true;
+    setLoadError(false);
     try {
       const [data, aiData, friendships, invitations] = await loadChallengesData(userId);
       setChallenges(data);
@@ -139,6 +141,8 @@ export function ChallengesPage() {
         (c) => c.type === 'shared' && c.startDate <= todayStr && c.endDate >= todayStr,
       );
       setSharedChallenge(shared ?? null);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
       loadingRef.current = false;
@@ -429,8 +433,20 @@ export function ChallengesPage() {
           </div>
         )}
 
+        {!loading && loadError && (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <p className="text-red-400 text-sm">Failed to load challenges. Tap to retry.</p>
+            <button
+              onClick={() => { setLoading(true); void load(); }}
+              className="text-brand-400 text-sm underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Active (joined) challenges */}
-        {mine.length > 0 && (
+        {!loadError && mine.length > 0 && (
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Your Challenges
@@ -471,7 +487,7 @@ export function ChallengesPage() {
           </div>
         )}
 
-        {!loading && challenges.length === 0 && !showCreate && (
+        {!loading && !loadError && challenges.length === 0 && !showCreate && (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Trophy size={32} className="text-slate-500" />
             <p className="text-sm text-slate-600 dark:text-slate-400">

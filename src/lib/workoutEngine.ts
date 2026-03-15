@@ -31,6 +31,7 @@ import { buildSessionExercises } from './exerciseIntelligence';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PROGRAM_DURATION_WEEKS = 8;
+const PROGRAM_DELOAD_WEEK = 4;
 
 // ─── Program Structure Engine ─────────────────────────────────────────────────
 
@@ -563,5 +564,6 @@ export function generateProgram(profile: UserTrainingProfile, programId = ''): P
     isAiGenerated: false,
     aiLifecycleStatus: 'active',
     createdAt: new Date().toISOString(),
+    deloadWeek: PROGRAM_DELOAD_WEEK,
   };
 }

@@ -3,7 +3,9 @@ import { X } from 'lucide-react';
 import { exercises } from '../../data/exercises';
 import { filterExercises } from '../../lib/exerciseSearch';
 import { SearchBar } from '../exercise-library/SearchBar';
+import { MuscleGroupFilter } from '../exercise-library/MuscleGroupFilter';
 import { Badge } from '../ui/Badge';
+import type { MuscleGroup } from '../../types';
 
 interface AddExerciseDrawerProps {
   open: boolean;
@@ -13,8 +15,9 @@ interface AddExerciseDrawerProps {
 
 export function AddExerciseDrawer({ open, onClose, onAdd }: AddExerciseDrawerProps) {
   const [query, setQuery] = useState('');
+  const [muscle, setMuscle] = useState<MuscleGroup | null>(null);
 
-  const filtered = filterExercises(exercises, { query });
+  const filtered = filterExercises(exercises, { query, muscle });
 
   if (!open) return null;
 
@@ -37,15 +40,16 @@ export function AddExerciseDrawer({ open, onClose, onAdd }: AddExerciseDrawerPro
           </button>
         </div>
 
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-3 pb-2 space-y-2">
           <SearchBar value={query} onChange={setQuery} />
+          <MuscleGroupFilter selected={muscle} onChange={setMuscle} />
         </div>
 
         <ul className="overflow-y-auto flex-1 px-4 pb-6 space-y-2">
           {filtered.map((ex) => (
             <li key={ex.id}>
               <button
-                onClick={() => { onAdd(ex.id); onClose(); setQuery(''); }}
+                onClick={() => { onAdd(ex.id); onClose(); setQuery(''); setMuscle(null); }}
                 className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 p-3 hover:border-brand-400 dark:hover:border-brand-600 transition-colors"
               >
                 <p className="font-medium text-slate-900 dark:text-white text-sm">

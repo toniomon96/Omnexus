@@ -267,6 +267,8 @@ export interface Program {
   predecessorProgramId?: string;
   /** When the program block was completed (ISO string) */
   completedAt?: string;
+  /** Week number within the program that is the scheduled deload (1-based, default 4) */
+  deloadWeek?: number;
 }
 
 // ─── Active Workout Session ───────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../contexts/ToastContext';
 import type { FeedSession, FeedReaction, ReactionEmoji } from '../types';
@@ -51,6 +52,8 @@ export function ActivityFeedPage() {
   const { state } = useApp();
   const { toast } = useToast();
   const userId = state.user?.id ?? '';
+
+  const navigate = useNavigate();
 
   const [feed, setFeed] = useState<FeedSession[]>([]);
   const [reactions, setReactions] = useState<FeedReaction[]>([]);
@@ -172,6 +175,12 @@ export function ActivityFeedPage() {
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs">
               No activity yet. Add friends to see their workouts here in real time.
             </p>
+            <button
+              onClick={() => navigate('/friends')}
+              className="mt-1 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+            >
+              Find Friends
+            </button>
           </div>
         )}
 
