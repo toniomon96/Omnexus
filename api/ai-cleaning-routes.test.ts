@@ -148,7 +148,7 @@ describe('AI route response cleaning', () => {
     }));
 
     const { default: onboardHandler } = await import('./onboard.js');
-    const { res, getStatusCode, getJsonBody, getHeader } = createRes();
+    const { res, getStatusCode, getJsonBody } = createRes();
 
     await onboardHandler(
       createReq({
@@ -226,7 +226,7 @@ describe('AI route response cleaning', () => {
     }));
 
     const { default: peerInsightsHandler } = await import('./peer-insights.js');
-    const { res, getStatusCode, getJsonBody } = createRes();
+    const { res, getStatusCode, getJsonBody, getHeader } = createRes();
 
     await peerInsightsHandler(
       createReq({
