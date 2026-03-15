@@ -38,6 +38,31 @@ Rules:
 - Include beginner-friendly guidance and practical habit coaching.
 - Do not add any commentary outside the JSON.`;
 
+/**
+ * Extracts the first balanced JSON object from a string using a brace-depth
+ * scanner. Handles strings correctly so inner braces don't confuse the count.
+ */
+function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) { escaped = false; continue; }
+    if (ch === '\\' && inString) { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!setCorsHeaders(req, res)) return;
 
@@ -89,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
@@ -98,9 +123,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');
 
-    // Strip any markdown fences if the model wraps JSON
+    // Robust JSON extraction: strip fences first, then attempt a direct parse.
+    // If that fails, use a balanced-brace scanner to extract the first complete
+    // JSON object (avoids greedy regex mis-matching trailing braces).
     const raw = block.text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    const plan = JSON.parse(raw);
+    let plan: unknown;
+    try {
+      plan = JSON.parse(raw);
+    } catch {
+      const extracted = extractFirstJsonObject(raw);
+      if (!extracted) {
+        console.error('[/api/meal-plan] Raw response (no JSON found):', raw.slice(0, 500));
+        return res.status(500).json({ error: 'Failed to generate meal plan right now. Please try again.' });
+      }
+      plan = JSON.parse(extracted);
+    }
+
+    // Lightweight schema check before returning to the client.
+    if (
+      typeof plan !== 'object' || plan === null
+      || !Array.isArray((plan as Record<string, unknown>).meals)
+      || (plan as Record<string, unknown[]>).meals.length === 0
+    ) {
+      console.error('[/api/meal-plan] Invalid plan schema:', JSON.stringify(plan).slice(0, 500));
+      return res.status(422).json({ error: 'Meal plan generation returned an unexpected format. Please try again.' });
+    }
 
     return res.status(200).json({ plan });
   } catch (err: unknown) {

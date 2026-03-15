@@ -1287,6 +1287,44 @@ export async function getAiChallenges(userId: string): Promise<AiChallenge[]> {
   ];
 }
 
+/**
+ * Upsert a progress value for a user's personal AI challenge.
+ * Creates or updates the row in challenge_participants.
+ */
+export async function updateAiChallengeProgress(
+  challengeId: string,
+  userId: string,
+  progress: number,
+): Promise<void> {
+  const supabase = await getSupabase();
+  const { error } = await supabase
+    .from('challenge_participants')
+    .upsert(
+      { challenge_id: challengeId, user_id: userId, progress },
+      { onConflict: 'challenge_id,user_id' },
+    );
+  if (error) throw new Error(`[updateAiChallengeProgress] ${error.message}`);
+}
+
+/**
+ * Fetch a single AI challenge by ID for the given user.
+ * Returns null when not found.
+ */
+export async function getAiChallengeById(
+  challengeId: string,
+  userId: string,
+): Promise<AiChallenge | null> {
+  const supabase = await getSupabase();
+  const { data, error } = await supabase
+    .from('ai_challenges')
+    .select('*')
+    .eq('id', challengeId)
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .maybeSingle();
+  if (error) throw new Error(`[getAiChallengeById] ${error.message}`);
+  return data ? mapAiChallenge(data as DbAiChallengeRow) : null;
+}
+
 // ─── XP Events ────────────────────────────────────────────────────────────────
 
 /**
