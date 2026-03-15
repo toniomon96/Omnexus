@@ -133,10 +133,12 @@ A strong foundation is to align with platform guidelines:
 Apple’s Human Interface Guidelines (HIG) provide best practices for designing great experiences across Apple platforms. 
 Apple has also been promoting a “new design” direction (including material concepts like “Liquid Glass”) and provides official design resources/templates. 
 Material Design 3 emphasizes accessibility-forward color systems (including dynamic color), typography hierarchy, and motion principles that make interactions feel fluid. 
-Apple Fitness+: A personalized fitness experience comes to life with Apple  Watch - Apple
-Fitbod partners with Raise-the-Bar to arm gym-goers with smart fitness  guidance. | by Fitbod | Fitbod | Medium
-Strava App Design by Andrei Bohatereţ on Dribbble
-Segment Leaderboard Filters – Strava Support
+Reference examples:
+
+- Apple Fitness+: A personalized fitness experience comes to life with Apple Watch
+- Fitbod partners with Raise-the-Bar to arm gym-goers with smart fitness guidance
+- Strava App Design by Andrei Bohatereţ on Dribbble
+- Segment Leaderboard Filters — Strava Support
 
 What “less gimmicky” usually means in practice
 When founders say “too many gimmicky icons,” it typically indicates:
