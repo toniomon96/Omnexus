@@ -163,6 +163,7 @@ export function ProfilePage() {
   const trackedGuestMigrationKeyRef = useRef<string | null>(null);
 
   const isGuest = !!currentUser?.isGuest;
+  const hasEmailIdentity = authUser?.identities?.some((id) => id.provider === 'email') ?? true;
 
   useEffect(() => {
     if (isGuest) return;
@@ -903,8 +904,8 @@ export function ProfilePage() {
           </Card>
         )}
 
-        {/* Change password — authenticated users only */}
-        {!isGuest && (
+        {/* Change password — email/password users only (not OAuth providers) */}
+        {!isGuest && hasEmailIdentity && (
           <Card>
             <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
               Change Password

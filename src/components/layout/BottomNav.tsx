@@ -1,6 +1,19 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Dumbbell, Users, GraduationCap, Sparkles } from 'lucide-react';
 
+// ─── Z-Index Layer System ─────────────────────────────────────────────────────
+// All new fixed/absolute elements must fit within this documented stack to avoid
+// collisions.  Only add a new layer here when strictly necessary.
+//
+//   z-20  GuestBanner  (src/components/ui/GuestBanner.tsx)
+//   z-30  TopBar       (src/components/layout/TopBar.tsx)
+//   z-40  BottomNav    (this component)
+//   z-50  Drawers / bottom-sheets (e.g. AddExerciseDrawer)
+//  z-[60] Modals / dialogs (Modal.tsx)
+//  z-[70] Toasts / CelebrationOverlay (topmost)
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
 // All routes that belong to the Community section — keeps the tab highlighted
 // when the user navigates into a community sub-page from the hub.
 const COMMUNITY_PATHS = ['/community', '/feed', '/friends', '/leaderboard', '/challenges'];
