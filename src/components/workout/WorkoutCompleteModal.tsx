@@ -26,6 +26,7 @@ interface WorkoutCompleteModalProps {
   open: boolean;
   session: WorkoutSession;
   prs: PersonalRecord[];
+  onClose?: () => void;
 }
 
 /** Lightweight canvas confetti — no external library needed */
@@ -120,6 +121,7 @@ export function WorkoutCompleteModal({
   open,
   session,
   prs,
+  onClose,
 }: WorkoutCompleteModalProps) {
   const navigate = useNavigate();
   const { state } = useApp();
@@ -326,7 +328,7 @@ export function WorkoutCompleteModal({
   }
 
   return (
-    <Modal open={open} title="Workout Complete! 🎉">
+    <Modal open={open} onClose={onClose} title="Workout Complete! 🎉">
       <div className="space-y-4">
         <div className="rounded-2xl border border-brand-200 bg-brand-50/80 px-4 py-4 dark:border-brand-800 dark:bg-brand-900/20">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300">
