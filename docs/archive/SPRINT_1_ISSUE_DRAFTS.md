@@ -8,7 +8,7 @@ Usage:
 - Create one GitHub issue per draft.
 - Keep the title format as written unless sprint planning requires refinement.
 - Copy the sections into either the feature or bug template as appropriate.
-- Link each issue back to `docs/SPRINT_1_BACKLOG.md`.
+- Link each issue back to `docs/archive/SPRINT_1_BACKLOG.md`.
 
 ## P0 Issue 1
 
@@ -439,7 +439,7 @@ Suggested files:
 - `tests/e2e/challenges.spec.ts`
 - `tests/e2e/community.spec.ts`
 - `tests/e2e/insights.spec.ts`
-- `docs/CI_RUNBOOK.md`
+- `../engineering/ci-runbook.md`
 
 Test plan:
 
@@ -598,9 +598,9 @@ Acceptance criteria:
 
 Suggested files:
 
-- `docs/RELEASE_CHECKLIST.md`
-- `docs/CI_RUNBOOK.md`
-- `docs/RELEASE_DAY.md`
+- `../engineering/release-checklist.md`
+- `../engineering/ci-runbook.md`
+- `../engineering/release-day.md`
 
 Test plan:
 

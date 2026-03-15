@@ -234,9 +234,9 @@ In Science Mode, Omni uses the existing `/api/ask` endpoint with the `pgvector` 
 
 ## Related Documents
 
-- `docs/learning-system.md` — Omni's Science Mode references course content
-- `docs/program-continuation.md` — Omni generates the Progression Report narrative
-- `docs/program-generation.md` — existing program generation pipeline
-- `docs/Program_Mastery.md` — Part Three: AI Coach Persona (original vision)
+- `learning-system.md` — Omni's Science Mode references course content
+- `program-continuation.md` — Omni generates the Progression Report narrative
+- `program-generation.md` — existing program generation pipeline
+- `../archive/Program_Mastery.md` — Part Three: AI Coach Persona (original vision)
 - `api/ask.ts` — existing RAG endpoint used by Science Mode
 - `api/adapt.ts` — existing adaptation endpoint extended by Check-In Mode

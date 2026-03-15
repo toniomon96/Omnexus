@@ -38,7 +38,7 @@
 | `src/data/courses.ts` | 15 courses (Nutrition, Science, Technique, Mind) |
 | `src/data/programs.ts` | Pre-built training programs |
 
-> For the full architecture diagram and data models, see [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
+> For the full architecture diagram and data models, see [../architecture/architecture-reference.md](../ARCHITECTURE.md).
 
 | `api/_rateLimit.ts` | Upstash rate limiting helper |
 | `api/ask.ts` | AI coach endpoint (pgvector RAG + Claude) |

@@ -2,7 +2,7 @@
 
 This document is the exact list of things you still need to do manually outside the repo.
 
-Security-specific platform operations are tracked in `docs/PLATFORM_SECURITY_OPS.md`.
+Security-specific platform operations are tracked in `platform-security-ops.md`.
 
 If you only do work that the coding agent cannot do for you, this is your list.
 
@@ -144,7 +144,7 @@ Recommended mapping:
 - `Preview`: hosted `dev` branch deployment and PR preview deployments
 - `Production`: `main`
 
-Use `docs/ENVIRONMENT_MATRIX.md` while entering them.
+Use `environment-matrix.md` while entering them.
 
 Review these variables one by one:
 

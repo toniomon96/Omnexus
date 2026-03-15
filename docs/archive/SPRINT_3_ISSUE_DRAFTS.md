@@ -8,7 +8,7 @@ Usage:
 - Create one GitHub issue per draft.
 - Keep the title format as written unless sprint planning requires refinement.
 - Copy the sections into either the feature or bug template as appropriate.
-- Link each issue back to `docs/SPRINT_3_BACKLOG.md`.
+- Link each issue back to `docs/archive/SPRINT_3_BACKLOG.md`.
 
 ## P0 Issue 1
 

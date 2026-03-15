@@ -356,9 +356,9 @@ As of v1.0, the Capacitor native layer is **code-complete and committed**. Here 
 
 ## Checklist Before First Store Submission
 
-- [x] `VITE_API_BASE_URL` set to production Vercel URL (`https://fitness-app-ten-eta.vercel.app`)
+- [x] `VITE_API_BASE_URL` set to production URL (`https://omnexus.fit`)
 - [x] App icon: 1024×1024 PNG designed
-- [x] Privacy policy hosted at `https://fitness-app-ten-eta.vercel.app/privacy`
+- [x] Privacy policy hosted at `https://omnexus.fit/privacy`
 - [x] Apple Developer Program enrolled
 - [x] Google Play Console enrolled
 - [x] `npx cap add ios && npx cap add android` run (platform directories generated and committed)

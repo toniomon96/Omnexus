@@ -5,7 +5,7 @@ This document is the authoritative reference for what is included in the V1 rele
 **Code quality gates (as of V1):**
 - 0 TypeScript errors
 - 0 ESLint warnings
-- 513 unit tests passing (Vitest)
+- 578 unit tests passing (Vitest)
 - Production build successful
 - 0 production dependency vulnerabilities
 
@@ -217,7 +217,7 @@ This document is the authoritative reference for what is included in the V1 rele
 
 ## What Is NOT in V1
 
-The following items are planned for post-V1 releases. See `docs/ROADMAP.md` for full details.
+The following items are planned for post-V1 releases. See `../roadmap/future-roadmap.md` for full details.
 
 | Feature | Target Release |
 |---|---|

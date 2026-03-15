@@ -2,8 +2,8 @@
 
 Use this checklist whenever Omnexus is promoted from `dev` to `main`.
 
-Execution guide: see `docs/RELEASE_DAY.md` for step-by-step release-day operations.
-Security ops tracker: see `docs/PLATFORM_SECURITY_OPS.md`.
+Execution guide: see `release-day.md` for step-by-step release-day operations.
+Security ops tracker: see `platform-security-ops.md`.
 
 ## 1. Local readiness
 
@@ -17,7 +17,7 @@ Security ops tracker: see `docs/PLATFORM_SECURITY_OPS.md`.
 
 ## 2. Environment and secret audit
 
-- [ ] Preview and Production env vars are present and match `docs/ENVIRONMENT_MATRIX.md`
+- [ ] Preview and Production env vars are present and match `environment-matrix.md`
 - [ ] Claude model vars are explicit and non-deprecated:
 	- [ ] `ASK_MODEL` is set
 	- [ ] `ASK_FALLBACK_MODEL` is set

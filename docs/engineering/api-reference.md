@@ -215,7 +215,7 @@ Content-Type: application/json
 
 If normalized output still fails quality integrity checks, a hardcoded fallback full-body program is returned instead. The endpoint never returns a generation failure 4xx/5xx.
 
-See [docs/program-generation.md](docs/program-generation.md) for full pipeline and validation details.
+See [../features/program-generation.md](../features/program-generation.md) for full pipeline and validation details.
 
 **Fallback:** Even on Claude API errors, a usable fallback program is returned with `HTTP 200`.
 

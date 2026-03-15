@@ -27,5 +27,9 @@ These files are preserved for historical reference but are not active working do
 | `SPRINT_4_QA_CHECKLIST.md` | QA checklist for Sprint 4 signoff. |
 | `SPRINT_5_BACKLOG.md` | Sprint 5 backlog: launch-readiness sweep, release freeze. |
 | `SPRINT_5_ISSUE_DRAFTS.md` | GitHub issue drafts for Sprint 5. |
+| `completed-work/sprint-5-qa-checklist.md` | Archived V1 launch QA signoff record. |
+| `completed-work/sprint-5-release-notes.md` | Archived V1 launch release notes. |
+| `completed-work/v1-readiness-report-2026-03-14.md` | Archived readiness snapshot for the V1 launch branch. |
+| `completed-work/engineering-report-2026-03-15.md` | Archived engineering bug-fix and audit report. |
 
-> The Sprint 5 QA checklist and release notes are **not** archived — they remain active at `docs/SPRINT_5_QA_CHECKLIST.md` and `docs/SPRINT_5_RELEASE_NOTES.md` as the V1 launch signoff record.
+> Launch signoff and readiness records now live under `completed-work/` so the top-level docs tree stays focused on active references.
