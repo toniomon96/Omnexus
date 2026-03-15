@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Zap, Loader2, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Zap, Loader2, RefreshCw, ChevronRight } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Skeleton } from '../ui/Skeleton';
@@ -7,6 +8,8 @@ import { generatePersonalChallenge } from '../../services/adaptService';
 import type { AiChallenge } from '../../types';
 import { useWeightUnit } from '../../hooks/useWeightUnit';
 import { toDisplayWeight } from '../../utils/weightUnits';
+import { getWorkoutHistory } from '../../utils/localStorage';
+import { computeChallengeProgress } from '../../utils/challengeProgress';
 import type { WeightUnit } from '../../types';
 
 async function loadAiChallenges(userId: string) {
@@ -52,6 +55,7 @@ export function PersonalChallengeCard({
   sessionsLast30Days,
   avgRpe,
 }: PersonalChallengeCardProps) {
+  const navigate = useNavigate();
   const weightUnit = useWeightUnit();
   const [challenge, setChallenge] = useState<AiChallenge | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,53 +133,84 @@ export function PersonalChallengeCard({
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const start = new Date(challenge.startDate);
   const end = new Date(challenge.endDate);
   const todayDate = new Date(today);
   const daysRemaining = Math.max(0, Math.ceil((end.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  const daysPassed = totalDays - daysRemaining;
-  const progressPct = totalDays > 0 ? Math.min(100, Math.round((daysPassed / totalDays) * 100)) : 0;
   const isActive = challenge.startDate <= today && challenge.endDate >= today;
+
+  // Metric-based progress (computed from local workout history).
+  // localStorage is synchronous; the card is not reactive to mid-session writes.
+  const sessions = useMemo(() => getWorkoutHistory(), []);
+  const rawProgress = useMemo(() => computeChallengeProgress(challenge, sessions), [challenge, sessions]);
+  const displayProgress = challenge.metric === 'total_volume'
+    ? toDisplayWeight(rawProgress, weightUnit)
+    : rawProgress;
+  const progressPct = challenge.target > 0
+    ? Math.min(100, Math.round((rawProgress / challenge.target) * 100))
+    : 0;
+  const isCompleted = rawProgress >= challenge.target;
+
   const { targetText: displayTargetText, unitText: displayUnit } = getPersonalChallengeTargetDisplay(challenge, weightUnit);
 
   return (
+    <button
+      type="button"
+      onClick={() => navigate(`/challenges/${challenge.id}`)}
+      className="w-full text-left"
+      aria-label={`View challenge: ${challenge.title}`}
+    >
     <Card>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 shrink-0">
-            <Zap size={16} className="text-brand-500" />
+          <div className={[
+            'flex h-8 w-8 items-center justify-center rounded-lg shrink-0',
+            isCompleted ? 'bg-green-500/15' : 'bg-brand-500/10',
+          ].join(' ')}>
+            <Zap size={16} className={isCompleted ? 'text-green-500' : 'text-brand-500'} />
           </div>
           <div>
             <p className="font-semibold text-sm text-slate-900 dark:text-white">Personal Challenge</p>
-            {isActive && (
+            {isActive && !isCompleted && (
               <p className="text-[10px] text-slate-400">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining</p>
+            )}
+            {isCompleted && (
+              <p className="text-[10px] text-green-500 font-semibold">✓ Completed!</p>
             )}
           </div>
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="text-slate-400 hover:text-brand-500 transition-colors p-1"
-          title="Generate new challenge"
-        >
-          {generating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); void handleGenerate(); }}
+            disabled={generating}
+            className="text-slate-400 hover:text-brand-500 transition-colors p-1"
+            title="Generate new challenge"
+            aria-label="Regenerate challenge"
+          >
+            {generating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+          </button>
+          <ChevronRight size={14} className="text-slate-400" />
+        </div>
       </div>
 
       <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{challenge.title}</p>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{challenge.description}</p>
 
       <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
-        <span>Target: {displayTargetText} {displayUnit}</span>
-        <span>{progressPct}% through</span>
+        <span>
+          {Math.round(displayProgress * 10) / 10} / {displayTargetText} {displayUnit}
+        </span>
+        <span>{progressPct}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
         <div
-          className="h-full rounded-full bg-brand-500 transition-all duration-500"
+          className={[
+            'h-full rounded-full transition-all duration-500',
+            isCompleted ? 'bg-green-500' : 'bg-brand-500',
+          ].join(' ')}
           style={{ width: `${progressPct}%` }}
         />
       </div>
     </Card>
+    </button>
   );
 }

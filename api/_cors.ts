@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const DEFAULT_PROD_ALLOWED_ORIGINS = new Set([
+  'https://omnexus.fit',
   'https://omnexus.netlify.app',
   'https://fitness-app-ten-eta.vercel.app',
 ]);
