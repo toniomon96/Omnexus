@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 const SYSTEM_PROMPT = `You are a fitness coach creating a personal 7-day challenge for a user.
 
@@ -74,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: AI_MODEL,
       max_tokens: 512,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],

@@ -4,6 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { hasPromptInjectionSignals, sanitizeFreeText } from './_aiSafety.js';
+import { AI_MODEL } from '../lib/aiModel.js';
+
+const MEAL_PLAN_TIMEOUT_MS = 20_000;
+const MEAL_PLAN_MAX_TOKENS = 1_600;
 
 const SYSTEM_PROMPT = `You are a certified sports nutritionist. Generate a one-day educational meal plan that meets the user's macro targets.
 
@@ -113,12 +117,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    const message = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    const message = await Promise.race([
+      client.messages.create({
+        model: AI_MODEL,
+        max_tokens: MEAL_PLAN_MAX_TOKENS,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Meal plan request timed out')), MEAL_PLAN_TIMEOUT_MS),
+      ),
+    ]);
 
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');

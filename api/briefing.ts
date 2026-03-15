@@ -5,6 +5,7 @@ import { setCorsHeaders } from './_cors.js';
 import { checkRateLimit } from './_rateLimit.js';
 import { normalizeExperience, normalizeGoal, sanitizeFreeText } from './_aiSafety.js';
 import { cleanAiText } from './_aiResponse.js';
+import { AI_MODEL } from '../lib/aiModel.js';
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 
@@ -30,9 +31,10 @@ HARD CONSTRAINTS:
 - NEVER recommend weights that seem unsafe or represent extreme jumps
 - NEVER invent data not present in the history`;
 
-const BRIEFING_MODEL = process.env.BRIEFING_MODEL ?? 'claude-3-5-haiku-20241022';
-const BRIEFING_FALLBACK_MODEL = process.env.BRIEFING_FALLBACK_MODEL ?? 'claude-sonnet-4-6';
+const BRIEFING_MODEL = process.env.BRIEFING_MODEL ?? AI_MODEL;
+const BRIEFING_FALLBACK_MODEL = process.env.BRIEFING_FALLBACK_MODEL ?? AI_MODEL;
 const BRIEFING_TIMEOUT_MS = 8000;
+const BRIEFING_CACHE_CONTROL = 's-maxage=21600, stale-while-revalidate';
 
 function isModelNotFoundError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : '';
@@ -132,10 +134,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');
 
+    res.setHeader('Cache-Control', BRIEFING_CACHE_CONTROL);
+    res.setHeader('Vary', 'Origin, Authorization');
     return res.status(200).json({ briefing: cleanAiText(block.text) });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Failed to generate briefing';
     if (msg.includes('timed out')) {
+      res.setHeader('Cache-Control', BRIEFING_CACHE_CONTROL);
+      res.setHeader('Vary', 'Origin, Authorization');
       return res.status(200).json({
         briefing: cleanAiText(buildFallbackBriefing(
           safeExerciseNames,

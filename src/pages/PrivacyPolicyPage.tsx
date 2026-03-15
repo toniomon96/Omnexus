@@ -4,11 +4,21 @@ import { ArrowLeft } from 'lucide-react';
 export function PrivacyPolicyPage() {
   const navigate = useNavigate();
 
+  function handleBack() {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/');
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <button
-          onClick={() => navigate(-1)}
+          type="button"
+          onClick={handleBack}
           className="flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft size={16} />

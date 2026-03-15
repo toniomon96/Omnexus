@@ -62,7 +62,9 @@ describe('buildInsightRequest', () => {
     expect(result).not.toBeNull();
     expect(result!.userGoal).toBe('hypertrophy');
     expect(result!.userExperience).toBe('intermediate');
-    expect(result!.workoutSummary).toContain('Sessions in last 4 weeks');
+    expect(result!.workoutSummary).toContain('Training Summary:');
+    expect(result!.workoutSummary).toContain('Muscle Group Frequency:');
+    expect(result!.workoutSummary).toContain('Strength Progression:');
   });
 
   it('includes exercise names in summary instead of IDs', async () => {
@@ -71,7 +73,7 @@ describe('buildInsightRequest', () => {
     expect(result!.workoutSummary).toContain('Barbell Bench Press');
   });
 
-  it('limits to 20 sessions max', async () => {
+  it('limits recent workout lines to 10 sessions max', async () => {
     const sessions: WorkoutSession[] = [];
     for (let i = 0; i < 25; i++) {
       const day = String(i + 1).padStart(2, '0');
@@ -82,7 +84,7 @@ describe('buildInsightRequest', () => {
     const result = await buildInsightRequest(sessions, user, 'kg');
     // The summary should contain session log lines — count them
     const lines = result!.workoutSummary.split('\n').filter((l) => l.includes('kg volume'));
-    expect(lines.length).toBeLessThanOrEqual(20);
+    expect(lines.length).toBeLessThanOrEqual(10);
   });
 
   it('excludes sessions older than 28 days', async () => {

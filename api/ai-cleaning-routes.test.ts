@@ -14,9 +14,11 @@ function createReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
 function createRes() {
   let statusCode = 200;
   let jsonBody: unknown = null;
+  const headers = new Map<string, string>();
 
   const res = {
-    setHeader() {
+    setHeader(name: string, value: string) {
+      headers.set(name.toLowerCase(), value);
       return res;
     },
     status(code: number) {
@@ -36,6 +38,7 @@ function createRes() {
     res,
     getStatusCode: () => statusCode,
     getJsonBody: () => jsonBody,
+    getHeader: (name: string) => headers.get(name.toLowerCase()),
   };
 }
 
@@ -73,7 +76,7 @@ describe('AI route response cleaning', () => {
     }));
 
     const { default: insightsHandler } = await import('./insights.js');
-    const { res, getStatusCode, getJsonBody } = createRes();
+    const { res, getStatusCode, getJsonBody, getHeader } = createRes();
 
     await insightsHandler(
       createReq({
@@ -85,6 +88,7 @@ describe('AI route response cleaning', () => {
 
     expect(getStatusCode()).toBe(200);
     expect(getJsonBody()).toEqual({ insight: '**Training Overview**\n\nSolid week.' });
+    expect(getHeader('cache-control')).toBe('s-maxage=21600, stale-while-revalidate');
   });
 
   it('cleans markdown/prefix artifacts from /api/briefing output', async () => {
@@ -103,7 +107,7 @@ describe('AI route response cleaning', () => {
     }));
 
     const { default: briefingHandler } = await import('./briefing.js');
-    const { res, getStatusCode, getJsonBody } = createRes();
+    const { res, getStatusCode, getJsonBody, getHeader } = createRes();
 
     await briefingHandler(
       createReq({
@@ -118,6 +122,7 @@ describe('AI route response cleaning', () => {
 
     expect(getStatusCode()).toBe(200);
     expect(getJsonBody()).toEqual({ briefing: 'Warm up first, then push top sets.' });
+    expect(getHeader('cache-control')).toBe('s-maxage=21600, stale-while-revalidate');
   });
 
   it('cleans onboarding display reply while preserving profile parsing', async () => {
@@ -221,7 +226,7 @@ describe('AI route response cleaning', () => {
     }));
 
     const { default: peerInsightsHandler } = await import('./peer-insights.js');
-    const { res, getStatusCode, getJsonBody } = createRes();
+    const { res, getStatusCode, getJsonBody, getHeader } = createRes();
 
     await peerInsightsHandler(
       createReq({
@@ -233,6 +238,7 @@ describe('AI route response cleaning', () => {
 
     expect(getStatusCode()).toBe(200);
     expect(getJsonBody()).toMatchObject({ narrative: 'You are training consistently.', hasEnoughPeers: true });
+    expect(getHeader('cache-control')).toBe('s-maxage=21600, stale-while-revalidate');
   });
 
   it('cleans weekly digest message text before push payload', async () => {

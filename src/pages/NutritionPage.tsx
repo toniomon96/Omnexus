@@ -451,6 +451,7 @@ export function NutritionPage() {
         {/* Date navigator */}
         <div className="flex items-center justify-between gap-2">
           <button
+            type="button"
             onClick={() => setDate((d) => shiftDate(d, -1))}
             className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label="Previous day"
@@ -461,6 +462,7 @@ export function NutritionPage() {
             {formatDisplayDate(date)}
           </p>
           <button
+            type="button"
             onClick={() => setDate((d) => shiftDate(d, 1))}
             disabled={isToday}
             className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-30"
@@ -484,6 +486,7 @@ export function NutritionPage() {
               )}
             </div>
             <button
+              type="button"
               onClick={() => { setGoalDraft(goals); setShowGoals(true); }}
               className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
@@ -552,12 +555,13 @@ export function NutritionPage() {
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1.5">Quick-add recent</p>
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {recentMeals.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => quickLog(m)}
-                  className="shrink-0 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-200 hover:border-brand-500 hover:bg-brand-500/10 transition-colors whitespace-nowrap"
-                >
+                {recentMeals.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => quickLog(m)}
+                    className="shrink-0 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-200 hover:border-brand-500 hover:bg-brand-500/10 transition-colors whitespace-nowrap"
+                  >
                   {m.mealName} · {m.calories ?? '?'} kcal
                 </button>
               ))}
@@ -567,11 +571,11 @@ export function NutritionPage() {
 
         {/* Add entry button */}
         <div className="flex gap-2">
-          <Button fullWidth onClick={() => setShowAddModal(true)}>
+          <Button type="button" fullWidth onClick={() => setShowAddModal(true)}>
             <Plus size={16} />
             Log Food
           </Button>
-          <Button variant="secondary" onClick={() => { setShowMealPlanModal(true); setGeneratedPlan(null); setMealPlanError(''); }}>
+          <Button type="button" variant="secondary" onClick={() => { setShowMealPlanModal(true); setGeneratedPlan(null); setMealPlanError(''); }}>
             <Wand2 size={16} />
             Meal Plan
           </Button>
@@ -626,6 +630,7 @@ export function NutritionPage() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleDelete(entry.id)}
                   className="shrink-0 text-slate-300 hover:text-red-400 dark:hover:text-red-400 transition-colors p-1"
                   aria-label="Delete entry"
@@ -690,10 +695,10 @@ export function NutritionPage() {
             />
           </div>
           <div className="flex gap-2 pt-1">
-            <Button variant="ghost" onClick={() => setShowAddModal(false)} fullWidth>
+            <Button type="button" variant="ghost" onClick={() => setShowAddModal(false)} fullWidth>
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={adding} fullWidth>
+            <Button type="button" onClick={handleAdd} disabled={adding} fullWidth>
               {adding ? 'Saving…' : 'Add Entry'}
             </Button>
           </div>
@@ -754,8 +759,8 @@ export function NutritionPage() {
             />
             {mealPlanError && <p className="text-red-400 text-xs">{mealPlanError}</p>}
             <div className="flex gap-2 pt-1">
-              <Button variant="ghost" onClick={() => setShowMealPlanModal(false)} fullWidth>Cancel</Button>
-              <Button onClick={handleGenerateMealPlan} disabled={generatingMealPlan} fullWidth>
+              <Button type="button" variant="ghost" onClick={() => setShowMealPlanModal(false)} fullWidth>Cancel</Button>
+              <Button type="button" onClick={handleGenerateMealPlan} disabled={generatingMealPlan} fullWidth>
                 {generatingMealPlan ? 'Generating…' : 'Generate Plan'}
               </Button>
             </div>
@@ -787,6 +792,7 @@ export function NutritionPage() {
               {generatedPlan.meals.map((meal, i) => (
                 <div key={i} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
                   <button
+                    type="button"
                     className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 dark:bg-slate-800 text-left"
                     onClick={() => setExpandedMealIdx(expandedMealIdx === i ? null : i)}
                   >
@@ -804,7 +810,7 @@ export function NutritionPage() {
                         <span className="text-amber-400">{meal.carbsG}g carbs</span>
                         <span className="text-blue-400">{meal.fatG}g fat</span>
                       </div>
-                      <Button size="sm" onClick={() => handleLogMeal(meal)} className="w-full mt-1">
+                      <Button type="button" size="sm" onClick={() => handleLogMeal(meal)} className="w-full mt-1">
                         Log This
                       </Button>
                     </div>
@@ -816,7 +822,7 @@ export function NutritionPage() {
               <span>Total</span>
               <span>{generatedPlan.totalCalories} kcal · {generatedPlan.totalProtein}g protein</span>
             </div>
-            <Button variant="ghost" onClick={() => setGeneratedPlan(null)} fullWidth>
+            <Button type="button" variant="ghost" onClick={() => setGeneratedPlan(null)} fullWidth>
               Regenerate
             </Button>
           </div>
@@ -877,6 +883,7 @@ export function NutritionPage() {
           </div>
           <div className="flex gap-2 pt-1">
             <Button
+              type="button"
               variant="ghost"
               onClick={() => {
                 const defaults = GOAL_DEFAULTS[user?.goal ?? 'general-fitness'];
@@ -886,7 +893,7 @@ export function NutritionPage() {
             >
               Reset to defaults
             </Button>
-            <Button onClick={handleSaveGoals} fullWidth>
+            <Button type="button" onClick={handleSaveGoals} fullWidth>
               Save Goals
             </Button>
           </div>
