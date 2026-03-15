@@ -201,6 +201,29 @@ describe('recommendAdaptation', () => {
     const rec = recommendAdaptation({ ...baseProgress, trendDirection: 'declining', avgRpe: 8.5 });
     expect(rec.action).toBe('deload');
   });
+
+  // ── RPE=0 edge cases ──────────────────────────────────────────────────────────
+
+  it('does not produce "RPE 0.0" rationale when no RPE is logged', () => {
+    const rec = recommendAdaptation({ ...baseProgress, avgRpe: 0 });
+    expect(rec.rationale).not.toMatch(/RPE 0/);
+  });
+
+  it('recommends increase_reps (not increase_load) for improving trend with no RPE data', () => {
+    const rec = recommendAdaptation({ ...baseProgress, trendDirection: 'improving', avgRpe: 0 });
+    expect(rec.action).toBe('increase_reps');
+  });
+
+  it('recommends hold for declining trend with no RPE data', () => {
+    const rec = recommendAdaptation({ ...baseProgress, trendDirection: 'declining', avgRpe: 0 });
+    expect(rec.action).toBe('hold');
+  });
+
+  it('recommends hold with low confidence for stable trend with no RPE data', () => {
+    const rec = recommendAdaptation({ ...baseProgress, trendDirection: 'stable', avgRpe: 0 });
+    expect(rec.action).toBe('hold');
+    expect(rec.confidence).toBe('low');
+  });
 });
 
 // ─── generateAdaptationPlan ───────────────────────────────────────────────────

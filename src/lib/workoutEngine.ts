@@ -158,31 +158,103 @@ function rpeForRole(
 // ─── Progression Note Builder ─────────────────────────────────────────────────
 
 /**
+ * Maps well-known exercise IDs to `currentLiftsKg` profile keys so that
+ * progression notes can be seeded with the user's current working weight.
+ */
+const EXERCISE_LIFT_MAP: Partial<Record<string, keyof NonNullable<UserTrainingProfile['currentLiftsKg']>>> = {
+  'barbell-bench-press': 'bench',
+  'dumbbell-bench-press': 'bench',
+  'barbell-back-squat': 'squat',
+  'front-squat': 'squat',
+  'goblet-squat': 'squat',
+  'barbell-deadlift': 'deadlift',
+  'romanian-deadlift': 'deadlift',
+  'sumo-deadlift': 'deadlift',
+  'barbell-overhead-press': 'press',
+  'dumbbell-overhead-press': 'press',
+  'seated-dumbbell-press': 'press',
+};
+
+/**
+ * Infer the current working lift for `exercise` from the user's `currentLiftsKg`
+ * profile field.  Falls back to a movement-pattern + equipment heuristic when the
+ * exercise ID is not in the explicit map, so variant exercises like
+ * `decline-barbell-press` and `high-bar-squat` are matched automatically.
+ */
+function findCurrentLiftKg(
+  exercise: Exercise,
+  currentLiftsKg: UserTrainingProfile['currentLiftsKg'],
+): number | undefined {
+  if (!currentLiftsKg) return undefined;
+
+  // Explicit ID map takes priority
+  const liftKey = EXERCISE_LIFT_MAP[exercise.id];
+  if (liftKey) return currentLiftsKg[liftKey];
+
+  // Heuristic: barbell exercises inherit the canonical lift by pattern + muscle
+  if (!exercise.equipment.includes('barbell' as (typeof exercise.equipment)[number])) return undefined;
+
+  if (exercise.pattern === 'push-horizontal' && exercise.primaryMuscles.includes('chest')) {
+    return currentLiftsKg.bench;
+  }
+  if (
+    exercise.pattern === 'squat' &&
+    (exercise.primaryMuscles.includes('quads') || exercise.primaryMuscles.includes('glutes'))
+  ) {
+    return currentLiftsKg.squat;
+  }
+  if (
+    exercise.pattern === 'hinge' &&
+    (exercise.primaryMuscles.includes('hamstrings') || exercise.primaryMuscles.includes('glutes'))
+  ) {
+    return currentLiftsKg.deadlift;
+  }
+  if (exercise.pattern === 'push-vertical' && exercise.primaryMuscles.includes('shoulders')) {
+    return currentLiftsKg.press;
+  }
+
+  return undefined;
+}
+
+/**
  * Generate a complete W1-W8 progression note string for an exercise.
  * Follows the linear periodization model used throughout the app.
+ *
+ * @param role             - exercise role within the session
+ * @param goal             - training goal key
+ * @param startingWeightKg - optional current working weight used to seed W1 load hint
  */
 function buildProgressionNote(
   role: 'primary_compound' | 'secondary_compound' | 'accessory' | 'isolation' | 'core',
   goal: string,
+  startingWeightKg?: number,
 ): string {
   const isCompound = role === 'primary_compound' || role === 'secondary_compound';
 
+  // Personalized load hint for W1 when we know the user's current lift
+  const w1Hint = isCompound && startingWeightKg
+    ? ` (~${Math.round(startingWeightKg * 0.7 * 2) / 2}kg)`
+    : '';
+  const w7Hint = isCompound && startingWeightKg
+    ? ` (~${Math.round(startingWeightKg * 0.875 * 2) / 2}kg)`
+    : '';
+
   if (isCompound && goal !== 'fat-loss') {
     return [
-      'W1: 3×10 @RPE7',
+      `W1: 3×10 @RPE7${w1Hint}`,
       'W2: 4×8 @RPE7',
       'W3: 4×8 @RPE8',
       'W4: Deload 2×10 @RPE6',
       'W5: 4×8 @RPE8',
       'W6: 4×6 @RPE8',
-      'W7: 5×5 @RPE9',
+      `W7: 5×5 @RPE9${w7Hint}`,
       'W8: Test 5RM or deload',
     ].join(' | ');
   }
 
   if (isCompound && goal === 'fat-loss') {
     return [
-      'W1: 3×12 @RPE6',
+      `W1: 3×12 @RPE6${w1Hint}`,
       'W2: 3×12 @RPE7',
       'W3: 4×10 @RPE7',
       'W4: Deload 2×12 @RPE6',
@@ -232,6 +304,7 @@ function buildProgramExercise(
   exercise: Exercise,
   role: ExerciseRole,
   goal: string,
+  startingWeightKg?: number,
 ): ProgramExercise {
   const scheme: SetScheme = {
     sets: setsForRole(role, goal),
@@ -242,7 +315,7 @@ function buildProgramExercise(
   return {
     exerciseId: exercise.id,
     scheme,
-    notes: buildProgressionNote(role, goal),
+    notes: buildProgressionNote(role, goal, startingWeightKg),
   };
 }
 
@@ -280,6 +353,7 @@ const UPPER_B_SLOTS: SlotDefinition[] = [
   { role: 'secondary_compound', patterns: [{ pattern: 'pull-vertical', muscles: ['lats'] }] },
   { role: 'isolation', patterns: [{ pattern: 'isolation', muscles: ['biceps'] }] },
   { role: 'isolation', patterns: [{ pattern: 'isolation', muscles: ['triceps'] }] },
+  { role: 'core', patterns: [{ pattern: 'isolation', muscles: ['core', 'abs'] }] },
 ];
 
 const LOWER_A_SLOTS: SlotDefinition[] = [
@@ -367,7 +441,9 @@ function buildLiftingDay(
     const exercises_for_slot = buildSessionExercises(profile, patternTargets, usedIds);
     if (exercises_for_slot.length === 0) continue;
     const ex = exercises_for_slot[0];
-    exercises.push(buildProgramExercise(ex, slot.role, goal));
+    // Look up the user's current working weight for this exercise (if known)
+    const startingWeightKg = findCurrentLiftKg(ex, profile.currentLiftsKg);
+    exercises.push(buildProgramExercise(ex, slot.role, goal, startingWeightKg));
     // Don't mark core/isolation exercises as "used globally" — allow them to repeat across days
     if (slot.role !== 'core' && slot.role !== 'isolation') {
       usedIds.add(ex.id);

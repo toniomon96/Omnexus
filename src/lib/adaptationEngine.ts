@@ -214,6 +214,39 @@ export function recommendAdaptation(progress: ExerciseProgress): AdaptationRecom
     };
   }
 
+  // No RPE data logged — give trend-only advice without RPE gating
+  const hasRpeData = avgRpe > 0;
+  if (!hasRpeData) {
+    if (trendDirection === 'improving') {
+      return {
+        exerciseId,
+        exerciseName,
+        action: 'increase_reps',
+        rationale: 'Performance is trending upward. Start logging RPE to unlock personalized load recommendations.',
+        confidence: 'medium',
+        category: 'volume',
+      };
+    }
+    if (trendDirection === 'declining') {
+      return {
+        exerciseId,
+        exerciseName,
+        action: 'hold',
+        rationale: 'Performance is trending downward. Log RPE on your sets to help identify whether fatigue or technique is the limiting factor.',
+        confidence: 'medium',
+        category: 'technique',
+      };
+    }
+    return {
+      exerciseId,
+      exerciseName,
+      action: 'hold',
+      rationale: 'Log RPE on your sets to unlock personalized load and volume recommendations.',
+      confidence: 'low',
+      category: 'load',
+    };
+  }
+
   // Consistently high RPE → deload
   if (avgRpe >= HIGH_RPE_THRESHOLD) {
     return {

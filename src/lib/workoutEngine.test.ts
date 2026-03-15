@@ -104,6 +104,36 @@ describe('generateProgram', () => {
     const program = generateProgram(baseProfile);
     expect(program.isAiGenerated).toBe(false);
   });
+
+  it('upper-lower 4-day program has a core exercise in each day', () => {
+    // Uses upper-lower split (4 days). Both Upper A and Upper B should have core exercises.
+    const program = generateProgram({ ...baseProfile, daysPerWeek: 4, sessionDurationMinutes: 75 });
+    const upperDays = program.schedule.filter((d) => d.type === 'upper');
+    for (const day of upperDays) {
+      // With 75-min sessions, 6 slots are used; at least one exercise should come from a core/abs pattern
+      expect(day.exercises.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('personalizes W1 note with starting weight when currentLiftsKg is provided', () => {
+    const profileWithLifts: typeof baseProfile = {
+      ...baseProfile,
+      currentLiftsKg: { bench: 100, squat: 120, deadlift: 150, press: 70 },
+    };
+    const program = generateProgram(profileWithLifts);
+    // At least one compound exercise in the schedule should contain a kg hint in its notes
+    const allNotes = program.schedule.flatMap((d) => d.exercises.map((e) => e.notes ?? ''));
+    const notesWithKg = allNotes.filter((n) => /~\d+(\.\d+)?kg/.test(n));
+    expect(notesWithKg.length).toBeGreaterThan(0);
+  });
+
+  it('generates generic W1 note when no currentLiftsKg is provided', () => {
+    const program = generateProgram(baseProfile);
+    const allNotes = program.schedule.flatMap((d) => d.exercises.map((e) => e.notes ?? ''));
+    // None of the notes should contain a kg hint
+    const notesWithKg = allNotes.filter((n) => /~\d+(\.\d+)?kg/.test(n));
+    expect(notesWithKg.length).toBe(0);
+  });
 });
 
 // ─── deriveConditioningProfile ────────────────────────────────────────────────

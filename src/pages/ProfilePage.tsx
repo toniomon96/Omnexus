@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
-import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight, Activity, Dumbbell, Flame, BarChart2 } from 'lucide-react';
+import { LogOut, Save, ChevronDown, Download, Trash2, AlertTriangle, Bell, BellOff, Lock, Camera, Zap, HelpCircle, ChevronRight, Activity, Dumbbell, Flame, BarChart2, TrendingUp } from 'lucide-react';
 import { apiBase } from '../lib/api';
 import { MIN_PASSWORD_LENGTH, passwordLengthError } from '../lib/passwordPolicy';
 import {
@@ -22,10 +22,12 @@ import {
   getExperienceMode,
   setExperienceMode,
   getWorkoutHistory,
+  getHistory,
   type ExperienceMode,
 } from '../utils/localStorage';
 import { countSessionsLast30Days, getTotalWeeklyVolumeKg } from '../utils/volumeUtils';
-import type { Goal, ExperienceLevel, WeightUnit, NotificationPreferences } from '../types';
+import { generateAdaptationPlan } from '../lib/adaptationEngine';
+import type { AdaptationRecommendation, Goal, ExperienceLevel, WeightUnit, NotificationPreferences } from '../types';
 import { AppShell } from '../components/layout/AppShell';
 import { TopBar } from '../components/layout/TopBar';
 import { Card } from '../components/ui/Card';
@@ -109,6 +111,12 @@ export function ProfilePage() {
       sessionsLast30Days: countSessionsLast30Days(sessions),
       weeklyVolumeKg: Math.round(getTotalWeeklyVolumeKg(sessions)),
     };
+  }, []);
+
+  const adaptationPlan = useMemo<AdaptationRecommendation[]>(() => {
+    const history = getHistory();
+    if (!history.sessions.length) return [];
+    return generateAdaptationPlan(history, 3);
   }, []);
 
   const [name, setName] = useState(currentUser?.name ?? '');
@@ -621,6 +629,49 @@ export function ProfilePage() {
             </div>
           </div>
         </Card>
+
+        {/* Adaptation Insights */}
+        {adaptationPlan.length > 0 && (
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp size={13} className="text-brand-500" />
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                Adaptation Insights
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              {adaptationPlan.map((rec) => {
+                const actionColors: Record<string, string> = {
+                  deload: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                  increase_load: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                  increase_reps: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                  hold: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                  swap: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                };
+                const actionLabels: Record<string, string> = {
+                  deload: 'Deload',
+                  increase_load: '↑ Load',
+                  increase_reps: '↑ Reps',
+                  hold: 'Hold',
+                  swap: 'Swap',
+                };
+                return (
+                  <div key={rec.exerciseId} className="flex items-start gap-2">
+                    <span className={`shrink-0 mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap ${actionColors[rec.action] ?? actionColors.hold}`}>
+                      {actionLabels[rec.action] ?? rec.action}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        {rec.exerciseName}
+                      </p>
+                      <p className="text-[10px] text-slate-500 leading-snug">{rec.rationale}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         {/* Subscription */}
         {!isGuest && (
