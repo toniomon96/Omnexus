@@ -26,14 +26,17 @@ type DeleteStep = {
     | void;
 };
 
-/** Returns true when the error means the table simply hasn't been migrated yet. */
-function isTableNotFoundError(error: StepError): boolean {
+/**
+ * Returns true when the error means a schema object (table or column) simply
+ * hasn't been migrated yet and the step can be safely skipped.
+ */
+function isSchemaObjectMissingError(error: StepError): boolean {
   if (!error) return false;
-  // PostgreSQL undefined_table error code surfaced via PostgREST
-  if (error.code === '42P01') return true;
+  // PostgreSQL undefined_table (42P01) or undefined_column (42703)
+  if (error.code === '42P01' || error.code === '42703') return true;
   const msg = error.message?.toLowerCase() ?? '';
-  // Standard Postgres "relation/table does not exist"
-  if ((msg.includes('relation') || msg.includes('table')) && msg.includes('does not exist')) return true;
+  // Standard Postgres "relation/table/column does not exist"
+  if (msg.includes('does not exist')) return true;
   // PostgREST schema-cache miss: "Could not find the table '...' in the schema cache"
   if (msg.includes('could not find the table') && msg.includes('schema cache')) return true;
   return false;
@@ -45,8 +48,8 @@ async function runDeleteSteps(steps: DeleteStep[]): Promise<Array<{ step: string
       const result = await Promise.resolve(step.execute());
       const error = result && 'error' in result ? result.error : null;
       if (error) {
-        if (isTableNotFoundError(error)) {
-          console.warn(`[delete-account] Table "${step.name}" not found — skipping (run pending migrations).`);
+        if (isSchemaObjectMissingError(error)) {
+          console.warn(`[delete-account] Schema object "${step.name}" not found — skipping (run pending migrations).`);
           continue;
         }
         return [{ step: step.name, message: error.message ?? 'Unknown database error' }];
@@ -115,7 +118,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const userId = user.id;
-  const userEmail = user.email ?? '';
 
   try {
     // Delete in dependency order and fail closed if any cleanup target fails.
@@ -155,12 +157,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { name: 'notification_preferences', execute: () => supabaseAdmin.from('notification_preferences').delete().eq('user_id', userId) },
       { name: 'notification_events', execute: () => supabaseAdmin.from('notification_events').delete().eq('user_id', userId) },
       { name: 'push_subscriptions', execute: () => supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId) },
-      {
-        name: 'auth_login_attempts',
-        execute: () => userEmail
-          ? supabaseAdmin.from('auth_login_attempts').delete().eq('email', userEmail)
-          : Promise.resolve({ error: null }),
-      },
       // Challenges created by the user are user-owned entities.
       { name: 'challenges', execute: () => supabaseAdmin.from('challenges').delete().eq('created_by', userId) },
       { name: 'avatars_storage', execute: () => deleteAvatarObjects(userId) },
