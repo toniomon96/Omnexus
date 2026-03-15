@@ -32,7 +32,11 @@ function isTableNotFoundError(error: StepError): boolean {
   // PostgreSQL undefined_table error code surfaced via PostgREST
   if (error.code === '42P01') return true;
   const msg = error.message?.toLowerCase() ?? '';
-  return (msg.includes('relation') || msg.includes('table')) && msg.includes('does not exist');
+  // Standard Postgres "relation/table does not exist"
+  if ((msg.includes('relation') || msg.includes('table')) && msg.includes('does not exist')) return true;
+  // PostgREST schema-cache miss: "Could not find the table '...' in the schema cache"
+  if (msg.includes('could not find the table') && msg.includes('schema cache')) return true;
+  return false;
 }
 
 async function runDeleteSteps(steps: DeleteStep[]): Promise<Array<{ step: string; message: string }>> {
