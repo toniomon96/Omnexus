@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Zap, Loader2, RefreshCw } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -44,6 +45,23 @@ export function getPersonalChallengeTargetDisplay(
   return { targetText, unitText };
 }
 
+export function getMetricProgress(
+  challenge: Pick<AiChallenge, 'metric' | 'target'>,
+  sessionsLast30Days: number,
+  weeklyVolumeKg: number,
+): { currentValue: number; progressPct: number } {
+  let currentValue = 0;
+  if (challenge.metric === 'sessions_count') {
+    currentValue = sessionsLast30Days;
+  } else if (challenge.metric === 'total_volume') {
+    currentValue = weeklyVolumeKg;
+  }
+  const progressPct = challenge.target > 0
+    ? Math.min(100, Math.round((currentValue / challenge.target) * 100))
+    : 0;
+  return { currentValue, progressPct };
+}
+
 export function PersonalChallengeCard({
   userId,
   goal,
@@ -53,6 +71,7 @@ export function PersonalChallengeCard({
   avgRpe,
 }: PersonalChallengeCardProps) {
   const weightUnit = useWeightUnit();
+  const navigate = useNavigate();
   const [challenge, setChallenge] = useState<AiChallenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -129,30 +148,33 @@ export function PersonalChallengeCard({
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const start = new Date(challenge.startDate);
   const end = new Date(challenge.endDate);
   const todayDate = new Date(today);
   const daysRemaining = Math.max(0, Math.ceil((end.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  const daysPassed = totalDays - daysRemaining;
-  const progressPct = totalDays > 0 ? Math.min(100, Math.round((daysPassed / totalDays) * 100)) : 0;
   const isActive = challenge.startDate <= today && challenge.endDate >= today;
+  const { progressPct } = getMetricProgress(challenge, sessionsLast30Days, weeklyVolumeKg);
+  const isComplete = progressPct >= 100;
   const { targetText: displayTargetText, unitText: displayUnit } = getPersonalChallengeTargetDisplay(challenge, weightUnit);
 
   return (
     <Card>
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex items-center gap-2 text-left min-w-0"
+          onClick={() => navigate(`/challenges/ai/${challenge.id}`)}
+          aria-label="View challenge details"
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 shrink-0">
             <Zap size={16} className="text-brand-500" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="font-semibold text-sm text-slate-900 dark:text-white">Personal Challenge</p>
             {isActive && (
               <p className="text-[10px] text-slate-400">{daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining</p>
             )}
           </div>
-        </div>
+        </button>
         <button
           onClick={handleGenerate}
           disabled={generating}
@@ -163,16 +185,29 @@ export function PersonalChallengeCard({
         </button>
       </div>
 
-      <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{challenge.title}</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{challenge.description}</p>
+      <button
+        type="button"
+        className="w-full text-left mb-3"
+        onClick={() => navigate(`/challenges/ai/${challenge.id}`)}
+        aria-label="View challenge details"
+      >
+        <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{challenge.title}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{challenge.description}</p>
+      </button>
 
       <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
         <span>Target: {displayTargetText} {displayUnit}</span>
-        <span>{progressPct}% through</span>
+        {isComplete
+          ? <span className="text-green-600 dark:text-green-400 font-semibold">✓ Complete!</span>
+          : <span>{progressPct}% done</span>
+        }
       </div>
       <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
         <div
-          className="h-full rounded-full bg-brand-500 transition-all duration-500"
+          className={[
+            'h-full rounded-full transition-all duration-500',
+            isComplete ? 'bg-green-500' : 'bg-brand-500',
+          ].join(' ')}
           style={{ width: `${progressPct}%` }}
         />
       </div>

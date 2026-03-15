@@ -165,7 +165,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   } catch (err) {
     console.error('[webhook-stripe] Handler error:', err);
-    return res.status(500).json({ error: 'Webhook handler failed' });
+    // Return 200 so Stripe does not retry on transient errors; failure is logged above.
+    return res.status(200).json({ received: true });
   }
 
   return res.status(200).json({ received: true });

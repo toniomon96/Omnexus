@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
@@ -98,9 +98,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const block = message.content[0];
     if (block.type !== 'text') throw new Error('Unexpected response type');
 
-    // Strip any markdown fences if the model wraps JSON
-    const raw = block.text.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-    const plan = JSON.parse(raw);
+    // Try to parse directly; fall back to extracting the first {...} block from the response.
+    let plan: Record<string, unknown>;
+    const rawText = block.text.trim();
+    try {
+      const stripped = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      plan = JSON.parse(stripped) as Record<string, unknown>;
+    } catch {
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (!match) {
+        console.error('[/api/meal-plan] Could not extract JSON from response:', rawText.slice(0, 500));
+        throw new Error('AI response did not contain valid JSON');
+      }
+      plan = JSON.parse(match[0]) as Record<string, unknown>;
+    }
+
+    if (!Array.isArray(plan.meals) || (plan.meals as unknown[]).length === 0) {
+      console.error('[/api/meal-plan] Schema validation failed — meals missing or empty:', JSON.stringify(plan).slice(0, 500));
+      return res.status(422).json({ error: 'Meal plan response was incomplete. Please try again.' });
+    }
 
     return res.status(200).json({ plan });
   } catch (err: unknown) {

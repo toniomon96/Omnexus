@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { AppShell } from '../components/layout/AppShell';
 import { ExerciseBlock } from '../components/workout/ExerciseBlock';
-import { RestTimer } from '../components/workout/RestTimer';
 import { WorkoutCompleteModal } from '../components/workout/WorkoutCompleteModal';
 import { AddExerciseDrawer } from '../components/workout/AddExerciseDrawer';
 import { PRCelebration } from '../components/workout/PRCelebration';
@@ -34,7 +33,7 @@ export function ActiveWorkoutPage() {
     completeWorkout,
     discardWorkout,
   } = useWorkoutSession();
-  const { seconds: restSeconds, isRunning: restRunning, start: startRest, stop: stopRest } = useRestTimer();
+  const { seconds: restSeconds, isRunning: restRunning, start: startRest, stop: stopRest, triggerExerciseIndex: restTriggerExerciseIndex, triggerSetIndex: restTriggerSetIndex } = useRestTimer();
 
   const [elapsed, setElapsed] = useState(0);
   const [showDrawer, setShowDrawer] = useState(false);
@@ -296,7 +295,12 @@ export function ActiveWorkoutPage() {
                 onUpdateSet={(si, data) => updateSet(ei, si, data)}
                 onAddSet={() => addSet(ei)}
                 onRemoveSet={(si) => removeSet(ei, si)}
-                onStartRest={() => startRest(restSecs)}
+                onStartRest={(si) => startRest(restSecs, ei, si)}
+                restIsRunning={restRunning}
+                activeRestSeconds={restSeconds}
+                isActiveRestBlock={restTriggerExerciseIndex === ei}
+                triggerSetIndex={restTriggerExerciseIndex === ei ? restTriggerSetIndex : null}
+                onSkipRest={stopRest}
                 forceShowDemo={showExerciseDemos}
               />
             );
@@ -312,12 +316,6 @@ export function ActiveWorkoutPage() {
           </button>
         </div>
       </AppShell>
-
-      <RestTimer
-        seconds={restSeconds}
-        isRunning={restRunning}
-        onStop={stopRest}
-      />
 
       <AddExerciseDrawer
         open={showDrawer}

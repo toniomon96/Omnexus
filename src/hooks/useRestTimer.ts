@@ -21,6 +21,8 @@ function playBeep() {
 export function useRestTimer() {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [triggerExerciseIndex, setTriggerExerciseIndex] = useState<number | null>(null);
+  const [triggerSetIndex, setTriggerSetIndex] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clear = useCallback(() => {
@@ -31,10 +33,12 @@ export function useRestTimer() {
   }, []);
 
   const start = useCallback(
-    (duration: number) => {
+    (duration: number, exerciseIndex?: number, setIndex?: number) => {
       clear();
       setSeconds(duration);
       setIsRunning(true);
+      setTriggerExerciseIndex(exerciseIndex ?? null);
+      setTriggerSetIndex(setIndex ?? null);
       intervalRef.current = setInterval(() => {
         setSeconds((s) => {
           if (s <= 1) {
@@ -54,9 +58,12 @@ export function useRestTimer() {
     clear();
     setIsRunning(false);
     setSeconds(0);
+    setTriggerExerciseIndex(null);
+    setTriggerSetIndex(null);
   }, [clear]);
 
   useEffect(() => () => clear(), [clear]);
 
-  return { seconds, isRunning, start, stop };
+  return { seconds, isRunning, start, stop, triggerExerciseIndex, triggerSetIndex };
 }
+

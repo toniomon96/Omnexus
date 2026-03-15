@@ -331,7 +331,7 @@ describe('stripe webhook handler', () => {
     expect(upserts).toHaveLength(0);
   });
 
-  it('returns 500 when DB upsert throws during checkout provisioning', async () => {
+  it('returns 200 when DB upsert throws during checkout provisioning', async () => {
     const { supabase } = createSupabaseMockWithUpsertError();
 
     vi.doMock('@supabase/supabase-js', () => ({
@@ -374,8 +374,8 @@ describe('stripe webhook handler', () => {
 
     await handler(createWebhookReq('{"id":"evt_checkout_upsert_err"}'), res);
 
-    expect(getStatusCode()).toBe(500);
-    expect(getBody()).toEqual({ error: 'Webhook handler failed' });
+    expect(getStatusCode()).toBe(200);
+    expect(getBody()).toEqual({ received: true });
   });
 
   it('returns 200 when subscription update has no matching profile', async () => {

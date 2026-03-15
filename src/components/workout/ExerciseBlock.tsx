@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronUp, Plus, Play } from 'lucide-react';
+import { ChevronUp, Plus, Play, X } from 'lucide-react';
 import type { LoggedExercise, LoggedSet } from '../../types';
 import { SetRow } from './SetRow';
 import { getExerciseById, getExerciseYouTubeId } from '../../data/exercises';
 import { Badge } from '../ui/Badge';
 import { YouTubeEmbed } from '../ui/YouTubeEmbed';
+import { formatDuration } from '../../utils/dateUtils';
 
 interface ExerciseBlockProps {
   loggedExercise: LoggedExercise;
@@ -14,8 +15,13 @@ interface ExerciseBlockProps {
   onUpdateSet: (setIdx: number, data: Partial<LoggedSet>) => void;
   onAddSet: () => void;
   onRemoveSet: (setIdx: number) => void;
-  onStartRest: () => void;
+  onStartRest: (setIndex: number) => void;
   forceShowDemo?: boolean;
+  restIsRunning?: boolean;
+  activeRestSeconds?: number;
+  isActiveRestBlock?: boolean;
+  triggerSetIndex?: number | null;
+  onSkipRest?: () => void;
 }
 
 export function ExerciseBlock({
@@ -28,12 +34,20 @@ export function ExerciseBlock({
   onRemoveSet,
   onStartRest,
   forceShowDemo = false,
+  restIsRunning = false,
+  activeRestSeconds = 0,
+  isActiveRestBlock = false,
+  triggerSetIndex = null,
+  onSkipRest,
 }: ExerciseBlockProps) {
   const exercise = getExerciseById(loggedExercise.exerciseId);
   const completedCount = loggedExercise.sets.filter((s) => s.completed).length;
   const youtubeId = exercise ? getExerciseYouTubeId(exercise.id) : undefined;
   const [showDemo, setShowDemo] = useState(false);
   const isDemoVisible = forceShowDemo || showDemo;
+
+  const showInlineTimer = restIsRunning && isActiveRestBlock && triggerSetIndex !== null;
+  const restPct = restSeconds > 0 ? Math.min(100, ((restSeconds - activeRestSeconds) / restSeconds) * 100) : 100;
 
   return (
     <div data-testid="exercise-block" className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -105,15 +119,49 @@ export function ExerciseBlock({
       {/* Sets */}
       <div className="px-2 py-2 space-y-1.5">
         {loggedExercise.sets.map((set, si) => (
-          <SetRow
-            key={si}
-            set={set}
-            prevSet={prevSets[si] ?? null}
-            restSeconds={restSeconds}
-            onUpdate={(data) => onUpdateSet(si, data)}
-            onRemove={loggedExercise.sets.length > 1 ? () => onRemoveSet(si) : undefined}
-            onStartRest={onStartRest}
-          />
+          <div key={si}>
+            <SetRow
+              set={set}
+              prevSet={prevSets[si] ?? null}
+              restSeconds={restSeconds}
+              onUpdate={(data) => onUpdateSet(si, data)}
+              onRemove={loggedExercise.sets.length > 1 ? () => onRemoveSet(si) : undefined}
+              onStartRest={() => onStartRest(si)}
+            />
+            {showInlineTimer && triggerSetIndex === si && (
+              <div className="mt-1.5 rounded-xl bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-700 px-3 py-2.5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-semibold text-brand-700 dark:text-brand-300">
+                    Rest — Set {set.setNumber} complete
+                  </p>
+                  <button
+                    onClick={onSkipRest}
+                    className="rounded-lg p-1 text-brand-500 hover:text-brand-700 dark:hover:text-brand-200 hover:bg-brand-100 dark:hover:bg-brand-800 transition-colors"
+                    aria-label="Skip rest"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl font-bold tabular-nums text-brand-800 dark:text-brand-200 w-12 shrink-0">
+                    {formatDuration(activeRestSeconds)}
+                  </span>
+                  <div className="flex-1 h-1.5 rounded-full bg-brand-100 dark:bg-brand-800 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-brand-500 transition-all duration-1000"
+                      style={{ width: `${restPct}%` }}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={onSkipRest}
+                  className="mt-2 w-full rounded-lg py-1.5 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-800 transition-colors border border-brand-200 dark:border-brand-700"
+                >
+                  Skip Rest / Start Next Set
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 

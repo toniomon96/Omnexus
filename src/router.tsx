@@ -59,6 +59,7 @@ const ActivityFeedPage = lazy(() => import('./pages/ActivityFeedPage').then(m =>
 const FriendsPage = lazy(() => import('./pages/FriendsPage').then(m => ({ default: m.FriendsPage })))
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })))
 const ChallengesPage = lazy(() => import('./pages/ChallengesPage').then(m => ({ default: m.ChallengesPage })))
+const ChallengeDetailPage = lazy(() => import('./pages/ChallengeDetailPage').then(m => ({ default: m.ChallengeDetailPage })))
 const NutritionPage = lazy(() => import('./pages/NutritionPage').then(m => ({ default: m.NutritionPage })))
 const MeasurementsPage = lazy(() => import('./pages/MeasurementsPage').then(m => ({ default: m.MeasurementsPage })))
 const QuickLogPage = lazy(() => import('./pages/QuickLogPage').then(m => ({ default: m.QuickLogPage })))
@@ -660,6 +661,7 @@ export const router = createBrowserRouter([
           { path: '/friends', element: <FriendsPage /> },
           { path: '/leaderboard', element: <LeaderboardPage /> },
           { path: '/challenges', element: <ChallengesPage /> },
+          { path: '/challenges/ai/:id', element: <ChallengeDetailPage /> },
         ],
       },
     ],
