@@ -883,6 +883,69 @@ export interface CheckinAdaptationBanner {
   flaggedExercises: string[];
 }
 
+// ─── Workout Engine ───────────────────────────────────────────────────────────
+
+/**
+ * Aggregated training metrics computed from a user's workout history.
+ * Used by the Adaptation Engine to generate evidence-based recommendations.
+ */
+export interface UserTrainingMetrics {
+  /** Derived from workout sessions in the analysis window */
+  periodStart: string;
+  periodEnd: string;
+  totalSessions: number;
+  /** Ratio of completed to planned sessions (0–1) */
+  adherenceRate: number;
+  avgSessionDurationMinutes: number;
+  totalVolumeKg: number;
+  avgRpe: number;
+  prCount: number;
+  /** Total working sets accumulated per muscle group in the period */
+  muscleGroupSets: Partial<Record<MuscleGroup, number>>;
+}
+
+/**
+ * Per-exercise performance snapshot used by the Adaptation Engine.
+ */
+export interface ExerciseProgress {
+  exerciseId: string;
+  exerciseName: string;
+  /** Total sessions in which this exercise appeared */
+  sessionCount: number;
+  bestWeightKg: number;
+  best1RMEstimate: number;
+  avgRpe: number;
+  /** Short-term trend derived from last 3 sessions vs previous 3 */
+  trendDirection: 'improving' | 'stable' | 'declining';
+  lastLoggedAt: string;
+}
+
+/**
+ * A structured, deterministic adaptation recommendation for a single exercise.
+ * Produced by the Adaptation Engine without any AI dependency.
+ */
+export interface AdaptationRecommendation {
+  exerciseId: string;
+  exerciseName: string;
+  action: 'increase_load' | 'increase_reps' | 'hold' | 'deload' | 'swap';
+  suggestedLoad?: number;
+  rationale: string;
+  confidence: 'high' | 'medium' | 'low';
+  /** Which aspect of training this recommendation primarily targets */
+  category: 'load' | 'volume' | 'recovery' | 'technique';
+}
+
+/**
+ * Configuration profile for conditioning sessions embedded in a training program.
+ */
+export interface ConditioningProfile {
+  modality: 'hiit' | 'liss' | 'circuit' | 'intervals' | 'emom';
+  durationMinutes: number;
+  intensityLevel: 'low' | 'moderate' | 'high';
+  /** Equipment available for conditioning work */
+  equipment: string[];
+}
+
 // ─── Celebrations ─────────────────────────────────────────────────────────────
 
 export type CelebrationKind = 'rank_up' | 'streak_milestone' | 'achievement';

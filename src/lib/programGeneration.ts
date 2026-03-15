@@ -126,16 +126,17 @@ export async function startGeneration(
   saveState(state);
   notify(state);
 
+  // Enrich with most recent feedback so the AI can adapt the program.
+  // Defined before try/catch so the fallback engine also gets the enriched profile.
+  const recentFeedback = profile.recentFeedback ?? getMostRecentFeedbackNote();
+  const enrichedProfile: UserTrainingProfile = recentFeedback
+    ? { ...profile, recentFeedback }
+    : profile;
+
   try {
     const headers = countAgainstQuota
       ? await getGenerationHeaders()
       : { 'Content-Type': 'application/json' };
-
-    // Enrich with most recent feedback so the AI can adapt the program
-    const recentFeedback = profile.recentFeedback ?? getMostRecentFeedbackNote();
-    const enrichedProfile: UserTrainingProfile = recentFeedback
-      ? { ...profile, recentFeedback }
-      : profile;
 
     const res = await fetch(`${apiBase}/api/generate-program`, {
       method: 'POST',
@@ -168,10 +169,26 @@ export async function startGeneration(
     saveState(ready);
     notify(ready);
   } catch (err) {
-    console.error('[programGeneration] Generation failed:', err);
-    const error: GenerationState = { ...state, status: 'error' };
-    saveState(error);
-    notify(error);
+    console.warn('[programGeneration] AI generation failed, falling back to deterministic engine:', err);
+    try {
+      const { generateProgram } = await import('./workoutEngine');
+      const fallback: Program = {
+        ...generateProgram(enrichedProfile),
+        id: programId,
+        isCustom: true,
+        createdAt: new Date().toISOString(),
+      };
+      saveCustomProgram(fallback);
+      await upsertCustomProgram(fallback, userId).catch(() => { /* synced on next login */ });
+      const ready: GenerationState = { ...state, status: 'ready' };
+      saveState(ready);
+      notify(ready);
+    } catch (fallbackErr) {
+      console.error('[programGeneration] Deterministic fallback also failed:', fallbackErr);
+      const error: GenerationState = { ...state, status: 'error' };
+      saveState(error);
+      notify(error);
+    }
   } finally {
     _running = false;
   }

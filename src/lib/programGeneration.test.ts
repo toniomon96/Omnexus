@@ -150,31 +150,35 @@ describe('programGeneration state machine', () => {
     unsub();
   });
 
-  it('emits "error" and does not call upsert when API fetch fails', async () => {
+  it('falls back to deterministic engine and emits "ready" when API returns an error', async () => {
     mockFetch(false, { error: 'Rate limit exceeded' });
+    mockUpsertCustomProgram.mockResolvedValue(undefined);
 
     const statuses: string[] = [];
     const unsub = subscribeToGeneration(s => statuses.push(s.status));
 
     await startGeneration('user-1', mockProfile);
 
-    expect(statuses).toContain('error');
-    expect(statuses).not.toContain('ready');
-    expect(mockUpsertCustomProgram).not.toHaveBeenCalled();
-    expect(mockSaveCustomProgram).not.toHaveBeenCalled();
+    // AI call failed but deterministic fallback succeeded → ready, not error
+    expect(statuses).toContain('ready');
+    expect(statuses).not.toContain('error');
+    // Fallback program was saved locally
+    expect(mockSaveCustomProgram).toHaveBeenCalled();
     unsub();
   });
 
-  it('emits "error" when fetch throws (network offline)', async () => {
+  it('falls back to deterministic engine and emits "ready" when fetch throws (network offline)', async () => {
     global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch')) as unknown as typeof fetch;
+    mockUpsertCustomProgram.mockResolvedValue(undefined);
 
     const statuses: string[] = [];
     const unsub = subscribeToGeneration(s => statuses.push(s.status));
 
     await startGeneration('user-1', mockProfile);
 
-    expect(statuses).toContain('error');
-    expect(mockUpsertCustomProgram).not.toHaveBeenCalled();
+    // Fallback ran and succeeded
+    expect(statuses).toContain('ready');
+    expect(statuses).not.toContain('error');
     unsub();
   });
 
