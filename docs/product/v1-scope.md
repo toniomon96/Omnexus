@@ -1,11 +1,11 @@
 # Omnexus V1 Scope
 
-This document is the authoritative reference for what is included in the V1 release. Every feature listed here is fully implemented, tested, and production-ready.
+This document is the authoritative reference for what is included in the V1 release. Items marked ✅ are implemented in the current codebase; deferred items are explicitly labeled and excluded from the launch bar.
 
 **Code quality gates (as of V1):**
 - 0 TypeScript errors
 - 0 ESLint warnings
-- 578 unit tests passing (Vitest)
+- 579 unit tests passing (Vitest)
 - Production build successful
 - 0 production dependency vulnerabilities
 
@@ -34,7 +34,7 @@ This document is the authoritative reference for what is included in the V1 rele
 
 | Feature | Status | Key Files |
 |---|---|---|
-| 316 exercises across 11 equipment categories | ✅ Shipped | `src/data/exercises/` |
+| 300+ exercises across 11 equipment categories | ✅ Shipped | `src/data/exercises/` |
 | Exercise detail page (4-tab layout: How To, Mistakes, Variations, Cues) | ✅ Shipped | `src/pages/ExerciseDetailPage.tsx` |
 | Equipment substitute finder | ✅ Shipped | `ExerciseDetailPage.tsx` |
 | Exercise discovery (5 modes: search, pattern, muscle, equipment, difficulty) | ✅ Shipped | `src/pages/ExerciseLibraryPage.tsx` |

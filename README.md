@@ -1,7 +1,7 @@
 # Omnexus
 
 [![CI](https://github.com/toniomon96/Omnexus/actions/workflows/ci.yml/badge.svg)](https://github.com/toniomon96/Omnexus/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-578%20passing-22c55e)
+![Tests](https://img.shields.io/badge/tests-579%20passing-22c55e)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 [![Live](https://img.shields.io/badge/Live%20App-omnexus.fit-6366f1?logo=vercel&logoColor=white)](https://omnexus.fit)
@@ -31,7 +31,7 @@ Detailed breakdowns, counting rules, and largest-file lists live in `docs/audit/
 |---|---|
 | **AI Onboarding** | Multi-turn Claude conversation that builds your training profile and generates a custom 8-week periodized program |
 | **Workout Tracking** | Log sets, reps, weight, RPE — auto-detects personal records with confetti celebration |
-| **Exercise Library** | 316 exercises with instructions, muscle groups, YouTube demo embeds, and SVG progression charts |
+| **Exercise Library** | 300+ exercises with instructions, muscle groups, YouTube demo embeds, and SVG progression charts |
 | **Training Programs** | Pre-built + custom-built programs with week/day cursor, builder UI, and AI-generated mesocycles |
 | **Ask Omnexus** | Claude-powered AI coach with multi-turn chat, follow-up chips, and RAG citations from PubMed |
 | **AI Insights** | Analyzes your last 4 weeks of training — personalized volume, frequency, and recovery recommendations |
@@ -70,7 +70,7 @@ Detailed breakdowns, counting rules, and largest-file lists live in `docs/audit/
 | Serverless | Vercel Functions (Node.js 20) + Cron Jobs |
 | External API | PubMed E-utilities |
 | Native | Capacitor v8 (iOS + Android) |
-| Testing | Vitest (578 unit tests), Playwright (E2E) |
+| Testing | Vitest (579 unit tests), Playwright (E2E) |
 | CI/CD | GitHub Actions |
 | Deployment | Vercel |
 
@@ -148,7 +148,7 @@ vercel dev
 ### 4. Run tests
 
 ```bash
-npm test          # Vitest unit tests (578 tests)
+npm test          # Vitest unit tests (579 tests)
 npm run test:e2e  # Playwright E2E tests (requires vercel dev running)
 ```
 
@@ -223,7 +223,7 @@ Omnexus/
 │   │
 │   ├── data/
 │   │   ├── courses.ts      Course/lesson/quiz content
-│   │   ├── exercises.ts    307 exercises (barbell, dumbbell, bodyweight + YouTube IDs)
+│   │   ├── exercises/      300+ modular exercise definitions
 │   │   └── programs.ts     Pre-built training programs
 │   │
 │   ├── hooks/              useLearningProgress, useRestTimer, useWorkoutSession, useSubscription
@@ -386,6 +386,7 @@ Start with [`docs/README.md`](docs/README.md) for the reorganized documentation 
 | [`docs/audit/codebase-health-report.md`](docs/audit/codebase-health-report.md) | Code quality, architecture, security, performance, and stability assessment |
 | [`docs/audit/documentation-status-report.md`](docs/audit/documentation-status-report.md) | Documentation categorization and cleanup guidance |
 | [`docs/audit/documentation-vs-implementation-report.md`](docs/audit/documentation-vs-implementation-report.md) | Documented feature validation against the current codebase |
+| [`docs/audit/v1-release-readiness-audit-2026-03-15.md`](docs/audit/v1-release-readiness-audit-2026-03-15.md) | V1 feature-completion, release-readiness, deployment, mobile, and documentation audit |
 | [`docs/audit/codebase-metrics-2026-03-15.md`](docs/audit/codebase-metrics-2026-03-15.md) | Metrics snapshot and largest-file analysis |
 
 ### Launch Records

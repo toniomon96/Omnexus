@@ -2,7 +2,7 @@
 
 ## Strengths
 
-- **Strong baseline validation**: `npm run lint`, `npm run build`, and `npm test -- --run` all pass; the repo currently has 578 passing unit tests.
+- **Strong baseline validation**: `npm run lint`, `npm run build`, and `npm test -- --run` all pass; the repo currently has 579 passing unit tests.
 - **Consistent typed stack**: React, TypeScript, and typed Supabase helpers keep most domain data explicit.
 - **Clear product-area segmentation**: the app is easy to navigate by domain because pages, components, and feature docs mostly align.
 - **Mature backend hardening patterns**: shared CORS, rate limiting, prompt-safety helpers, and localized route tests reduce repeated security work.

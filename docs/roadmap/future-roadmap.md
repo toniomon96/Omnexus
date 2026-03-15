@@ -4,7 +4,7 @@
 
 ## v1.0 — Shipped (Mobile Store Launch)
 
-All 11 sprints complete. **0 TypeScript errors · 578 tests passing.**
+All 11 sprints complete. **0 TypeScript errors · 579 tests passing.**
 
 | Sprint | Delivered |
 |---|---|
@@ -24,7 +24,7 @@ All 11 sprints complete. **0 TypeScript errors · 578 tests passing.**
 | Sprint 11 | UX overhaul, TrainPage + CommunityPage hubs, HelpPage (FAQ + bug report), `/api/report-bug`, marketing landing page |
 | Signup + Email | Custom `/api/signup` with Resend — branded confirmation emails, server-side admin user creation |
 | Inline Workout Editing | Edit logged sets inline in history cards |
-| Sprint A–J | Exercise Library to 316 exercises (11 categories), Exercise Detail Page redesign, Exercise Discovery Engine (5 modes + semantic search via pgvector), Gamification Engine (XP, ranks, streaks, achievements, celebrations), Learning System (15 courses, SM-2 spaced repetition, daily challenge), Omni AI Coach (Coach / Science / Check-In modes), Program Continuation (Progression Report, 3 paths, Training DNA), Course completion certificates + shareable share cards |
+| Sprint A–J | Exercise Library to 300+ exercises (11 categories), Exercise Detail Page redesign, Exercise Discovery Engine (5 modes + semantic search via pgvector), Gamification Engine (XP, ranks, streaks, achievements, celebrations), Learning System (15 courses, SM-2 spaced repetition, daily challenge), Omni AI Coach (Coach / Science / Check-In modes), Program Continuation (Progression Report, 3 paths, Training DNA), Course completion certificates + shareable share cards |
 | V1 Polish (Sprints 1–5) | Sync state transparency, guest-to-account migration, Dashboard + Train clarity, post-workout reinforcement, AI quality + fallback states, launch-readiness accessibility sweep |
 | Security Hardening | Cron endpoints fail-closed without CRON_SECRET, CORS strict-mode (403 on unknown origins), rate limiting in all environments, Content-Security-Policy on all API responses, Node 20 locked via .nvmrc + engines field, auth brute-force lockout, HSTS + security headers |
 
